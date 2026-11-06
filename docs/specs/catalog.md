@@ -35,5 +35,7 @@ behavior exists.
 | `BR-desktop-11` | Qui and qBittorrent config are bind-mounted on the host so replacing a container keeps the account | docs/desktop/overview.md | desktop/docker | tests/container-layout.test.ts | `asserted-unit` |
 | `BR-desktop-12` | The desktop shell stores the account with an OS cipher and signs in with Touch ID | docs/desktop/overview.md | desktop/account | tests/account-vault.test.ts, web/src/lib/desktop-account.test.ts | `asserted-unit` |
 | `BR-desktop-13` | The Docker update dialog stays quiet when a remote digest is already local or was dismissed | docs/desktop/overview.md | desktop/docker | tests/container-layout.test.ts | `asserted-unit` |
+| `BR-desktop-14` | Qui container bind-mounts the shared downloads directory and resolves host gateway to communicate with bundled qbittorrent-nox | docs/desktop/overview.md | desktop/docker | tests/container-layout.test.ts, tests/docker.test.ts | `asserted-unit` |
 | `BR-web-01` | After login or setup in Electron, session flags a one-time Touch ID gate on the authenticated shell | docs/web/electron-desktop.md | web/hooks | web/src/hooks/useAuth.desktop-flag.test.ts | `asserted-unit` |
+| `BR-web-02` | Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access | docs/desktop/overview.md | web/instances | web/src/lib/desktop-companion-instance.test.ts | `asserted-unit` |
 
