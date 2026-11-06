@@ -113,8 +113,8 @@ export function StatusBarFooter() {
         {/* Right: Version, Copyright, Language, GitHub */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground/70">
-            <span className="font-medium text-muted-foreground/90">
-              {t("sidebar.version", { version: appVersion })}
+            <span className="font-medium text-muted-foreground/90 font-mono">
+              {appVersion}
             </span>
             <span>•</span>
             <div className="flex items-center gap-1">
