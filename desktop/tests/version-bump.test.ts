@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import { bumpPatchVersion } from '../scripts/bump-version.mjs'
 
-describe('bumpPatchVersion (BR-desktop-22)', () => {
+describe('bumpPatchVersion (BR-desktop-25)', () => {
 	it('bumps patch version from 0.0.0 to 0.0.1', () => {
 		expect(bumpPatchVersion('0.0.0')).toBe('0.0.1')
 	})

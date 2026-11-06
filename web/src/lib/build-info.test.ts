@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { getAppVersion } from './build-info'
 
-describe('getAppVersion (BR-desktop-22, BR-web-07)', () => {
+describe('getAppVersion (BR-desktop-25, BR-web-07)', () => {
   afterEach(() => {
     delete (window as unknown as { quiDesktop?: unknown }).quiDesktop
     delete (window as unknown as { __QUI_VERSION__?: unknown }).__QUI_VERSION__

@@ -31,13 +31,18 @@ import {
 import { AccountVault } from './account-vault.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
-import { dockerDataDirs, updatesWorthPrompting } from './container-layout.js'
+import {
+	dockerDataDirs,
+	ensureQbitPreseedConfig,
+	updatesWorthPrompting,
+} from './container-layout.js'
 import { DockerManager } from './docker.js'
 import {
 	findMagnetUrlInArgs,
 	MagnetManager,
 	registerMagnetProtocolHandler,
 } from './magnet.js'
+import { registerApplicationMenu } from './menu.js'
 import { openWrappedQui, waitForQuiHttpReady } from './qui-ready.js'
 import { startupPageUrl } from './startup-page.js'
 import { AppTray } from './tray.js'
@@ -156,6 +161,7 @@ async function loadQuiWebUi(): Promise<void> {
 					for (const dir of [dirs.quiConfig, dirs.qbitConfig, dirs.downloads]) {
 						mkdirSync(dir, { recursive: true })
 					}
+					ensureQbitPreseedConfig(dirs.qbitConfig)
 					await dockerManager.alignContainer(
 						QUI_CONTAINER_NAME,
 						quiImage,
@@ -434,6 +440,68 @@ async function checkAndPromptDockerUpdates(options?: {
 async function bootstrapApp(): Promise<void> {
 	registerIpcHandlers()
 	mainWindow = createMainWindow()
+
+	registerApplicationMenu({
+		desktopDev,
+		quiWebOrigin,
+		getMainWindow: () => mainWindow,
+		callbacks: {
+			onAddTorrent: () => {
+				if (mainWindow) {
+					if (mainWindow.isMinimized()) mainWindow.restore()
+					mainWindow.show()
+					mainWindow.focus()
+					if (magnetManager.isQuiReady()) {
+						void mainWindow.loadURL(`${quiWebOrigin}/add`)
+					}
+				}
+			},
+			onPauseAll: async () => {
+				await apiClient.pauseAll()
+			},
+			onResumeAll: async () => {
+				await apiClient.resumeAll()
+			},
+			onOpenDownloadsFolder: () => {
+				const dirs = dockerDataDirs(homedir(), process.platform)
+				void shell.openPath(dirs.downloads)
+			},
+			onOpenQuiConfigFolder: () => {
+				const dirs = dockerDataDirs(homedir(), process.platform)
+				void shell.openPath(dirs.quiConfig)
+			},
+			onOpenQbitConfigFolder: () => {
+				const dirs = dockerDataDirs(homedir(), process.platform)
+				void shell.openPath(dirs.qbitConfig)
+			},
+			onCheckAppUpdates: async () => {
+				const info = await appUpdater.checkForUpdates()
+				await appUpdater.promptUpdateIfAvailable(mainWindow, info)
+			},
+			onCheckDockerUpdates: async () => {
+				await checkAndPromptDockerUpdates({ force: true })
+			},
+			onNavigateSettings: () => {
+				if (mainWindow) {
+					if (mainWindow.isMinimized()) mainWindow.restore()
+					mainWindow.show()
+					mainWindow.focus()
+					void mainWindow.loadURL(`${quiWebOrigin}/settings`)
+				}
+			},
+			onNavigateTorrents: () => {
+				if (mainWindow) {
+					if (mainWindow.isMinimized()) mainWindow.restore()
+					mainWindow.show()
+					mainWindow.focus()
+					void mainWindow.loadURL(`${quiWebOrigin}/torrents`)
+				}
+			},
+			onReloadQui: () => {
+				void loadQuiWebUi()
+			},
+		},
+	})
 
 	tray = new AppTray(mainWindow, {
 		onShowApp: () => {

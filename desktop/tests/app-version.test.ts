@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { readAppVersion } from '../src/shared/app-version.js'
 import { CURRENT_APP_VERSION } from '../src/shared/constants.js'
 
-describe('readAppVersion (BR-desktop-22)', () => {
+describe('readAppVersion (BR-desktop-25)', () => {
 	it('reads version 0.0.0 from desktop package.json', () => {
 		expect(CURRENT_APP_VERSION).toBe('0.0.0')
 	})
