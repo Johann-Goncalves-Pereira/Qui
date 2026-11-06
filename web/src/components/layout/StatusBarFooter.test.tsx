@@ -27,7 +27,7 @@ function renderWithProviders() {
   )
 }
 
-describe("StatusBarFooter component (BR-web-02)", () => {
+describe("StatusBarFooter component (BR-web-03)", () => {
   beforeEach(async () => {
     await initI18n()
     await changeLanguage("en")

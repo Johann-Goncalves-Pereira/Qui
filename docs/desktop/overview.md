@@ -26,5 +26,5 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 - `BR-desktop-12` in `docs/specs/catalog.md` — encrypted account and Touch ID sign-in.
 - `BR-desktop-13` in `docs/specs/catalog.md` — Docker update prompt does not repeat a dismissed digest.
 - `BR-desktop-14` in `docs/specs/catalog.md` — Docker configuration schemas and IPC inspection.
-- `BR-web-02` in `docs/specs/catalog.md` — Status bar footer with Docker service indicators.
-- `BR-web-03` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
+- `BR-web-03` in `docs/specs/catalog.md` — Status bar footer with Docker service indicators.
+- `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.

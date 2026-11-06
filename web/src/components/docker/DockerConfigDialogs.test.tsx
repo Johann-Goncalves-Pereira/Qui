@@ -73,7 +73,7 @@ vi.mock("sonner", () => ({
   },
 }))
 
-describe("Docker configuration dialogs (BR-web-03)", () => {
+describe("Docker configuration dialogs (BR-web-04)", () => {
   beforeEach(async () => {
     await initI18n()
     await changeLanguage("en")
