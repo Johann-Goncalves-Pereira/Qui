@@ -13,17 +13,18 @@
     "start": "pnpm build && electron dist/main/index.js",
     "dev": "tsc -w",
     "package:mac": "pnpm build && electron-builder --mac --dir -c.mac.identity=null",
-    "install:local": "pnpm package:mac && rm -rf /Applications/Qui.app && cp -R dist/mac-arm64/Qui.app /Applications/ && echo 'Qui.app successfully installed to /Applications/Qui.app'"
+    "install:local": "pnpm package:mac && rm -rf /Applications/Qui.app && cp -R release/mac-arm64/Qui.app /Applications/ && echo 'Qui.app successfully installed to /Applications/Qui.app'"
   },
   "build": {
     "appId": "com.autobrr.qui.desktop",
     "productName": "Qui",
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "!dist/builder*/**"
     ],
     "protocols": [
       {
