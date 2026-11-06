@@ -35,20 +35,25 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 export function quiContainerRunArgs(
 	image: string,
 	hostConfig: string,
+	downloads?: string,
 ): string[] {
-	return [
+	const args = [
 		'run',
 		'-d',
 		'--name',
 		QUI_CONTAINER_NAME,
 		'-p',
 		`${DEFAULT_QUI_PORT}:7476`,
-		'-v',
-		`${hostConfig}:/config`,
-		'--restart',
-		'unless-stopped',
-		image,
 	]
+	if (downloads) {
+		args.push(
+			'--add-host=host.docker.internal:host-gateway',
+			'-v',
+			`${downloads}:/downloads`,
+		)
+	}
+	args.push('-v', `${hostConfig}:/config`, '--restart', 'unless-stopped', image)
+	return args
 }
 
 export function qbitContainerRunArgs(

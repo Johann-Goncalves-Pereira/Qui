@@ -39,6 +39,17 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 		expect(args.at(-1)).toBe('qui-desktop:local')
 	})
 
+	it('mounts the downloads directory and adds host-gateway resolution (BR-desktop-14)', () => {
+		const args = quiContainerRunArgs(
+			'qui-desktop:local',
+			'/host/qui',
+			'/host/dl',
+		)
+		expect(args).toContain('/host/qui:/config')
+		expect(args).toContain('/host/dl:/downloads')
+		expect(args).toContain('--add-host=host.docker.internal:host-gateway')
+	})
+
 	it('mounts qBittorrent config and the download directory', () => {
 		const args = qbitContainerRunArgs('qbit:latest', '/host/qbit', '/host/dl')
 		expect(args).toContain('/host/qbit:/config')

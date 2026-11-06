@@ -121,6 +121,7 @@ export class DockerManager {
 		desiredImage: string,
 		hostDir: string,
 		containerDir: string,
+		requiredExtraMounts?: Array<{ hostDir: string; containerDir: string }>,
 	): Promise<void> {
 		let raw: string
 		try {
@@ -135,10 +136,18 @@ export class DockerManager {
 			return
 		}
 		const [image = '', mounts = ''] = raw.split('||')
-		const mounted = mounts
-			.split(';')
-			.some(entry => entry === `${containerDir}=${hostDir}`)
-		if (mounted && image === desiredImage) {
+		const mountEntries = mounts.split(';')
+		const mounted = mountEntries.some(
+			entry => entry === `${containerDir}=${hostDir}`,
+		)
+		const extraMounted =
+			!requiredExtraMounts ||
+			requiredExtraMounts.every(req =>
+				mountEntries.some(
+					entry => entry === `${req.containerDir}=${req.hostDir}`,
+				),
+			)
+		if (mounted && extraMounted && image === desiredImage) {
 			return
 		}
 		await this.executor.exec('docker', ['stop', name])
@@ -208,7 +217,7 @@ export class DockerManager {
 			QUI_CONTAINER_NAME,
 			QUI_IMAGE,
 			DEFAULT_QUI_PORT,
-			quiContainerRunArgs(QUI_IMAGE, dirs.quiConfig),
+			quiContainerRunArgs(QUI_IMAGE, dirs.quiConfig, dirs.downloads),
 		)
 
 		const qbitStatus = await this.ensureContainer(
@@ -306,7 +315,7 @@ export class DockerManager {
 			await this.executor.exec('docker', ['rm', containerName])
 			const runArgs =
 				containerName === QUI_CONTAINER_NAME
-					? quiContainerRunArgs(image, dirs.quiConfig)
+					? quiContainerRunArgs(image, dirs.quiConfig, dirs.downloads)
 					: qbitContainerRunArgs(image, dirs.qbitConfig, dirs.downloads)
 			await this.executor.exec('docker', runArgs)
 			return true
