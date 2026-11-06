@@ -10,6 +10,7 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 
 | You want to… | Do this |
 | --- | --- |
+| Install or update via Homebrew Cask / package managers | [package-managers.md](package-managers.md) |
 | Install or update the downloadable macOS app | [updates.md](updates.md) |
 | Day-to-day develop UI with hot reload | [dev-mode.md](dev-mode.md) |
 | Rebuild the local Docker image + clear Electron cache after pulling code | [refresh-script.md](refresh-script.md) |
@@ -53,6 +54,7 @@ pnpm --dir desktop install:local
 
 ## Related pages
 
+- [package-managers.md](package-managers.md) — install via Homebrew Cask and package manager roadmap
 - [updates.md](updates.md) — install / update the downloadable app and Docker images
 - [dev-mode.md](dev-mode.md) — hot-reload Electron + Vite
 - [refresh-script.md](refresh-script.md) — one-command local image rebuild
@@ -74,10 +76,11 @@ pnpm --dir desktop install:local
 - `BR-desktop-16` in `docs/specs/catalog.md` — Qui container bind-mounts the shared downloads directory and resolves host gateway to communicate with bundled qbittorrent-nox.
 - `BR-desktop-17` in `docs/specs/catalog.md` — packaged GHCR vs local Qui image.
 - `BR-desktop-18` in `docs/specs/catalog.md` — unsigned release download prompt.
-- `BR-desktop-19` in `docs/specs/catalog.md` — Vite origin in desktop dev mode.
+- `BR-desktop-20` in `docs/specs/catalog.md` — desktop refresh script.
 - `BR-desktop-21` in `docs/specs/catalog.md` — upstream-sync PR gate.
 - `BR-desktop-22` in `docs/specs/catalog.md` — clean install pre-seeds companion qBittorrent auth bypass.
 - `BR-desktop-23` in `docs/specs/catalog.md` — Qui application menu and hot-reload Developer menu.
+- `BR-desktop-24` in `docs/specs/catalog.md` — Homebrew Cask distribution and package manager blueprints.
 - `BR-web-03` in `docs/specs/catalog.md` — Status bar footer with streamlined borderless service indicators.
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
 - `BR-web-06` in `docs/specs/catalog.md` — Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access.
