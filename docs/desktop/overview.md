@@ -77,6 +77,6 @@ pnpm --dir desktop install:local
 - `BR-desktop-20` in `docs/specs/catalog.md` — desktop refresh script.
 - `BR-desktop-21` in `docs/specs/catalog.md` — upstream-sync PR gate.
 - `BR-desktop-22` in `docs/specs/catalog.md` — Clean install pre-seeds companion qBittorrent.conf with subnet authentication bypass to prevent random session password and IP ban lockouts.
-- `BR-web-03` in `docs/specs/catalog.md` — Status bar footer with Docker service indicators.
+- `BR-web-03` in `docs/specs/catalog.md` — Status bar footer with streamlined borderless service indicators.
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
 - `BR-web-06` in `docs/specs/catalog.md` — Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access.
