@@ -10,7 +10,7 @@ import {
 } from '../src/main/menu.js'
 import { APP_NAME } from '../src/shared/constants.js'
 
-describe('Application Menu Bar (BR-desktop-22)', () => {
+describe('Application Menu Bar (BR-desktop-23)', () => {
 	it('builds a production macOS menu bar without developer tools', () => {
 		const template = buildApplicationMenuTemplate({
 			platform: 'darwin',

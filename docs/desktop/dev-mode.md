@@ -90,4 +90,4 @@ In production builds (`QUI_DESKTOP_DEV` unset or `0`), the **Developer** menu an
 ## Related spec
 
 - `BR-desktop-19` — origin selection for production vs desktop dev.
-- `BR-desktop-22` — Qui application menu and hot-reload Developer menu.
+- `BR-desktop-23` — Qui application menu and hot-reload Developer menu.

@@ -31,7 +31,11 @@ import {
 import { AccountVault } from './account-vault.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
-import { dockerDataDirs, updatesWorthPrompting } from './container-layout.js'
+import {
+	dockerDataDirs,
+	ensureQbitPreseedConfig,
+	updatesWorthPrompting,
+} from './container-layout.js'
 import { DockerManager } from './docker.js'
 import {
 	findMagnetUrlInArgs,
@@ -157,6 +161,7 @@ async function loadQuiWebUi(): Promise<void> {
 					for (const dir of [dirs.quiConfig, dirs.qbitConfig, dirs.downloads]) {
 						mkdirSync(dir, { recursive: true })
 					}
+					ensureQbitPreseedConfig(dirs.qbitConfig)
 					await dockerManager.alignContainer(
 						QUI_CONTAINER_NAME,
 						quiImage,
