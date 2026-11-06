@@ -690,7 +690,8 @@
       "description": "Dadurch werden das Scan-Verzeichnis und sein Durchlauf-Verlauf entfernt. Bereits hinzugefügte Torrents sind nicht betroffen.",
       "cancel": "Abbrechen",
       "delete": "Löschen"
-    }
+    },
+    "addLocalCompanionInstance": "Lokales qBittorrent hinzufügen"
   },
   "route": {
     "foundOnAddedTo": "Gefunden auf {{source}}, hinzugefügt zu {{crossSeed}}",

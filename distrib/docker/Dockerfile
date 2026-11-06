@@ -1,24 +1,20 @@
 # Build stage
 FROM node:24.15-alpine AS frontend-builder
 
-# Install git for cloning
-RUN apk add --no-cache git
-
-# Update and enable Corepack
-RUN npm install -g corepack@latest && \
-    corepack enable
-
 WORKDIR /app/web
 
-COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
-
 COPY web ./
-RUN pnpm run build
+
+# Use existing dist if already built, otherwise install deps and build
+RUN if [ ! -f "dist/index.html" ]; then \
+      apk add --no-cache git && \
+      npm install -g corepack@latest && corepack enable && \
+      pnpm install --frozen-lockfile && \
+      pnpm run build; \
+    fi
 
 # Go build stage
-# Use BUILDPLATFORM to build on native architecture (fast)
-FROM --platform=$BUILDPLATFORM golang:1.27-alpine3.23 AS go-builder
+FROM golang:1.27-alpine3.23 AS go-builder
 
 # Install build dependencies
 RUN apk add --no-cache git
@@ -58,9 +54,12 @@ RUN case "${TARGETARCH}" in \
     esac
 
 # Build the application
-RUN CGO_ENABLED=0 go build \
-    -ldflags "-s -w -X github.com/autobrr/qui/internal/buildinfo.Version=${VERSION} -X github.com/autobrr/qui/internal/buildinfo.Commit=${GIT_COMMIT} -X github.com/autobrr/qui/internal/buildinfo.Date=${BUILD_DATE}" \
-    -o qui ./cmd/qui
+# If binary is not pre-built, compile it
+RUN if [ ! -f "qui" ]; then \
+      CGO_ENABLED=0 go build \
+      -ldflags "-s -w -X github.com/autobrr/qui/internal/buildinfo.Version=${VERSION} -X github.com/autobrr/qui/internal/buildinfo.Commit=${GIT_COMMIT} -X github.com/autobrr/qui/internal/buildinfo.Date=${BUILD_DATE}" \
+      -o qui ./cmd/qui; \
+    fi
 
 # Final stage
 FROM alpine:3.23

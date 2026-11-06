@@ -27,6 +27,29 @@ export function compareSemver(v1: string, v2: string): number {
 	return pat1 - pat2
 }
 
+export interface ReleaseAsset {
+	name?: string
+	browser_download_url?: string
+}
+
+/**
+ * Prefer a macOS `.dmg`, then `.zip`. Does not download or install — callers
+ * open the URL externally (unsigned builds).
+ */
+export function preferMacReleaseAsset(
+	assets: readonly ReleaseAsset[],
+): string | undefined {
+	const dmg = assets.find(a => a.name?.toLowerCase().endsWith('.dmg'))
+	if (dmg?.browser_download_url) {
+		return dmg.browser_download_url
+	}
+	const zip = assets.find(a => a.name?.toLowerCase().endsWith('.zip'))
+	if (zip?.browser_download_url) {
+		return zip.browser_download_url
+	}
+	return undefined
+}
+
 export interface ReleaseFetcher {
 	fetchLatest(repo: string): Promise<unknown>
 }
@@ -67,14 +90,10 @@ export class AppReleaseUpdater {
 			const latestVersion = tagName.replace(/^v/i, '') || this.currentVersion
 			const hasUpdate = compareSemver(latestVersion, this.currentVersion) > 0
 
-			let downloadUrl = ''
-			if (Array.isArray(data.assets) && data.assets.length > 0) {
-				const macAsset = (
-					data.assets as Array<{ browser_download_url?: string; name?: string }>
-				).find(a => a.name?.endsWith('.dmg') || a.name?.endsWith('.zip'))
-				downloadUrl =
-					macAsset?.browser_download_url ?? String(data.html_url ?? '')
-			}
+			const assets = Array.isArray(data.assets)
+				? (data.assets as ReleaseAsset[])
+				: []
+			const downloadUrl = preferMacReleaseAsset(assets)
 
 			return Schema.decodeUnknownSync(AppReleaseInfoSchema)({
 				hasUpdate,
@@ -103,6 +122,10 @@ export class AppReleaseUpdater {
 		}
 	}
 
+	/**
+	 * Opens the download URL in the browser. Never downloads or replaces the
+	 * app binary in-process (unsigned release path).
+	 */
 	async promptUpdateIfAvailable(
 		window: BrowserWindow | null,
 		info: AppReleaseInfo,
@@ -120,11 +143,14 @@ export class AppReleaseUpdater {
 
 		if (!window) return false
 
+		const notes = info.body
+			? `\n\nRelease notes:\n${info.body.slice(0, 300)}${info.body.length > 300 ? '…' : ''}`
+			: ''
 		const { response } = await dialog.showMessageBox(window, {
 			type: 'info',
 			title: `${APP_NAME} - New Version Available`,
 			message: `A new version of ${APP_NAME} is available: v${info.latestVersion}`,
-			detail: `Current version: v${this.currentVersion}\n\n${info.body ? `Release notes:\n${info.body.slice(0, 300)}...` : ''}`,
+			detail: `Current version: v${this.currentVersion}.${notes}\n\nDownload the .dmg or .zip, then replace Qui.app manually. This build does not install updates silently.`,
 			buttons: ['Download Update', 'Later'],
 			defaultId: 0,
 			cancelId: 1,

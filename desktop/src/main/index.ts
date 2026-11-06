@@ -24,14 +24,18 @@ import {
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
-	QUI_IMAGE,
-	QUI_WEB_LOGIN_URL,
-	QUI_WEB_ORIGIN,
+	quiWebLoginUrl,
+	resolveQuiImage,
+	resolveQuiWebOrigin,
 } from '../shared/constants.js'
 import { AccountVault } from './account-vault.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
-import { dockerDataDirs, updatesWorthPrompting } from './container-layout.js'
+import {
+	dockerDataDirs,
+	ensureQbitPreseedConfig,
+	updatesWorthPrompting,
+} from './container-layout.js'
 import { DockerManager } from './docker.js'
 import {
 	findMagnetUrlInArgs,
@@ -58,13 +62,24 @@ let tray: AppTray | null = null
 let statsInterval: NodeJS.Timeout | null = null
 let isQuitting = false
 
-const dockerManager = new DockerManager()
+const desktopDev = process.env.QUI_DESKTOP_DEV === '1'
+const quiWebOrigin = resolveQuiWebOrigin({
+	envOrigin: process.env.QUI_WEB_ORIGIN,
+	desktopDev,
+})
+const quiWebLogin = quiWebLoginUrl(quiWebOrigin)
+const quiImage = resolveQuiImage({
+	isPackaged: app.isPackaged,
+	envImage: process.env.QUI_DESKTOP_IMAGE,
+})
+
+const dockerManager = new DockerManager(undefined, undefined, quiImage)
 const biometricAuth = new BiometricAuthService()
 /** Suppress repeat Docker image dialogs in one session (tray can force a recheck). */
 let dockerImageUpdatePromptShownThisSession = false
-const apiClient = new QuiApiClient()
+const apiClient = new QuiApiClient(quiWebOrigin)
 const appUpdater = new AppReleaseUpdater()
-const magnetManager = new MagnetManager(QUI_WEB_ORIGIN)
+const magnetManager = new MagnetManager(quiWebOrigin)
 
 registerMagnetProtocolHandler(app)
 
@@ -137,32 +152,40 @@ async function loadQuiWebUi(): Promise<void> {
 					await presentStartupPage(win, message, processInfo)
 				},
 				ensureContainers: async () => {
+					// Hot-reload mode expects `make dev` (air + Vite). Do not bind :7476.
+					if (desktopDev) {
+						return
+					}
 					const dirs = dockerDataDirs(homedir(), process.platform)
 					for (const dir of [dirs.quiConfig, dirs.qbitConfig, dirs.downloads]) {
 						mkdirSync(dir, { recursive: true })
 					}
+					ensureQbitPreseedConfig(dirs.qbitConfig)
 					await dockerManager.alignContainer(
 						QUI_CONTAINER_NAME,
-						QUI_IMAGE,
+						quiImage,
 						dirs.quiConfig,
 						'/config',
+						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
 					await dockerManager.alignContainer(
 						QBIT_CONTAINER_NAME,
 						QBIT_IMAGE,
 						dirs.qbitConfig,
 						'/config',
+						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
 					const { qui, qbit } = await dockerManager.ensureContainersRunning()
 					if (tray) tray.updateDockerStatus(qui, qbit)
 				},
-				waitForHttp: () => waitForQuiHttpReady({ baseUrl: QUI_WEB_ORIGIN }),
+				waitForHttp: () => waitForQuiHttpReady({ baseUrl: quiWebOrigin }),
 				openWeb: async () => {
-					const targetUrl =
-						magnetManager.consumePendingAddUrl() ?? QUI_WEB_LOGIN_URL
+					const targetUrl = magnetManager.consumePendingAddUrl() ?? quiWebLogin
 					await win.loadURL(targetUrl)
 				},
-				unavailableMessage: `Nothing is serving ${QUI_WEB_ORIGIN} yet. Check Docker, then use Tray → Reload Qui web app.`,
+				unavailableMessage: desktopDev
+					? `Nothing is serving ${quiWebOrigin}. Start make dev (Vite on 5173, API on 7476), then reload.`
+					: `Nothing is serving ${quiWebOrigin} yet. Check Docker, then use Tray → Reload Qui web app.`,
 			})
 		} catch (error) {
 			const detail =
@@ -200,7 +223,7 @@ function registerIpcHandlers(): void {
 		const qui = await dockerManager.getContainerStatus(
 			QUI_CONTAINER_NAME,
 			DEFAULT_QUI_PORT,
-			QUI_IMAGE,
+			quiImage,
 		)
 		const qbit = await dockerManager.getContainerStatus(
 			QBIT_CONTAINER_NAME,
@@ -211,7 +234,7 @@ function registerIpcHandlers(): void {
 	})
 
 	ipcMain.handle('docker:check-updates', async () => {
-		const quiUpdate = await dockerManager.checkForImageUpdate(QUI_IMAGE)
+		const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
 		const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
 		return [quiUpdate, qbitUpdate]
 	})
@@ -364,7 +387,7 @@ async function checkAndPromptDockerUpdates(options?: {
 		if (!options?.force && dockerImageUpdatePromptShownThisSession) {
 			return
 		}
-		const quiUpdate = await dockerManager.checkForImageUpdate(QUI_IMAGE)
+		const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
 		const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
 
 		const updates = updatesWorthPrompting(
@@ -397,7 +420,7 @@ async function checkAndPromptDockerUpdates(options?: {
 			if (response === 0) {
 				for (const u of updates) {
 					const name =
-						u.image === QUI_IMAGE ? QUI_CONTAINER_NAME : QBIT_CONTAINER_NAME
+						u.image === quiImage ? QUI_CONTAINER_NAME : QBIT_CONTAINER_NAME
 					await dockerManager.updateAndRestartContainer(name, u.image)
 				}
 				dialog.showMessageBox(mainWindow, {
@@ -439,7 +462,7 @@ async function bootstrapApp(): Promise<void> {
 				mainWindow.show()
 				mainWindow.focus()
 				if (magnetManager.isQuiReady()) {
-					void mainWindow.loadURL(`${QUI_WEB_ORIGIN}/add`)
+					void mainWindow.loadURL(`${quiWebOrigin}/add`)
 				}
 			}
 		},

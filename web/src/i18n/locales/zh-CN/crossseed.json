@@ -679,7 +679,8 @@
       "description": "这将移除扫描目录及其运行历史。已添加的种子不会受到影响。",
       "cancel": "取消",
       "delete": "删除"
-    }
+    },
+    "addLocalCompanionInstance": "添加本地 qBittorrent"
   },
   "route": {
     "foundOnAddedTo": "在 {{source}} 上找到，已添加到 {{crossSeed}}",

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import {
 	DEFAULT_GAZELLE_PORT,
@@ -49,20 +50,30 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 export function quiContainerRunArgs(
 	image: string,
 	hostConfig: string,
+	downloads?: string,
+	envExists: (filePath: string) => boolean = existsSync,
 ): string[] {
-	return [
+	const args = [
 		'run',
 		'-d',
 		'--name',
 		QUI_CONTAINER_NAME,
 		'-p',
 		`${DEFAULT_QUI_PORT}:7476`,
-		'-v',
-		`${hostConfig}:/config`,
-		'--restart',
-		'unless-stopped',
-		image,
 	]
+	if (downloads) {
+		args.push(
+			'--add-host=host.docker.internal:host-gateway',
+			'-v',
+			`${downloads}:/downloads`,
+		)
+	}
+	const envPath = path.join(hostConfig, '.env')
+	if (envExists(envPath)) {
+		args.push('--env-file', envPath)
+	}
+	args.push('-v', `${hostConfig}:/config`, '--restart', 'unless-stopped', image)
+	return args
 }
 
 export function qbitContainerRunArgs(
@@ -89,6 +100,50 @@ export function qbitContainerRunArgs(
 		'unless-stopped',
 		image,
 	]
+}
+
+export const DEFAULT_QBIT_PRESEED_CONF = `[BitTorrent]
+Session\\DefaultSavePath=/downloads/
+Session\\Port=6881
+Session\\QueueingSystemEnabled=true
+Session\\TempPath=/downloads/incomplete/
+
+[LegalNotice]
+Accepted=true
+
+[Preferences]
+Connection\\ResolvePeerCountries=true
+
+[WebUI]
+Address=*
+ServerDomains=*
+AuthSubnetWhitelistEnabled=true
+AuthSubnetWhitelist=10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1/32
+LocalHostAuth=false
+`
+
+/**
+ * Ensures that qBittorrent has an initial configuration file on clean install.
+ * By pre-seeding AuthSubnetWhitelist and LocalHostAuth=false, Qui communicating
+ * via the Docker network / loopback does not get locked out by random password
+ * generation or brute-force IP bans.
+ */
+export function ensureQbitPreseedConfig(
+	qbitConfigDir: string,
+	fs = {
+		existsSync,
+		mkdirSync,
+		writeFileSync,
+	},
+): boolean {
+	const confDir = path.join(qbitConfigDir, 'qBittorrent')
+	const confPath = path.join(confDir, 'qBittorrent.conf')
+	if (fs.existsSync(confPath)) {
+		return false
+	}
+	fs.mkdirSync(confDir, { recursive: true })
+	fs.writeFileSync(confPath, DEFAULT_QBIT_PRESEED_CONF, 'utf-8')
+	return true
 }
 
 export function gazelleContainerRunArgs(
