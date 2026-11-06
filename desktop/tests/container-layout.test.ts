@@ -250,7 +250,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 		expect(parsed.downloadsPath).toBe('/host/downloads')
 	})
 
-	it('pre-seeds qBittorrent.conf with subnet bypass on clean install (BR-desktop-17)', () => {
+	it('pre-seeds qBittorrent.conf with subnet bypass on clean install (BR-desktop-22)', () => {
 		const writtenFiles = new Map<string, string>()
 		const createdDirs = new Set<string>()
 

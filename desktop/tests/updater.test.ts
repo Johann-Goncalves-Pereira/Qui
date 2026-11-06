@@ -8,6 +8,7 @@ import {
 	AppReleaseUpdater,
 	compareSemver,
 	parseSemver,
+	preferMacReleaseAsset,
 	type ReleaseFetcher,
 } from '../src/main/updater.js'
 
@@ -103,5 +104,62 @@ describe('AppReleaseUpdater and semver helpers', () => {
 
 		expect(info.hasUpdate).toBe(false)
 		expect(info.currentVersion).toBe('1.0.0')
+	})
+
+	it('prefers .dmg over .zip for mac download assets (BR-desktop-18)', () => {
+		expect(
+			preferMacReleaseAsset([
+				{
+					name: 'Qui-1.1.0-arm64.zip',
+					browser_download_url: 'https://example.com/Qui.zip',
+				},
+				{
+					name: 'Qui-1.1.0-arm64.dmg',
+					browser_download_url: 'https://example.com/Qui.dmg',
+				},
+			]),
+		).toBe('https://example.com/Qui.dmg')
+		expect(
+			preferMacReleaseAsset([
+				{
+					name: 'Qui-1.1.0-arm64.zip',
+					browser_download_url: 'https://example.com/Qui.zip',
+				},
+			]),
+		).toBe('https://example.com/Qui.zip')
+	})
+
+	it('selects the dmg URL when both assets are listed (BR-desktop-18)', async () => {
+		const mockFetcher: ReleaseFetcher = {
+			async fetchLatest() {
+				return {
+					tag_name: 'v1.2.0',
+					name: 'Qui v1.2.0',
+					body: 'notes',
+					html_url:
+						'https://github.com/Johann-Goncalves-Pereira/Qui/releases/tag/v1.2.0',
+					published_at: '2026-11-06T12:00:00Z',
+					assets: [
+						{
+							name: 'Qui-1.2.0-arm64.zip',
+							browser_download_url: 'https://example.com/Qui.zip',
+						},
+						{
+							name: 'Qui-1.2.0-arm64.dmg',
+							browser_download_url: 'https://example.com/Qui.dmg',
+						},
+					],
+				}
+			},
+		}
+
+		const updater = new AppReleaseUpdater(
+			'Johann-Goncalves-Pereira/Qui',
+			'1.0.0',
+			mockFetcher,
+		)
+		const info = await updater.checkForUpdates()
+		expect(info.downloadUrl).toBe('https://example.com/Qui.dmg')
+		expect(info.hasUpdate).toBe(true)
 	})
 })
