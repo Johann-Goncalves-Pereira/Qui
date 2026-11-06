@@ -39,5 +39,7 @@ compatible with upstream changes:
 
 - `BR-web-01` in `docs/specs/catalog.md` — desktop biometric gate session flag.
 - `BR-web-02` in `docs/specs/catalog.md` — desktop header height lg:h-12 (48px).
+- `BR-web-03` in `docs/specs/catalog.md` — status bar footer with service indicators and relocated chrome.
+- `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs (Qui and qBittorrent).
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
 

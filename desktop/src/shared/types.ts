@@ -64,3 +64,34 @@ export const AppReleaseInfoSchema = Schema.Struct({
 })
 
 export type AppReleaseInfo = typeof AppReleaseInfoSchema.Type
+
+export const QuiContainerConfigSchema = Schema.Struct({
+	port: Schema.Number,
+	configPath: Schema.String,
+	dataPath: Schema.optional(Schema.String),
+	puid: Schema.optional(Schema.String),
+	pgid: Schema.optional(Schema.String),
+	umask: Schema.optional(Schema.String),
+	logLevel: Schema.optional(Schema.String),
+	baseUrl: Schema.optional(Schema.String),
+	tz: Schema.optional(Schema.String),
+	restartPolicy: Schema.String,
+	image: Schema.String,
+})
+
+export type QuiContainerConfig = typeof QuiContainerConfigSchema.Type
+
+export const QBitContainerConfigSchema = Schema.Struct({
+	port: Schema.Number,
+	peerPort: Schema.Number,
+	configPath: Schema.String,
+	downloadsPath: Schema.String,
+	puid: Schema.optional(Schema.String),
+	pgid: Schema.optional(Schema.String),
+	umask: Schema.optional(Schema.String),
+	tz: Schema.optional(Schema.String),
+	restartPolicy: Schema.String,
+	image: Schema.String,
+})
+
+export type QBitContainerConfig = typeof QBitContainerConfigSchema.Type

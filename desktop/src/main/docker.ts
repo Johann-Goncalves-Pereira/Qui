@@ -22,11 +22,21 @@ import {
 	DockerContainerStatusSchema,
 	type DockerUpdateInfo,
 	DockerUpdateInfoSchema,
+	type QBitContainerConfig,
+	QBitContainerConfigSchema,
+	type QuiContainerConfig,
+	QuiContainerConfigSchema,
 } from '../shared/types.js'
 import {
+	defaultQBitConfig,
+	defaultQuiConfig,
 	dockerDataDirs,
 	imageDigestHasUpdate,
+	parseInspectToQBitConfig,
+	parseInspectToQuiConfig,
+	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
+	quiConfigToRunArgs,
 	quiContainerRunArgs,
 } from './container-layout.js'
 
@@ -320,6 +330,106 @@ export class DockerManager {
 			await this.executor.exec('docker', ['image', 'inspect', image])
 		} catch {
 			await this.executor.exec('docker', ['pull', image])
+		}
+	}
+
+	async getQuiConfig(): Promise<QuiContainerConfig> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
+		const fallback = defaultQuiConfig(dirs)
+		try {
+			const { stdout } = await this.executor.exec('docker', [
+				'inspect',
+				QUI_CONTAINER_NAME,
+			])
+			return parseInspectToQuiConfig(stdout, fallback)
+		} catch {
+			return fallback
+		}
+	}
+
+	async getQBitConfig(): Promise<QBitContainerConfig> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
+		const fallback = defaultQBitConfig(dirs)
+		try {
+			const { stdout } = await this.executor.exec('docker', [
+				'inspect',
+				QBIT_CONTAINER_NAME,
+			])
+			return parseInspectToQBitConfig(stdout, fallback)
+		} catch {
+			return fallback
+		}
+	}
+
+	async applyQuiConfig(
+		rawConfig: unknown,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const config = Schema.decodeUnknownSync(QuiContainerConfigSchema)(
+				rawConfig,
+			)
+			this.mkdir(config.configPath)
+			if (config.dataPath) {
+				this.mkdir(config.dataPath)
+			}
+			try {
+				await this.executor.exec('docker', ['stop', QUI_CONTAINER_NAME])
+			} catch {
+				// Container might not be running
+			}
+			try {
+				await this.executor.exec('docker', ['rm', QUI_CONTAINER_NAME])
+			} catch {
+				// Container might not exist
+			}
+			await this.pullIfMissing(config.image)
+			const args = quiConfigToRunArgs(config)
+			await this.executor.exec('docker', args)
+			return { success: true }
+		} catch (err) {
+			const error = err instanceof Error ? err.message : String(err)
+			return { success: false, error }
+		}
+	}
+
+	async applyQBitConfig(
+		rawConfig: unknown,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const config = Schema.decodeUnknownSync(QBitContainerConfigSchema)(
+				rawConfig,
+			)
+			this.mkdir(config.configPath)
+			this.mkdir(config.downloadsPath)
+			try {
+				await this.executor.exec('docker', ['stop', QBIT_CONTAINER_NAME])
+			} catch {
+				// Container might not be running
+			}
+			try {
+				await this.executor.exec('docker', ['rm', QBIT_CONTAINER_NAME])
+			} catch {
+				// Container might not exist
+			}
+			await this.pullIfMissing(config.image)
+			const args = qbitConfigToRunArgs(config)
+			await this.executor.exec('docker', args)
+			return { success: true }
+		} catch (err) {
+			const error = err instanceof Error ? err.message : String(err)
+			return { success: false, error }
+		}
+	}
+
+	async restartContainer(
+		containerName: string,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			await this.executor.exec('docker', ['restart', containerName])
+			return { success: true }
+		} catch (err) {
+			const error = err instanceof Error ? err.message : String(err)
+			return { success: false, error }
 		}
 	}
 }

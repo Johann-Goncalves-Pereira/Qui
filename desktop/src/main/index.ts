@@ -224,6 +224,32 @@ function registerIpcHandlers(): void {
 		},
 	)
 
+	ipcMain.handle('docker:get-qui-config', async () =>
+		dockerManager.getQuiConfig(),
+	)
+
+	ipcMain.handle('docker:get-qbit-config', async () =>
+		dockerManager.getQBitConfig(),
+	)
+
+	ipcMain.handle('docker:save-qui-config', async (_event, config: unknown) =>
+		dockerManager.applyQuiConfig(config),
+	)
+
+	ipcMain.handle('docker:save-qbit-config', async (_event, config: unknown) =>
+		dockerManager.applyQBitConfig(config),
+	)
+
+	ipcMain.handle(
+		'docker:restart-container',
+		async (_event, containerName: unknown) => {
+			if (typeof containerName !== 'string') {
+				return { success: false, error: 'Invalid container name' }
+			}
+			return dockerManager.restartContainer(containerName)
+		},
+	)
+
 	ipcMain.handle('api:transfer-stats', async () => {
 		return apiClient.getTransferStats()
 	})

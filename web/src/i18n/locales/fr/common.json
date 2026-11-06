@@ -30,6 +30,92 @@
     "showSidebar": "Afficher la barre latérale",
     "hideSidebar": "Masquer la barre latérale"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Conteneur Qui ({{state}}) sur le port {{port}}. Cliquez pour configurer Docker.",
+    "tooltipQbit": "Conteneur qBittorrent-nox ({{state}}) sur le port {{port}}. Cliquez pour configurer Docker.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Configuration du conteneur Qui",
+      "description": "Paramètres Docker officiels pour autobrr/qui selon la documentation de déploiement."
+    },
+    "qbit": {
+      "title": "Configuration du conteneur qBittorrent-nox",
+      "description": "Paramètres Docker officiels pour linuxserver/qbittorrent selon la documentation de déploiement."
+    },
+    "state": {
+      "running": "En cours d'exécution"
+    },
+    "toast": {
+      "quiSaved": "Configuration du conteneur Qui enregistrée",
+      "qbitSaved": "Configuration du conteneur qBittorrent-nox enregistrée",
+      "quiRestartStarted": "Redémarrage du conteneur Qui lancé",
+      "qbitRestartStarted": "Redémarrage du conteneur qBittorrent-nox lancé",
+      "copyCommandSuccess": "Commande docker run copiée dans le presse-papiers",
+      "saveFailed": "Échec de l'enregistrement de la configuration",
+      "restartFailed": "Échec du redémarrage du conteneur",
+      "genericSaveError": "Erreur lors de l'enregistrement de la configuration",
+      "genericRestartError": "Erreur lors du redémarrage du conteneur",
+      "copyCommandFailed": "Impossible de copier dans le presse-papiers"
+    },
+    "fields": {
+      "hostWebUiPort": "Port de l'interface web hôte",
+      "dockerImage": "Image Docker",
+      "volumeBindMounts": "Montages de volumes (bind)",
+      "hostConfigDirQui": "Répertoire de configuration hôte (/config)",
+      "hostConfigDirQuiHelp": "Stocke config.toml, la base qui.db, le cache d'icônes et les journaux d'exécution.",
+      "hostDataDir": "Répertoire de données hôte (/data)",
+      "hostDataDirHelp": "Requis pour les opérations de hardlink/reflink cross-seed et les analyses des orphelins.",
+      "hostConfigDirQbit": "Répertoire de configuration hôte (/config)",
+      "hostConfigDirQbitHelp": "Contient qBittorrent.conf, les journaux, les fichiers d'état et les sauvegardes de torrents.",
+      "hostDownloadsDir": "Répertoire des téléchargements hôte (/downloads)",
+      "hostDownloadsHelp": "Dossier cible par défaut pour les torrents actifs et terminés.",
+      "puid": "PUID",
+      "puidHelp": "ID utilisateur",
+      "pgid": "PGID",
+      "pgidHelp": "ID de groupe",
+      "umask": "UMASK",
+      "umaskHelpQui": "p. ex. 002 ou 022",
+      "umaskHelpQbit": "p. ex. 022 ou 002",
+      "logLevel": "Niveau de journalisation (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Niveau de journalisation",
+      "restartPolicy": "Politique de redémarrage",
+      "restartPolicyPlaceholder": "Politique de redémarrage",
+      "timezone": "Fuseau horaire (TZ)",
+      "baseUrl": "URL de base (QUI__BASE_URL)",
+      "baseUrlHelp": "URL publique facultative lorsque Qui est derrière un proxy inverse.",
+      "bitTorrentPeerPort": "Port pair BitTorrent",
+      "peerPortHelp": "Trafic entrant TCP et UDP (par défaut : 6881).",
+      "dockerCommandPreview": "Aperçu de la commande Docker",
+      "copy": "Copier",
+      "copied": "Copié",
+      "quiImageHelp": "p. ex. qui-desktop:local ou ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "p. ex. lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Mappé sur le port conteneur 7476 (par défaut : 7476).",
+      "qbitPortMappedHelp": "Mappé sur le port conteneur 8080 (par défaut : 8080).",
+      "dataPathPlaceholder": "/chemin/vers/téléchargements (facultatif)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Redémarrer le conteneur",
+      "cancel": "Annuler",
+      "saveApply": "Enregistrer et appliquer"
+    }
+  },
   "header": {
     "currentInstance": "Instance actuelle : {{name}}. Cliquez pour changer d'instance.",
     "connected": "Connecté",

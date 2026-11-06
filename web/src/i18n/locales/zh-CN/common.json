@@ -30,6 +30,92 @@
     "showSidebar": "显示侧边栏",
     "hideSidebar": "隐藏侧边栏"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Qui 容器（{{state}}）端口 {{port}}。点击配置 Docker。",
+    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）端口 {{port}}。点击配置 Docker。",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Qui 容器配置",
+      "description": "根据部署文档，autobrr/qui 的官方 Docker 参数。"
+    },
+    "qbit": {
+      "title": "qBittorrent-nox 容器配置",
+      "description": "根据部署文档，linuxserver/qbittorrent 的官方 Docker 参数。"
+    },
+    "state": {
+      "running": "运行中"
+    },
+    "toast": {
+      "quiSaved": "Qui 容器配置已保存",
+      "qbitSaved": "qBittorrent-nox 容器配置已保存",
+      "quiRestartStarted": "Qui 容器重启已开始",
+      "qbitRestartStarted": "qBittorrent-nox 容器重启已开始",
+      "copyCommandSuccess": "已将 docker run 命令复制到剪贴板",
+      "saveFailed": "保存配置失败",
+      "restartFailed": "重启容器失败",
+      "genericSaveError": "保存配置时出错",
+      "genericRestartError": "重启容器时出错",
+      "copyCommandFailed": "无法复制到剪贴板"
+    },
+    "fields": {
+      "hostWebUiPort": "主机 Web UI 端口",
+      "dockerImage": "Docker 镜像",
+      "volumeBindMounts": "卷绑定挂载",
+      "hostConfigDirQui": "主机配置目录（/config）",
+      "hostConfigDirQuiHelp": "存放 config.toml、qui.db 数据库、图标缓存和运行日志。",
+      "hostDataDir": "主机数据目录（/data）",
+      "hostDataDirHelp": "用于跨种硬链接/_reflink 与孤儿扫描。",
+      "hostConfigDirQbit": "主机配置目录（/config）",
+      "hostConfigDirQbitHelp": "包含 qBittorrent.conf、日志、状态文件与种子备份数据。",
+      "hostDownloadsDir": "主机下载目录（/downloads）",
+      "hostDownloadsHelp": "活动与已完成种子的默认保存位置。",
+      "puid": "PUID",
+      "puidHelp": "用户 ID",
+      "pgid": "PGID",
+      "pgidHelp": "组 ID",
+      "umask": "UMASK",
+      "umaskHelpQui": "例如 002 或 022",
+      "umaskHelpQbit": "例如 022 或 002",
+      "logLevel": "日志级别（QUI__LOG_LEVEL）",
+      "logLevelPlaceholder": "日志级别",
+      "restartPolicy": "重启策略",
+      "restartPolicyPlaceholder": "重启策略",
+      "timezone": "时区（TZ）",
+      "baseUrl": "基础 URL（QUI__BASE_URL）",
+      "baseUrlHelp": "当 Qui 位于反向代理后的可选公开 URL。",
+      "bitTorrentPeerPort": "BitTorrent 监听端口",
+      "peerPortHelp": "TCP 与 UDP 入站流量（默认：6881）。",
+      "dockerCommandPreview": "Docker 命令预览",
+      "copy": "复制",
+      "copied": "已复制",
+      "quiImageHelp": "例如 qui-desktop:local 或 ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "例如 lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "映射到容器端口 7476（默认：7476）。",
+      "qbitPortMappedHelp": "映射到容器端口 8080（默认：8080）。",
+      "dataPathPlaceholder": "/下载路径（可选）",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "重启容器",
+      "cancel": "取消",
+      "saveApply": "保存并应用"
+    }
+  },
   "header": {
     "currentInstance": "当前实例：{{name}}。点击切换实例。",
     "connected": "已连接",

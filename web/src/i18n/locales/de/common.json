@@ -30,6 +30,92 @@
     "showSidebar": "Sidebar anzeigen",
     "hideSidebar": "Sidebar ausblenden"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Qui-Container ({{state}}) auf Port {{port}}. Klicken, um Docker-Einstellungen zu bearbeiten.",
+    "tooltipQbit": "qBittorrent-nox-Container ({{state}}) auf Port {{port}}. Klicken, um Docker-Einstellungen zu bearbeiten.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Qui-Container-Konfiguration",
+      "description": "Offizielle Docker-Parameter für autobrr/qui laut Bereitstellungsdokumentation."
+    },
+    "qbit": {
+      "title": "qBittorrent-nox-Container-Konfiguration",
+      "description": "Offizielle Docker-Parameter für linuxserver/qbittorrent laut Bereitstellungsdokumentation."
+    },
+    "state": {
+      "running": "Läuft"
+    },
+    "toast": {
+      "quiSaved": "Qui-Container-Konfiguration gespeichert",
+      "qbitSaved": "qBittorrent-nox-Container-Konfiguration gespeichert",
+      "quiRestartStarted": "Neustart des Qui-Containers gestartet",
+      "qbitRestartStarted": "Neustart des qBittorrent-nox-Containers gestartet",
+      "copyCommandSuccess": "docker-run-Befehl in die Zwischenablage kopiert",
+      "saveFailed": "Speichern der Konfiguration fehlgeschlagen",
+      "restartFailed": "Neustart des Containers fehlgeschlagen",
+      "genericSaveError": "Fehler beim Speichern der Konfiguration",
+      "genericRestartError": "Fehler beim Neustart des Containers",
+      "copyCommandFailed": "Kopieren in die Zwischenablage nicht möglich"
+    },
+    "fields": {
+      "hostWebUiPort": "Host-Web-UI-Port",
+      "dockerImage": "Docker-Image",
+      "volumeBindMounts": "Volume-Bind-Mounts",
+      "hostConfigDirQui": "Host-Konfigurationsverzeichnis (/config)",
+      "hostConfigDirQuiHelp": "Speichert config.toml, qui.db-Datenbank, Icon-Cache und Laufzeitlogs.",
+      "hostDataDir": "Host-Datenverzeichnis (/data)",
+      "hostDataDirHelp": "Erforderlich für Cross-Seed-Hardlink-/Reflink-Operationen und Orphan-Scans.",
+      "hostConfigDirQbit": "Host-Konfigurationsverzeichnis (/config)",
+      "hostConfigDirQbitHelp": "Enthält qBittorrent.conf, Logs, Statusdateien und Torrent-Backups.",
+      "hostDownloadsDir": "Host-Downloads-Verzeichnis (/downloads)",
+      "hostDownloadsHelp": "Standardzielordner für aktive und abgeschlossene Torrents.",
+      "puid": "PUID",
+      "puidHelp": "Benutzer-ID",
+      "pgid": "PGID",
+      "pgidHelp": "Gruppen-ID",
+      "umask": "UMASK",
+      "umaskHelpQui": "z. B. 002 oder 022",
+      "umaskHelpQbit": "z. B. 022 oder 002",
+      "logLevel": "Log-Level (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Log-Level",
+      "restartPolicy": "Neustartrichtlinie",
+      "restartPolicyPlaceholder": "Neustartrichtlinie",
+      "timezone": "Zeitzone (TZ)",
+      "baseUrl": "Basis-URL (QUI__BASE_URL)",
+      "baseUrlHelp": "Optionale öffentliche URL, wenn Qui hinter einem Reverse-Proxy läuft.",
+      "bitTorrentPeerPort": "BitTorrent-Peer-Port",
+      "peerPortHelp": "TCP- und UDP-Eingangsverkehr (Standard: 6881).",
+      "dockerCommandPreview": "Docker-Befehlsvorschau",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "quiImageHelp": "z. B. qui-desktop:local oder ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "z. B. lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Gemappt auf Container-Port 7476 (Standard: 7476).",
+      "qbitPortMappedHelp": "Gemappt auf Container-Port 8080 (Standard: 8080).",
+      "dataPathPlaceholder": "/pfad/zu/downloads (optional)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Container neu starten",
+      "cancel": "Abbrechen",
+      "saveApply": "Speichern und anwenden"
+    }
+  },
   "header": {
     "currentInstance": "Aktuelle Instanz: {{name}}. Zum Wechseln der Instanz klicken.",
     "connected": "Verbunden",
