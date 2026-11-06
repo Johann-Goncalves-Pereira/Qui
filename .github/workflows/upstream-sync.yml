@@ -36,18 +36,30 @@ jobs:
       - name: Attempt merge without committing
         id: merge
         run: |
+          # Required for merge even with --no-commit (empty ident aborts before MERGE_HEAD).
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
           set +e
           git merge --no-commit --no-ff upstream/develop
           status=$?
           set -e
+
           if [ "$status" -eq 0 ]; then
             echo "clean=true" >> "$GITHUB_OUTPUT"
             git merge --abort || true
             exit 0
           fi
+
+          conflicts="$(git diff --name-only --diff-filter=U || true)"
+          if [ -z "$conflicts" ] && [ ! -f .git/MERGE_HEAD ]; then
+            echo "::error::Upstream merge probe failed before a merge started (often missing git identity). Inspect the job log."
+            exit 1
+          fi
+
           echo "clean=false" >> "$GITHUB_OUTPUT"
           echo "::error::Conflicts merging autobrr/qui develop into this PR. Resolve them on the branch (merge or rebase upstream), then push again."
           echo "Conflicted paths:"
-          git diff --name-only --diff-filter=U || true
+          printf '%s\n' "$conflicts"
           git merge --abort || true
           exit 1
