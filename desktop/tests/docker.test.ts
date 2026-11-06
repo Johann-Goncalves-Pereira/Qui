@@ -445,6 +445,7 @@ describe('DockerManager', () => {
 		const manager = new DockerManager(
 			mock,
 			() => {},
+			QUI_IMAGE,
 			() => false, // repo not yet cloned
 			(filePath, content) => {
 				writtenFiles[filePath] = content
@@ -494,6 +495,7 @@ describe('DockerManager', () => {
 		const manager = new DockerManager(
 			mock,
 			() => {},
+			QUI_IMAGE,
 			() => true, // compose file already exists
 			() => {},
 		)
@@ -518,6 +520,7 @@ describe('DockerManager', () => {
 		const manager = new DockerManager(
 			mock,
 			() => {},
+			QUI_IMAGE,
 			() => true, // compose file exists
 			() => {},
 		)
@@ -559,6 +562,7 @@ describe('DockerManager', () => {
 		const manager = new DockerManager(
 			mock,
 			() => {},
+			QUI_IMAGE,
 			() => false,
 			() => {},
 		)

@@ -131,6 +131,7 @@ export class DockerManager {
 		private readonly mkdir: (dir: string) => void = dir => {
 			mkdirSync(dir, { recursive: true })
 		},
+		private readonly quiImage: string = QUI_IMAGE,
 		private readonly fileExists: (filePath: string) => boolean = existsSync,
 		private readonly writeFile: (filePath: string, content: string) => void = (
 			filePath,
@@ -138,7 +139,6 @@ export class DockerManager {
 		) => {
 			writeFileSync(filePath, content, 'utf8')
 		},
-		private readonly quiImage: string = QUI_IMAGE,
 	) {}
 
 	/**
