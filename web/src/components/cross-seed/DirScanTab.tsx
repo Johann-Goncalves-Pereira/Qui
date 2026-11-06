@@ -96,6 +96,11 @@ import {
   useUpdateDirScanDirectory,
   useUpdateDirScanSettings
 } from "@/hooks/useDirScan"
+import { useInstances } from "@/hooks/useInstances"
+import {
+  buildDefaultCompanionInstance,
+  isDesktopEnvironment
+} from "@/lib/desktop-companion-instance"
 import type {
   DirScanDirectory,
   DirScanDirectoryCreate,
@@ -148,6 +153,8 @@ function RunFilesBadge({ run }: { run: DirScanRun }) {
 export function DirScanTab({ instances }: DirScanTabProps) {
   const { t } = useTranslation("crossseed")
   const { formatISOTimestamp } = useDateTimeFormatters()
+  const isDesktop = isDesktopEnvironment()
+  const { createInstance, isCreating } = useInstances()
   const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null)
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [showDirectoryDialog, setShowDirectoryDialog] = useState(false)
@@ -158,6 +165,10 @@ export function DirScanTab({ instances }: DirScanTabProps) {
   const { data: settings, isLoading: settingsLoading } = useDirScanSettings()
   const { data: directories = [], isLoading: directoriesLoading } = useDirScanDirectories()
   const updateSettings = useUpdateDirScanSettings()
+
+  const handleAddCompanionInstance = useCallback(() => {
+    createInstance(buildDefaultCompanionInstance())
+  }, [createInstance])
 
   // Get status for each directory
   const directoryWithLocalFs = useMemo(
@@ -241,11 +252,24 @@ export function DirScanTab({ instances }: DirScanTabProps) {
       {/* No Local Access Warning */}
       {directoryWithLocalFs.length === 0 && (
         <Card className="border-yellow-500/50 bg-yellow-500/5">
-          <CardContent className="flex items-center gap-3 py-4">
-            <AlertTriangle className="size-5 text-yellow-500" />
-            <p className="text-sm text-muted-foreground">
-              {t("dirScan.noLocalAccessWarning")}
-            </p>
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="size-5 text-yellow-500 shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                {t("dirScan.noLocalAccessWarning")}
+              </p>
+            </div>
+            {isDesktop && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddCompanionInstance}
+                disabled={isCreating}
+                className="shrink-0"
+              >
+                {t("dirScan.addLocalCompanionInstance")}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

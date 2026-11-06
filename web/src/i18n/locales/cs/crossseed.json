@@ -705,7 +705,8 @@
       "regular": "Běžný",
       "hardlink": "Hardlink",
       "reflink": "Reflink"
-    }
+    },
+    "addLocalCompanionInstance": "Přidat lokální qBittorrent"
   },
   "route": {
     "foundOnAddedTo": "Nalezeno na {{source}}, přidáno do {{crossSeed}}",

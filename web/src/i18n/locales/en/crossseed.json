@@ -690,7 +690,8 @@
       "description": "This will remove the scan directory and its run history. Torrents already added will not be affected.",
       "cancel": "Cancel",
       "delete": "Delete"
-    }
+    },
+    "addLocalCompanionInstance": "Add Local qBittorrent"
   },
   "route": {
     "foundOnAddedTo": "Found on {{source}}, added to {{crossSeed}}",

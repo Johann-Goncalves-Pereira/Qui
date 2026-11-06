@@ -679,7 +679,8 @@
       "description": "這將移除掃描目錄及其執行歷史。已新增的種子不會受到影響。",
       "cancel": "取消",
       "delete": "刪除"
-    }
+    },
+    "addLocalCompanionInstance": "新增本機 qBittorrent"
   },
   "route": {
     "foundOnAddedTo": "在 {{source}} 上找到，已新增到 {{crossSeed}}",
