@@ -37,6 +37,14 @@ export interface QuiDesktopBridge {
 	restartContainer: (
 		name: string,
 	) => Promise<{ success: boolean; error?: string }>
+	/** Gazelle companion Docker lifecycle controls */
+	gazelle: {
+		getStatus: () => Promise<DockerContainerStatus>
+		start: () => Promise<DockerContainerStatus>
+		stop: () => Promise<DockerContainerStatus>
+		restart: () => Promise<DockerContainerStatus>
+		openWebUi: () => Promise<void>
+	}
 }
 
 const bridge: QuiDesktopBridge = {
@@ -59,6 +67,13 @@ const bridge: QuiDesktopBridge = {
 		ipcRenderer.invoke('docker:save-qbit-config', config),
 	restartContainer: (name: string) =>
 		ipcRenderer.invoke('docker:restart-container', name),
+	gazelle: {
+		getStatus: () => ipcRenderer.invoke('docker:gazelle:status'),
+		start: () => ipcRenderer.invoke('docker:gazelle:start'),
+		stop: () => ipcRenderer.invoke('docker:gazelle:stop'),
+		restart: () => ipcRenderer.invoke('docker:gazelle:restart'),
+		openWebUi: () => ipcRenderer.invoke('docker:gazelle:open-web'),
+	},
 }
 
 contextBridge.exposeInMainWorld('quiDesktop', bridge)

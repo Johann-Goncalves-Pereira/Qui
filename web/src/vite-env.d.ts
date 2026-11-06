@@ -72,6 +72,37 @@ declare global {
         image: string
       }) => Promise<{ success: boolean; error?: string }>
       restartContainer?: (name: string) => Promise<{ success: boolean; error?: string }>
+      gazelle?: {
+        getStatus?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        start?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        stop?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        restart?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        openWebUi?: () => Promise<void>
+      }
     }
   }
 

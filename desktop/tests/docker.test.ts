@@ -13,7 +13,10 @@ import {
 	resolveDockerBinary,
 } from '../src/main/docker.js'
 import {
+	DEFAULT_GAZELLE_PORT,
 	DEFAULT_QUI_PORT,
+	GAZELLE_CONTAINER_NAME,
+	GAZELLE_IMAGE,
 	QUI_CONTAINER_NAME,
 	QUI_IMAGE,
 } from '../src/shared/constants.js'
@@ -375,5 +378,58 @@ describe('DockerManager', () => {
 		expect(mock.executedCommands).toEqual([
 			{ command: 'docker', args: ['restart', QUI_CONTAINER_NAME] },
 		])
+	})
+
+	it('inspects Gazelle container status (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+		] = {
+			stdout: 'running|true\n',
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock)
+		const status = await manager.getGazelleStatus()
+
+		expect(status.name).toBe(GAZELLE_CONTAINER_NAME)
+		expect(status.state).toBe('running')
+		expect(status.port).toBe(DEFAULT_GAZELLE_PORT)
+		expect(status.image).toBe(GAZELLE_IMAGE)
+	})
+
+	it('starts Gazelle container when stopped or not found (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+		] = {
+			stdout: 'running|true\n',
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock, () => {})
+		const status = await manager.startGazelle()
+
+		expect(status.state).toBe('running')
+		expect(mock.executedCommands.some(c => c.args[0] === 'inspect')).toBe(true)
+	})
+
+	it('stops and restarts Gazelle container cleanly (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+		] = {
+			stdout: 'exited|false\n',
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock, () => {})
+		const stopStatus = await manager.stopGazelle()
+		expect(stopStatus.state).toBe('stopped')
+		expect(mock.executedCommands.some(c => c.args[0] === 'stop')).toBe(true)
+
+		const restartStatus = await manager.restartGazelle()
+		expect(restartStatus.state).toBe('stopped')
+		expect(mock.executedCommands.some(c => c.args[0] === 'restart')).toBe(true)
 	})
 })

@@ -14,11 +14,13 @@ import {
 	ipcMain,
 	nativeTheme,
 	safeStorage,
+	shell,
 } from 'electron'
 import {
 	APP_NAME,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
+	GAZELLE_WEB_ORIGIN,
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
@@ -249,6 +251,26 @@ function registerIpcHandlers(): void {
 			return dockerManager.restartContainer(containerName)
 		},
 	)
+
+	ipcMain.handle('docker:gazelle:status', async () => {
+		return dockerManager.getGazelleStatus()
+	})
+
+	ipcMain.handle('docker:gazelle:start', async () => {
+		return dockerManager.startGazelle()
+	})
+
+	ipcMain.handle('docker:gazelle:stop', async () => {
+		return dockerManager.stopGazelle()
+	})
+
+	ipcMain.handle('docker:gazelle:restart', async () => {
+		return dockerManager.restartGazelle()
+	})
+
+	ipcMain.handle('docker:gazelle:open-web', async () => {
+		await shell.openExternal(GAZELLE_WEB_ORIGIN)
+	})
 
 	ipcMain.handle('api:transfer-stats', async () => {
 		return apiClient.getTransferStats()
