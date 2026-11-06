@@ -13,7 +13,8 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 - **Docker**: The desktop runs the local image `qui-desktop:local` (built from this repo, so the glass switch ships with the page). The CLI is resolved from `~/.docker/bin/docker`, `/opt/homebrew/bin/docker`, `/usr/local/bin/docker`, or `Docker.app`. Qui’s `/config` and qBittorrent’s config are bind-mounted under the desktop data folder, so replacing a container does not delete the account. A container that was created without that mount is copied onto the host before it is removed.
   The **Docker image update** dialog appears only when the remote manifest shares no digest with the local image, and not again for a digest you dismissed with Later.
 - **Account**: Registration and sign-in save the username and password with Electron `safeStorage`. The next sign-in on the login page asks for Touch ID and submits that saved account. A browser session does not see the vault.
-- **Sidebar (Electron only)**: The word “qui” is omitted and the logo sits on the right of the sidebar header. The traffic lights are vertically centered with that logo while the sidebar is open.
+- **Sidebar (Electron only)**: The word “qui” is omitted and the logo sits on the right of the sidebar header. The traffic lights are vertically centered with that logo while the sidebar is open. Version metadata and utility buttons are relocated to the bottom status bar footer.
+- **Status bar footer & Docker configuration**: A dedicated footer sits below `<main>`, displaying live status badges and mapped ports for `qui` (7476) and `qbittorrent-nox` (8080) alongside relocated version metadata, copyright, language picker, and GitHub links. Clicking each service opens a modal with official Docker parameters (ports, bind mounts, PUID/PGID, UMASK, log level, and restart policies) that allows users to edit and apply configurations.
 
 ## Related spec
 
@@ -24,3 +25,6 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 - `BR-desktop-11` in `docs/specs/catalog.md` — Qui data survives container replacement.
 - `BR-desktop-12` in `docs/specs/catalog.md` — encrypted account and Touch ID sign-in.
 - `BR-desktop-13` in `docs/specs/catalog.md` — Docker update prompt does not repeat a dismissed digest.
+- `BR-desktop-14` in `docs/specs/catalog.md` — Docker configuration schemas and IPC inspection.
+- `BR-web-02` in `docs/specs/catalog.md` — Status bar footer with Docker service indicators.
+- `BR-web-03` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
