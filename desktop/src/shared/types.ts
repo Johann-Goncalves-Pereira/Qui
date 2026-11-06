@@ -40,6 +40,13 @@ export const BiometricAuthResultSchema = Schema.Struct({
 
 export type BiometricAuthResult = typeof BiometricAuthResultSchema.Type
 
+export const PasswordLoginResultSchema = Schema.Struct({
+	success: Schema.Boolean,
+	error: Schema.optional(Schema.String),
+})
+
+export type PasswordLoginResult = typeof PasswordLoginResultSchema.Type
+
 export const DesktopConfigSchema = Schema.Struct({
 	quiUrl: Schema.String,
 	qbitUrl: Schema.String,

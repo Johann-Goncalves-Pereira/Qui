@@ -55,3 +55,60 @@ describe('BiometricAuthService', () => {
 		expect(result.error).toContain('not available')
 	})
 })
+
+describe('QuiApiClient password login', () => {
+	it('authenticates successfully when credentials are valid', async () => {
+		const originalFetch = globalThis.fetch
+		globalThis.fetch = async () =>
+			new Response(JSON.stringify({ success: true }), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' },
+			})
+
+		try {
+			const { QuiApiClient } = await import('../src/main/api.js')
+			const client = new QuiApiClient('http://localhost:7476')
+			const res = await client.login('admin', 'password123')
+			expect(res.success).toBe(true)
+			expect(res.error).toBeUndefined()
+		} finally {
+			globalThis.fetch = originalFetch
+		}
+	})
+
+	it('returns error when credentials are wrong (401)', async () => {
+		const originalFetch = globalThis.fetch
+		globalThis.fetch = async () =>
+			new Response(JSON.stringify({ message: 'Invalid credentials' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' },
+			})
+
+		try {
+			const { QuiApiClient } = await import('../src/main/api.js')
+			const client = new QuiApiClient('http://localhost:7476')
+			const res = await client.login('admin', 'wrong')
+			expect(res.success).toBe(false)
+			expect(res.error).toBe('Invalid username or password')
+		} finally {
+			globalThis.fetch = originalFetch
+		}
+	})
+
+	it('handles service connection errors gracefully', async () => {
+		const originalFetch = globalThis.fetch
+		globalThis.fetch = async () => {
+			throw new Error('Connection refused')
+		}
+
+		try {
+			const { QuiApiClient } = await import('../src/main/api.js')
+			const client = new QuiApiClient('http://localhost:7476')
+			const res = await client.login('admin', 'test')
+			expect(res.success).toBe(false)
+			expect(res.error).toContain('Cannot connect to Qui service')
+		} finally {
+			globalThis.fetch = originalFetch
+		}
+	})
+})

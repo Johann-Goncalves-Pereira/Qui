@@ -63,4 +63,51 @@ export class QuiApiClient {
 			return false
 		}
 	}
+
+	async login(
+		username: string,
+		password: string,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const res = await fetch(`${this.baseUrl}/api/auth/login`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ username, password }),
+				signal: AbortSignal.timeout(8000),
+			})
+
+			if (res.ok) {
+				return { success: true }
+			}
+
+			if (res.status === 401) {
+				return { success: false, error: 'Invalid username or password' }
+			}
+			if (res.status === 429) {
+				return {
+					success: false,
+					error: 'Too many attempts, please try again later',
+				}
+			}
+			if (res.status === 428) {
+				return { success: false, error: 'Initial setup required' }
+			}
+
+			const errData = (await res.json().catch(() => ({}))) as {
+				message?: string
+			}
+			return {
+				success: false,
+				error: errData.message || `Login failed (HTTP ${res.status})`,
+			}
+		} catch {
+			return {
+				success: false,
+				error:
+					'Cannot connect to Qui service. Ensure Docker container is running.',
+			}
+		}
+	}
 }

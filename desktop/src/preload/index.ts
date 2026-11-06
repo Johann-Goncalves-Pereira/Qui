@@ -13,6 +13,10 @@ import type {
 
 export interface QuiDesktopBridge {
 	authenticateBiometrics: () => Promise<BiometricAuthResult>
+	loginWithPassword: (
+		username: string,
+		password: string,
+	) => Promise<{ success: boolean; error?: string }>
 	isBiometricsSupported: () => Promise<boolean>
 	getDockerStatus: () => Promise<{
 		qui: DockerContainerStatus
@@ -35,6 +39,8 @@ export interface QuiDesktopBridge {
 
 const desktopBridge: QuiDesktopBridge = {
 	authenticateBiometrics: () => ipcRenderer.invoke('auth:biometrics'),
+	loginWithPassword: (username: string, password: string) =>
+		ipcRenderer.invoke('auth:login-password', { username, password }),
 	isBiometricsSupported: () => ipcRenderer.invoke('auth:supported'),
 	getDockerStatus: () => ipcRenderer.invoke('docker:status'),
 	checkForUpdates: () => ipcRenderer.invoke('docker:check-updates'),

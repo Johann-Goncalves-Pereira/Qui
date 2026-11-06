@@ -6,7 +6,7 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && mkdir -p dist/splash && cp src/splash/index.html src/splash/style.css dist/splash/",
+    "build": "tsc && mkdir -p dist/splash && cp src/splash/index.html src/splash/style.css src/splash/logo.png dist/splash/",
     "lint": "biome check src tests && eslint src tests",
     "format": "biome check --write src tests",
     "test": "vitest run",

@@ -63,6 +63,20 @@ function registerIpcHandlers(): void {
 		return res
 	})
 
+	ipcMain.handle(
+		'auth:login-password',
+		async (
+			_event,
+			{ username, password }: { username: string; password: string },
+		) => {
+			const res = await apiClient.login(username, password)
+			if (res.success && mainWindow) {
+				await mainWindow.loadURL(`http://127.0.0.1:${DEFAULT_QUI_PORT}`)
+			}
+			return res
+		},
+	)
+
 	ipcMain.handle('docker:status', async () => {
 		const qui = await dockerManager.getContainerStatus(
 			QUI_CONTAINER_NAME,

@@ -20,6 +20,7 @@ export function createGlassWindow(): BrowserWindow {
 		minWidth: 900,
 		minHeight: 600,
 		title: APP_NAME,
+		icon: path.join(__dirname, '../splash/logo.png'),
 		titleBarStyle: 'hiddenInset',
 		transparent: true,
 		backgroundColor: '#00000000',
