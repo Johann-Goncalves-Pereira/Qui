@@ -39,7 +39,9 @@ const DEFAULT_EXEC_PATH = [
 	'/usr/sbin',
 	'/sbin',
 	process.env.PATH ?? '',
-].filter(Boolean).join(':')
+]
+	.filter(Boolean)
+	.join(':')
 
 export class CliDockerExecutor implements DockerExecutor {
 	async exec(

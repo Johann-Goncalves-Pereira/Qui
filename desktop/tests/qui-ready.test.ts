@@ -100,7 +100,13 @@ describe('openWrappedQui', () => {
 			unavailableMessage: 'Qui is not responding',
 		})
 		expect(result).toBe('opened')
-		expect(order).toEqual(['status:Starting Qui…', 'ensure', 'status:Starting Qui…', 'wait', 'open'])
+		expect(order).toEqual([
+			'status:Starting Qui…',
+			'ensure',
+			'status:Starting Qui…',
+			'wait',
+			'open',
+		])
 	})
 
 	it('does not open the web UI when HTTP never becomes ready', async () => {
@@ -119,6 +125,11 @@ describe('openWrappedQui', () => {
 			unavailableMessage: 'Qui is not responding',
 		})
 		expect(result).toBe('unavailable')
-		expect(order).toEqual(['Starting Qui…', 'ensure', 'Starting Qui…', 'Qui is not responding'])
+		expect(order).toEqual([
+			'Starting Qui…',
+			'ensure',
+			'Starting Qui…',
+			'Qui is not responding',
+		])
 	})
 })

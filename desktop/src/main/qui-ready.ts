@@ -69,12 +69,21 @@ export async function openWrappedQui(steps: {
 	openWeb: () => Promise<void>
 	unavailableMessage: string
 }): Promise<WrappedQuiOpenResult> {
-	await steps.showStatus('Starting Qui…', 'Ensuring Docker containers (qui, qbit) are running…')
+	await steps.showStatus(
+		'Starting Qui…',
+		'Ensuring Docker containers (qui, qbit) are running…',
+	)
 	await steps.ensureContainers()
-	await steps.showStatus('Starting Qui…', 'Waiting for Qui HTTP service at local port…')
+	await steps.showStatus(
+		'Starting Qui…',
+		'Waiting for Qui HTTP service at local port…',
+	)
 	const ready = await steps.waitForHttp()
 	if (!ready) {
-		await steps.showStatus(steps.unavailableMessage, 'Connection timed out waiting for Qui HTTP API.')
+		await steps.showStatus(
+			steps.unavailableMessage,
+			'Connection timed out waiting for Qui HTTP API.',
+		)
 		return 'unavailable'
 	}
 	await steps.openWeb()
