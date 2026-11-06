@@ -23,7 +23,7 @@ const GLASS_BLUR_STYLE_ID = "qui-glass-blur"
 
 // The stylesheet copy is rewritten to a -webkit prefix that Electron drops.
 // This standard property is what actually blurs the desktop behind the page.
-const GLASS_BLUR_CSS = "html[data-glass=\"on\"],html[data-glass=\"on\"] body,html[data-glass=\"on\"] .bg-background,html[data-glass=\"on\"] .bg-sidebar,html[data-glass=\"on\"] .bg-card,html[data-glass=\"on\"] .bg-popover,html[data-glass=\"on\"] .bg-muted{backdrop-filter:blur(24px) saturate(160%)}"
+const GLASS_BLUR_CSS = "html[data-glass=\"on\"],html[data-glass=\"on\"] body,html[data-glass=\"on\"] .bg-background,html[data-glass=\"on\"] .bg-sidebar,html[data-glass=\"on\"] [data-slot=\"filter-sidebar\"],html[data-glass=\"on\"] .bg-card,html[data-glass=\"on\"] .bg-popover,html[data-glass=\"on\"] .bg-muted{backdrop-filter:blur(24px) saturate(160%)}"
 
 function syncGlassBlurStyle(enabled: boolean): void {
   const existing = document.getElementById(GLASS_BLUR_STYLE_ID)
