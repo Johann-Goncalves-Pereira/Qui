@@ -59,6 +59,17 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 				'data',
 			),
 		)
+		expect(dirs.gazelleRepo).toBe(
+			path.join(
+				home,
+				'Library',
+				'Application Support',
+				'Qui',
+				'docker',
+				'gazelle',
+				'repo',
+			),
+		)
 	})
 
 	it('mounts the host config directory into the Qui container', () => {
