@@ -9,6 +9,7 @@ import {
 	defaultQBitConfig,
 	defaultQuiConfig,
 	dockerDataDirs,
+	gazelleContainerRunArgs,
 	imageDigestHasUpdate,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
@@ -36,6 +37,28 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 				'downloads',
 			),
 		)
+		expect(dirs.gazelleConfig).toBe(
+			path.join(
+				home,
+				'Library',
+				'Application Support',
+				'Qui',
+				'docker',
+				'gazelle',
+				'config',
+			),
+		)
+		expect(dirs.gazelleData).toBe(
+			path.join(
+				home,
+				'Library',
+				'Application Support',
+				'Qui',
+				'docker',
+				'gazelle',
+				'data',
+			),
+		)
 	})
 
 	it('mounts the host config directory into the Qui container', () => {
@@ -49,6 +72,18 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 		const args = qbitContainerRunArgs('qbit:latest', '/host/qbit', '/host/dl')
 		expect(args).toContain('/host/qbit:/config')
 		expect(args).toContain('/host/dl:/downloads')
+	})
+
+	it('mounts Gazelle config and database directories with port 7001', () => {
+		const args = gazelleContainerRunArgs(
+			'ghcr.io/opsnet/gazelle:latest',
+			'/host/gazelle/config',
+			'/host/gazelle/data',
+		)
+		expect(args).toContain('7001:7001')
+		expect(args).toContain('/host/gazelle/config:/var/www/app/config')
+		expect(args).toContain('/host/gazelle/data:/var/lib/mysql')
+		expect(args.at(-1)).toBe('ghcr.io/opsnet/gazelle:latest')
 	})
 })
 
