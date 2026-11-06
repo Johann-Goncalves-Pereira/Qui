@@ -1848,10 +1848,12 @@ const FilterSidebarComponent = ({
 
   return (
     <div
+      data-slot="filter-sidebar"
       className={`${className} h-full w-full ${sidebarMaxWidth} flex flex-col xl:flex-shrink-0 xl:border-r xl:bg-muted/10 ${
         isStaleData ? "opacity-75 transition-opacity duration-200" : ""
       }`}
     >
+
       <ScrollArea className="h-full flex-1 overscroll-contain select-none">
         <div className={viewMode === "dense" ? "px-3 py-2" : "p-4"}>
           <div className={cn("flex items-center justify-between", viewMode === "dense" ? "mb-2" : "mb-4")}>

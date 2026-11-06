@@ -426,6 +426,7 @@ html[data-glass="on"],
 html[data-glass="on"] body,
 html[data-glass="on"] .bg-background,
 html[data-glass="on"] .bg-sidebar,
+html[data-glass="on"] [data-slot="filter-sidebar"],
 html[data-glass="on"] .bg-card,
 html[data-glass="on"] .bg-popover,
 html[data-glass="on"] .bg-muted {
@@ -437,11 +438,18 @@ html[data-glass="on"] .bg-background {
   background-color: color-mix(in oklab, var(--background) var(--glass-surface), transparent);
 }
 
+/* Sidebars and filter panels: calibrated with a lighter surface blend to keep
+   translucency crisp and prevent heavy muddiness over macOS HUD vibrancy (BR-web-02). */
 html[data-glass="on"] .bg-sidebar {
-  background-color: color-mix(in oklab, var(--sidebar) var(--glass-surface), transparent);
+  background-color: color-mix(in oklab, color-mix(in oklab, var(--sidebar) 82%, white) calc(var(--glass-surface) * 0.75), transparent);
+}
+
+html[data-glass="on"] [data-slot="filter-sidebar"] {
+  background-color: color-mix(in oklab, color-mix(in oklab, var(--sidebar) 85%, white) calc(var(--glass-surface) * 0.55), transparent);
 }
 
 html[data-glass="on"] .bg-card {
+
   background-color: color-mix(in oklab, var(--card) var(--glass-surface), transparent);
 }
 

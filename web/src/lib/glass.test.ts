@@ -104,4 +104,16 @@ describe("glass frost (BR-desktop-05)", () => {
     expect(rule).toContain(".bg-popover")
     expect(rule).not.toContain("[data-theme=\"glassmorphism\"]")
   })
+
+  it("calibrates sidebar and filter panel translucency to stay lightened over HUD vibrancy (BR-web-02)", () => {
+    const css = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../index.css"),
+      "utf8"
+    )
+    const rule = css.slice(css.indexOf("html[data-glass=\"on\"]"))
+    expect(rule).toContain("[data-slot=\"filter-sidebar\"]")
+    expect(rule).toMatch(/html\[data-glass="on"\]\s+\.bg-sidebar\s*\{[^}]*color-mix\(/)
+    expect(rule).toMatch(/html\[data-glass="on"\]\s+\[data-slot="filter-sidebar"\]\s*\{[^}]*color-mix\(/)
+  })
 })
+

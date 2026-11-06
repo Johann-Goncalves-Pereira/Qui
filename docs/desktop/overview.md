@@ -19,7 +19,9 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 ## Related spec
 
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
+- `BR-web-05` in `docs/specs/catalog.md` — calibrated glassmorphism sidebar translucency.
 - `BR-desktop-07` in `docs/specs/catalog.md` — main window loads the bundled Qui web URL (wrapper).
+
 - `BR-desktop-09` in `docs/specs/catalog.md` — startup spinner and process code block.
 - `BR-desktop-10` in `docs/specs/catalog.md` — Docker CLI path resolution.
 - `BR-desktop-11` in `docs/specs/catalog.md` — Qui data survives container replacement.
