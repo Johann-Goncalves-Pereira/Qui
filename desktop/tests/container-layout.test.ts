@@ -6,9 +6,11 @@
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+	DEFAULT_QBIT_PRESEED_CONF,
 	defaultQBitConfig,
 	defaultQuiConfig,
 	dockerDataDirs,
+	ensureQbitPreseedConfig,
 	gazelleContainerRunArgs,
 	imageDigestHasUpdate,
 	parseInspectToQBitConfig,
@@ -246,5 +248,40 @@ describe('Docker container config arguments & inspect parsing', () => {
 		expect(parsed.peerPort).toBe(6881)
 		expect(parsed.configPath).toBe('/host/qbit')
 		expect(parsed.downloadsPath).toBe('/host/downloads')
+	})
+
+	it('pre-seeds qBittorrent.conf with subnet bypass on clean install (BR-desktop-17)', () => {
+		const writtenFiles = new Map<string, string>()
+		const createdDirs = new Set<string>()
+
+		const mockFs = {
+			existsSync: (filePath: string) => writtenFiles.has(filePath),
+			mkdirSync: (dirPath: string) => {
+				createdDirs.add(dirPath)
+				return undefined
+			},
+			writeFileSync: (filePath: string, data: string) => {
+				writtenFiles.set(filePath, data)
+			},
+		}
+
+		const qbitConfigDir = '/mock/appdata/docker/qbittorrent'
+		const confPath = path.join(qbitConfigDir, 'qBittorrent', 'qBittorrent.conf')
+
+		// First run: conf doesn't exist, should create dir and write pre-seeded config
+		const seeded = ensureQbitPreseedConfig(qbitConfigDir, mockFs)
+		expect(seeded).toBe(true)
+		expect(createdDirs.has(path.join(qbitConfigDir, 'qBittorrent'))).toBe(true)
+		expect(writtenFiles.get(confPath)).toBe(DEFAULT_QBIT_PRESEED_CONF)
+		expect(writtenFiles.get(confPath)).toContain(
+			'AuthSubnetWhitelistEnabled=true',
+		)
+		expect(writtenFiles.get(confPath)).toContain('LocalHostAuth=false')
+
+		// Second run: existing config preserved without overwrite
+		writtenFiles.set(confPath, '[Custom]\nuser_edited=true')
+		const secondRun = ensureQbitPreseedConfig(qbitConfigDir, mockFs)
+		expect(secondRun).toBe(false)
+		expect(writtenFiles.get(confPath)).toBe('[Custom]\nuser_edited=true')
 	})
 })
