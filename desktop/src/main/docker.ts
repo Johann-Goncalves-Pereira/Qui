@@ -30,12 +30,29 @@ export interface DockerExecutor {
 	): Promise<{ stdout: string; stderr: string }>
 }
 
+/** Standard PATH additions for macOS GUI apps (which don't inherit interactive shell PATH). */
+const DEFAULT_EXEC_PATH = [
+	'/opt/homebrew/bin',
+	'/usr/local/bin',
+	'/usr/bin',
+	'/bin',
+	'/usr/sbin',
+	'/sbin',
+	process.env.PATH ?? '',
+].filter(Boolean).join(':')
+
 export class CliDockerExecutor implements DockerExecutor {
 	async exec(
 		command: string,
 		args: string[],
 	): Promise<{ stdout: string; stderr: string }> {
-		return execFileAsync(command, args, { timeout: 120000 })
+		return execFileAsync(command, args, {
+			timeout: 120000,
+			env: {
+				...process.env,
+				PATH: DEFAULT_EXEC_PATH,
+			},
+		})
 	}
 }
 
@@ -193,8 +210,17 @@ export class DockerManager {
 				remoteDigest = hashMatch ? hashMatch[0] : ''
 			}
 
+			const extractDigests = (s: string): Set<string> => {
+				const found = new Set<string>()
+				for (const m of s.matchAll(/sha256:[a-f0-9]{64}/gi)) {
+					found.add(m[0].toLowerCase())
+				}
+				return found
+			}
+			const localSet = extractDigests(localDigest)
+			const remoteNorm = remoteDigest.toLowerCase()
 			const hasUpdate = Boolean(
-				localDigest && remoteDigest && !localDigest.includes(remoteDigest),
+				localSet.size > 0 && remoteNorm.length > 0 && !localSet.has(remoteNorm),
 			)
 
 			return Schema.decodeUnknownSync(DockerUpdateInfoSchema)({

@@ -30,6 +30,8 @@ export function formatTrayTitle(stats?: TorrentTransferStats): string {
 
 export interface TrayCallbacks {
 	onShowApp: () => void
+	/** Reload the remote Qui web UI (same as browser tab refresh). */
+	onReloadQui: () => void
 	onPauseAll: () => Promise<void>
 	onResumeAll: () => Promise<void>
 	onAddTorrent: () => void
@@ -172,6 +174,12 @@ export class AppTray {
 				label: `Show ${APP_NAME}`,
 				click: () => {
 					this.callbacks.onShowApp()
+				},
+			},
+			{
+				label: 'Reload Qui web app',
+				click: () => {
+					this.callbacks.onReloadQui()
 				},
 			},
 			{ type: 'separator' },

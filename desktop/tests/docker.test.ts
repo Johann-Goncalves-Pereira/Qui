@@ -152,6 +152,30 @@ describe('DockerManager', () => {
 		expect(update.image).toBe(QUI_IMAGE)
 	})
 
+	it('detects no updates when local repo digest line lists multiple digests including the remote', async () => {
+		const remote =
+			'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+		const other =
+			'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			`docker inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
+		] = {
+			stdout:
+				`ghcr.io/autobrr/qui@${remote}\n` + `ghcr.io/autobrr/qui@${other}\n`,
+			stderr: '',
+		}
+		mock.responses[`docker buildx imagetools inspect --raw ${QUI_IMAGE}`] = {
+			stdout: `{"digest":"${remote}"}`,
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock)
+		const update = await manager.checkForImageUpdate(QUI_IMAGE)
+
+		expect(update.hasUpdate).toBe(false)
+	})
+
 	it('detects no updates when image digests match', async () => {
 		const digest =
 			'sha256:3333333333333333333333333333333333333333333333333333333333333333'

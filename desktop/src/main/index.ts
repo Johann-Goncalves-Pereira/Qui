@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import {
 	APP_NAME,
@@ -14,16 +12,16 @@ import {
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
 	QUI_IMAGE,
+	QUI_WEB_LOGIN_URL,
+	QUI_WEB_ORIGIN,
 } from '../shared/constants.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
 import { DockerManager } from './docker.js'
+import { openWrappedQui, waitForQuiHttpReady } from './qui-ready.js'
 import { AppTray } from './tray.js'
 import { AppReleaseUpdater } from './updater.js'
-import { createGlassWindow } from './window.js'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import { createMainWindow } from './window.js'
 
 let mainWindow: BrowserWindow | null = null
 let tray: AppTray | null = null
@@ -31,7 +29,9 @@ let statsInterval: NodeJS.Timeout | null = null
 let isQuitting = false
 
 const dockerManager = new DockerManager()
-const authService = new BiometricAuthService()
+const biometricAuth = new BiometricAuthService()
+/** Suppress repeat Docker image dialogs in one session (tray can force a recheck). */
+let dockerImageUpdatePromptShownThisSession = false
 const apiClient = new QuiApiClient()
 const appUpdater = new AppReleaseUpdater()
 
@@ -45,36 +45,88 @@ if (!gotTheLock) {
 			if (mainWindow.isMinimized()) mainWindow.restore()
 			mainWindow.show()
 			mainWindow.focus()
+			void loadQuiWebUi()
 		}
 	})
 }
 
-function registerIpcHandlers(): void {
-	ipcMain.handle('auth:supported', async () => {
-		return authService.isSupported()
-	})
+const LOADING_SPINNER_SVG = `<svg width="60" height="60" viewBox="0 0 50 50"><g><g transform="rotate(0 25 25)"><rect x="22" y="5" width="6" height="6" fill="#faf4ff" opacity="0.8"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" begin="0s" repeatCount="indefinite"></animate></rect><line x1="25" y1="11" x2="25" y2="20" stroke="#faf4ff" stroke-width="2" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" begin="0s" repeatCount="indefinite"></animate></line></g><g transform="rotate(60 25 25)"><rect x="22" y="5" width="6" height="6" fill="#faf4ff" opacity="0.8"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" begin="0.3s" repeatCount="indefinite"></animate></rect><line x1="25" y1="11" x2="25" y2="20" stroke="#faf4ff" stroke-width="2" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" begin="0.3s" repeatCount="indefinite"></animate></line></g><g transform="rotate(120 25 25)"><rect x="22" y="5" width="6" height="6" fill="#faf4ff" opacity="0.8"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" begin="0.6s" repeatCount="indefinite"></animate></rect><line x1="25" y1="11" x2="25" y2="20" stroke="#faf4ff" stroke-width="2" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" begin="0.6s" repeatCount="indefinite"></animate></line></g><g transform="rotate(180 25 25)"><rect x="22" y="5" width="6" height="6" fill="#faf4ff" opacity="0.8"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" begin="0.8999999999999999s" repeatCount="indefinite"></animate></rect><line x1="25" y1="11" x2="25" y2="20" stroke="#faf4ff" stroke-width="2" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" begin="0.8999999999999999s" repeatCount="indefinite"></animate></line></g><g transform="rotate(240 25 25)"><rect x="22" y="5" width="6" height="6" fill="#faf4ff" opacity="0.8"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" begin="1.2s" repeatCount="indefinite"></animate></rect><line x1="25" y1="11" x2="25" y2="20" stroke="#faf4ff" stroke-width="2" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" begin="1.2s" repeatCount="indefinite"></animate></line></g><g transform="rotate(300 25 25)"><rect x="22" y="5" width="6" height="6" fill="#faf4ff" opacity="0.8"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" begin="1.5s" repeatCount="indefinite"></animate></rect><line x1="25" y1="11" x2="25" y2="20" stroke="#faf4ff" stroke-width="2" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" begin="1.5s" repeatCount="indefinite"></animate></line></g><circle cx="25" cy="25" r="8" fill="none" stroke="#faf4ff" stroke-width="2"><animate attributeName="r" values="8;9;8" dur="2s" repeatCount="indefinite"></animate></circle></g></svg>`
 
-	ipcMain.handle('auth:biometrics', async () => {
-		const res = await authService.authenticate('Log in to Qui')
-		if (res.success && mainWindow) {
-			// Once authenticated, navigate directly to local Qui WebUI
-			await mainWindow.loadURL(`http://127.0.0.1:${DEFAULT_QUI_PORT}`)
+function waitingPageUrl(message: string, processInfo?: string): string {
+	const safeMessage = message
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+	const codeBlockHtml = processInfo
+		? `<pre class="process-code"><code>${processInfo
+				.replaceAll('&', '&amp;')
+				.replaceAll('<', '&lt;')
+				.replaceAll('>', '&gt;')}</code></pre>`
+		: ''
+
+	const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;height:100%;background:transparent;color:#f0f6fc;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;display:flex;align-items:center;justify-content:center}
+.card{background:rgba(22,27,34,.78);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:32px 36px;text-align:center;max-width:440px;box-shadow:0 20px 40px rgba(0,0,0,.45)}
+.spinner{display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+h1{font-size:24px;margin:0 0 10px;font-weight:650;letter-spacing:-0.02em}
+p{margin:0;color:#c9d1d9;font-size:14px;line-height:1.5}
+.process-code{margin:16px 0 0;padding:10px 14px;background:rgba(13,17,23,.85);border:1px solid rgba(255,255,255,.1);border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;color:#a5d6ff;text-align:left;overflow-x:auto;max-height:120px;white-space:pre-wrap;word-break:break-all}
+</style></head><body><div class="card"><div class="spinner">${LOADING_SPINNER_SVG}</div><h1>Qui</h1><p>${safeMessage}</p>${codeBlockHtml}</div></body></html>`
+	return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
+}
+
+let openingQui: Promise<void> | null = null
+
+async function loadQuiWebUi(): Promise<void> {
+	if (!mainWindow) {
+		return
+	}
+	if (openingQui) {
+		return openingQui
+	}
+	const win = mainWindow
+	openingQui = (async () => {
+		let result: 'opened' | 'unavailable' | 'failed' = 'failed'
+		try {
+			result = await openWrappedQui({
+				showStatus: async (message, processInfo) => {
+					await win.loadURL(waitingPageUrl(message, processInfo))
+				},
+				ensureContainers: async () => {
+					const { qui, qbit } = await dockerManager.ensureContainersRunning()
+					if (tray) tray.updateDockerStatus(qui, qbit)
+				},
+				waitForHttp: () => waitForQuiHttpReady({ baseUrl: QUI_WEB_ORIGIN }),
+				openWeb: async () => {
+					await win.loadURL(QUI_WEB_LOGIN_URL)
+				},
+				unavailableMessage: `Nothing is serving ${QUI_WEB_ORIGIN} yet. Check Docker, then use Tray → Reload Qui web app.`,
+			})
+		} catch (error) {
+			const detail =
+				error instanceof Error ? error.message : 'Docker or Qui failed to start'
+			await win.loadURL(waitingPageUrl('Failed to start Qui', detail))
+		} finally {
+			openingQui = null
 		}
-		return res
-	})
-
-	ipcMain.handle(
-		'auth:login-password',
-		async (
-			_event,
-			{ username, password }: { username: string; password: string },
-		) => {
-			const res = await apiClient.login(username, password)
-			if (res.success && mainWindow) {
-				await mainWindow.loadURL(`http://127.0.0.1:${DEFAULT_QUI_PORT}`)
+		if (result === 'opened') {
+			await checkAndPromptDockerUpdates()
+			const appRelease = await appUpdater.checkForUpdates()
+			if (appRelease.hasUpdate && mainWindow) {
+				await appUpdater.promptUpdateIfAvailable(mainWindow, appRelease)
 			}
-			return res
-		},
+		}
+	})()
+	return openingQui
+}
+
+function registerIpcHandlers(): void {
+	ipcMain.handle('auth:biometrics', async (_event, reason?: string) =>
+		biometricAuth.authenticate(
+			typeof reason === 'string' && reason.length > 0
+				? reason
+				: 'Secure your Qui session',
+		),
 	)
 
 	ipcMain.handle('docker:status', async () => {
@@ -120,13 +172,19 @@ function registerIpcHandlers(): void {
 	})
 }
 
-async function checkAndPromptDockerUpdates(): Promise<void> {
+async function checkAndPromptDockerUpdates(options?: {
+	force?: boolean
+}): Promise<void> {
 	try {
+		if (!options?.force && dockerImageUpdatePromptShownThisSession) {
+			return
+		}
 		const quiUpdate = await dockerManager.checkForImageUpdate(QUI_IMAGE)
 		const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
 
 		const updates = [quiUpdate, qbitUpdate].filter(u => u.hasUpdate)
 		if (updates.length > 0 && mainWindow) {
+			dockerImageUpdatePromptShownThisSession = true
 			const names = updates.map(u => u.image).join(', ')
 			const { response } = await dialog.showMessageBox(mainWindow, {
 				type: 'question',
@@ -151,6 +209,7 @@ async function checkAndPromptDockerUpdates(): Promise<void> {
 					title: APP_NAME,
 					message: 'Containers updated successfully!',
 				})
+				void loadQuiWebUi()
 			}
 		}
 	} catch {
@@ -160,19 +219,17 @@ async function checkAndPromptDockerUpdates(): Promise<void> {
 
 async function bootstrapApp(): Promise<void> {
 	registerIpcHandlers()
-	mainWindow = createGlassWindow()
+	mainWindow = createMainWindow()
 
-	// Load splash view initially
-	const splashPath = path.join(__dirname, '../splash/index.html')
-	await mainWindow.loadFile(splashPath)
-
-	// Setup Tray
 	tray = new AppTray(mainWindow, {
 		onShowApp: () => {
 			if (mainWindow) {
 				mainWindow.show()
 				mainWindow.focus()
 			}
+		},
+		onReloadQui: () => {
+			void loadQuiWebUi()
 		},
 		onPauseAll: async () => {
 			await apiClient.pauseAll()
@@ -187,7 +244,7 @@ async function bootstrapApp(): Promise<void> {
 			}
 		},
 		onCheckUpdates: async () => {
-			await checkAndPromptDockerUpdates()
+			await checkAndPromptDockerUpdates({ force: true })
 		},
 		onCheckAppUpdates: async () => {
 			const info = await appUpdater.checkForUpdates()
@@ -199,29 +256,14 @@ async function bootstrapApp(): Promise<void> {
 	})
 	tray.init()
 
-	// Bootstrap Docker containers in background
-	void dockerManager.ensureContainersRunning().then(async ({ qui, qbit }) => {
-		if (tray) tray.updateDockerStatus(qui, qbit)
-		if (mainWindow) {
-			mainWindow.webContents.send('docker:status-update', { qui, qbit })
-		}
-		// Check for updates and prompt user if updates exist
-		await checkAndPromptDockerUpdates()
-		// Check for desktop app updates
-		const appRelease = await appUpdater.checkForUpdates()
-		if (appRelease.hasUpdate) {
-			await appUpdater.promptUpdateIfAvailable(mainWindow, appRelease)
-		}
-	})
+	void loadQuiWebUi()
 
-	// Start live transfer stats polling
 	statsInterval = setInterval(async () => {
 		const stats = await apiClient.getTransferStats()
 		if (tray) tray.updateStats(stats)
 	}, 2000)
 
 	mainWindow.on('close', event => {
-		// Minimize to tray on macOS window close
 		if (!isQuitting) {
 			event.preventDefault()
 			mainWindow?.hide()

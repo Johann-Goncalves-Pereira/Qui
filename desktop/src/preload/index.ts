@@ -4,61 +4,16 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron'
-import type {
-	BiometricAuthResult,
-	DockerContainerStatus,
-	DockerUpdateInfo,
-	TorrentTransferStats,
-} from '../shared/types.js'
+import type { BiometricAuthResult } from '../shared/types.js'
 
 export interface QuiDesktopBridge {
-	authenticateBiometrics: () => Promise<BiometricAuthResult>
-	loginWithPassword: (
-		username: string,
-		password: string,
-	) => Promise<{ success: boolean; error?: string }>
-	isBiometricsSupported: () => Promise<boolean>
-	getDockerStatus: () => Promise<{
-		qui: DockerContainerStatus
-		qbit: DockerContainerStatus
-	}>
-	checkForUpdates: () => Promise<DockerUpdateInfo[]>
-	applyDockerUpdate: (
-		containerName: string,
-		image: string,
-		port: number,
-	) => Promise<boolean>
-	getTransferStats: () => Promise<TorrentTransferStats>
-	onDockerStatusChanged: (
-		callback: (status: {
-			qui: DockerContainerStatus
-			qbit: DockerContainerStatus
-		}) => void,
-	) => () => void
+	/** macOS Touch ID / fingerprint after web sign-in or registration (no password storage). */
+	requestTouchId: (reason?: string) => Promise<BiometricAuthResult>
 }
 
-const desktopBridge: QuiDesktopBridge = {
-	authenticateBiometrics: () => ipcRenderer.invoke('auth:biometrics'),
-	loginWithPassword: (username: string, password: string) =>
-		ipcRenderer.invoke('auth:login-password', { username, password }),
-	isBiometricsSupported: () => ipcRenderer.invoke('auth:supported'),
-	getDockerStatus: () => ipcRenderer.invoke('docker:status'),
-	checkForUpdates: () => ipcRenderer.invoke('docker:check-updates'),
-	applyDockerUpdate: (containerName: string, image: string, port: number) =>
-		ipcRenderer.invoke('docker:apply-update', { containerName, image, port }),
-	getTransferStats: () => ipcRenderer.invoke('api:transfer-stats'),
-	onDockerStatusChanged: callback => {
-		const listener = (
-			_event: unknown,
-			status: { qui: DockerContainerStatus; qbit: DockerContainerStatus },
-		) => {
-			callback(status)
-		}
-		ipcRenderer.on('docker:status-update', listener)
-		return () => {
-			ipcRenderer.removeListener('docker:status-update', listener)
-		}
-	},
+const bridge: QuiDesktopBridge = {
+	requestTouchId: (reason?: string) =>
+		ipcRenderer.invoke('auth:biometrics', reason),
 }
 
-contextBridge.exposeInMainWorld('quiDesktop', desktopBridge)
+contextBridge.exposeInMainWorld('quiDesktop', bridge)
