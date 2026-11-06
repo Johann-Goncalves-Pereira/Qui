@@ -5,8 +5,10 @@
 
 import path from 'node:path'
 import {
+	DEFAULT_GAZELLE_PORT,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
+	GAZELLE_CONTAINER_NAME,
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
@@ -21,6 +23,8 @@ export interface DockerDataDirs {
 	quiConfig: string
 	qbitConfig: string
 	downloads: string
+	gazelleConfig: string
+	gazelleData: string
 }
 
 /** Host directories that survive `docker rm`. Qui keeps its account database here. */
@@ -35,6 +39,8 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 		quiConfig: path.join(root, 'qui'),
 		qbitConfig: path.join(root, 'qbittorrent'),
 		downloads: path.join(root, 'downloads'),
+		gazelleConfig: path.join(root, 'gazelle', 'config'),
+		gazelleData: path.join(root, 'gazelle', 'data'),
 	}
 }
 
@@ -82,6 +88,29 @@ export function qbitContainerRunArgs(
 		`${hostConfig}:/config`,
 		'-v',
 		`${downloads}:/downloads`,
+		'--restart',
+		'unless-stopped',
+		image,
+	]
+}
+
+export function gazelleContainerRunArgs(
+	image: string,
+	hostConfig: string,
+	hostData: string,
+	port = DEFAULT_GAZELLE_PORT,
+): string[] {
+	return [
+		'run',
+		'-d',
+		'--name',
+		GAZELLE_CONTAINER_NAME,
+		'-p',
+		`${port}:7001`,
+		'-v',
+		`${hostConfig}:/var/www/app/config`,
+		'-v',
+		`${hostData}:/var/lib/mysql`,
 		'--restart',
 		'unless-stopped',
 		image,

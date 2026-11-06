@@ -10,8 +10,11 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { Schema } from 'effect'
 import {
+	DEFAULT_GAZELLE_PORT,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
+	GAZELLE_CONTAINER_NAME,
+	GAZELLE_IMAGE,
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
@@ -31,6 +34,7 @@ import {
 	defaultQBitConfig,
 	defaultQuiConfig,
 	dockerDataDirs,
+	gazelleContainerRunArgs,
 	imageDigestHasUpdate,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
@@ -238,6 +242,48 @@ export class DockerManager {
 		)
 
 		return { qui: quiStatus, qbit: qbitStatus }
+	}
+
+	async getGazelleStatus(): Promise<DockerContainerStatus> {
+		return this.getContainerStatus(
+			GAZELLE_CONTAINER_NAME,
+			DEFAULT_GAZELLE_PORT,
+			GAZELLE_IMAGE,
+		)
+	}
+
+	async startGazelle(): Promise<DockerContainerStatus> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
+		this.mkdir(dirs.gazelleConfig)
+		this.mkdir(dirs.gazelleData)
+		return this.ensureContainer(
+			GAZELLE_CONTAINER_NAME,
+			GAZELLE_IMAGE,
+			DEFAULT_GAZELLE_PORT,
+			gazelleContainerRunArgs(
+				GAZELLE_IMAGE,
+				dirs.gazelleConfig,
+				dirs.gazelleData,
+			),
+		)
+	}
+
+	async stopGazelle(): Promise<DockerContainerStatus> {
+		try {
+			await this.executor.exec('docker', ['stop', GAZELLE_CONTAINER_NAME])
+		} catch {
+			// Container may already be stopped or absent
+		}
+		return this.getGazelleStatus()
+	}
+
+	async restartGazelle(): Promise<DockerContainerStatus> {
+		try {
+			await this.executor.exec('docker', ['restart', GAZELLE_CONTAINER_NAME])
+			return this.getGazelleStatus()
+		} catch {
+			return this.startGazelle()
+		}
 	}
 
 	private async ensureContainer(
