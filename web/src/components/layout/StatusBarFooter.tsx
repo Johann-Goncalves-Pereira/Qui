@@ -48,13 +48,7 @@ export function StatusBarFooter() {
               <button
                 type="button"
                 onClick={() => setQuiDialogOpen(true)}
-                className={cn(
-                  "flex items-center gap-1.5 px-2 py-0.5 rounded transition-colors border",
-                  "hover:bg-accent/60 hover:text-foreground",
-                  statuses.qui.state === "running"
-                    ? "border-emerald-500/20 bg-emerald-500/5 text-foreground/90"
-                    : "border-amber-500/20 bg-amber-500/5 text-muted-foreground"
-                )}
+                className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
               >
                 <Server className="h-3 w-3 text-muted-foreground/70" />
                 <span
@@ -81,13 +75,7 @@ export function StatusBarFooter() {
               <button
                 type="button"
                 onClick={() => setQbitDialogOpen(true)}
-                className={cn(
-                  "flex items-center gap-1.5 px-2 py-0.5 rounded transition-colors border",
-                  "hover:bg-accent/60 hover:text-foreground",
-                  statuses.qbit.state === "running"
-                    ? "border-emerald-500/20 bg-emerald-500/5 text-foreground/90"
-                    : "border-amber-500/20 bg-amber-500/5 text-muted-foreground"
-                )}
+                className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
               >
                 <Layers className="h-3 w-3 text-muted-foreground/70" />
                 <span
