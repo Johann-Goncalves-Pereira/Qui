@@ -30,6 +30,92 @@
     "showSidebar": "Mostra la barra lateral",
     "hideSidebar": "Amaga la barra lateral"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Contenidor Qui ({{state}}) al port {{port}}. Fes clic per configurar Docker.",
+    "tooltipQbit": "Contenidor qBittorrent-nox ({{state}}) al port {{port}}. Fes clic per configurar Docker.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Configuració del contenidor Qui",
+      "description": "Paràmetres oficials de Docker per a autobrr/qui segons la documentació de desplegament."
+    },
+    "qbit": {
+      "title": "Configuració del contenidor qBittorrent-nox",
+      "description": "Paràmetres oficials de Docker per a linuxserver/qbittorrent segons la documentació de desplegament."
+    },
+    "state": {
+      "running": "En execució"
+    },
+    "toast": {
+      "quiSaved": "Configuració del contenidor Qui desada",
+      "qbitSaved": "Configuració del contenidor qBittorrent-nox desada",
+      "quiRestartStarted": "Reinici del contenidor Qui iniciat",
+      "qbitRestartStarted": "Reinici del contenidor qBittorrent-nox iniciat",
+      "copyCommandSuccess": "Ordre docker run copiada al porta-retalls",
+      "saveFailed": "No s'ha pogut desar la configuració",
+      "restartFailed": "No s'ha pogut reiniciar el contenidor",
+      "genericSaveError": "Error en desar la configuració",
+      "genericRestartError": "Error en reiniciar el contenidor",
+      "copyCommandFailed": "No s'ha pogut copiar al porta-retalls"
+    },
+    "fields": {
+      "hostWebUiPort": "Port de la interfície web de l'amfitrió",
+      "dockerImage": "Imatge Docker",
+      "volumeBindMounts": "Muntatges de volum (bind)",
+      "hostConfigDirQui": "Directori de configuració de l'amfitrió (/config)",
+      "hostConfigDirQuiHelp": "Emmagatzema config.toml, la base qui.db, la memòria cau d'icones i els registres en temps d'execució.",
+      "hostDataDir": "Directori de dades de l'amfitrió (/data)",
+      "hostDataDirHelp": "Necessari per a operacions de hardlink/reflink cross-seed i escanejos d'orfes.",
+      "hostConfigDirQbit": "Directori de configuració de l'amfitrió (/config)",
+      "hostConfigDirQbitHelp": "Conté qBittorrent.conf, registres, fitxers d'estat i còpies de seguretat de torrents.",
+      "hostDownloadsDir": "Directori de baixades de l'amfitrió (/downloads)",
+      "hostDownloadsHelp": "Carpeta de destinació per defecte per a torrents actius i completats.",
+      "puid": "PUID",
+      "puidHelp": "ID d'usuari",
+      "pgid": "PGID",
+      "pgidHelp": "ID de grup",
+      "umask": "UMASK",
+      "umaskHelpQui": "p. ex. 002 o 022",
+      "umaskHelpQbit": "p. ex. 022 o 002",
+      "logLevel": "Nivell de registre (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Nivell de registre",
+      "restartPolicy": "Política de reinici",
+      "restartPolicyPlaceholder": "Política de reinici",
+      "timezone": "Fus horari (TZ)",
+      "baseUrl": "URL base (QUI__BASE_URL)",
+      "baseUrlHelp": "URL pública opcional quan Qui darrere d'un proxy invers.",
+      "bitTorrentPeerPort": "Port peer BitTorrent",
+      "peerPortHelp": "Trànsit TCP i UDP entrant (per defecte: 6881).",
+      "dockerCommandPreview": "Vista prèvia de l'ordre Docker",
+      "copy": "Copia",
+      "copied": "Copiat",
+      "quiImageHelp": "p. ex. qui-desktop:local o ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "p. ex. lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Mapejat al port 7476 del contenidor (per defecte: 7476).",
+      "qbitPortMappedHelp": "Mapejat al port 8080 del contenidor (per defecte: 8080).",
+      "dataPathPlaceholder": "/camí/a/baixades (opcional)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Reinicia el contenidor",
+      "cancel": "Cancel·la",
+      "saveApply": "Desa i aplica"
+    }
+  },
   "header": {
     "currentInstance": "Instància actual: {{name}}. Fes clic per canviar d'instància.",
     "connected": "Connectat",

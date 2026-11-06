@@ -30,6 +30,92 @@
     "showSidebar": "Показати бічну панель",
     "hideSidebar": "Приховати бічну панель"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Контейнер Qui ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Docker.",
+    "tooltipQbit": "Контейнер qBittorrent-nox ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Docker.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Конфігурація контейнера Qui",
+      "description": "Офіційні параметри Docker для autobrr/qui згідно з документацією розгортання."
+    },
+    "qbit": {
+      "title": "Конфігурація контейнера qBittorrent-nox",
+      "description": "Офіційні параметри Docker для linuxserver/qbittorrent згідно з документацією розгортання."
+    },
+    "state": {
+      "running": "Працює"
+    },
+    "toast": {
+      "quiSaved": "Конфігурацію контейнера Qui збережено",
+      "qbitSaved": "Конфігурацію контейнера qBittorrent-nox збережено",
+      "quiRestartStarted": "Перезапуск контейнера Qui розпочато",
+      "qbitRestartStarted": "Перезапуск контейнера qBittorrent-nox розпочато",
+      "copyCommandSuccess": "Команду docker run скопійовано в буфер обміну",
+      "saveFailed": "Не вдалося зберегти конфігурацію",
+      "restartFailed": "Не вдалося перезапустити контейнер",
+      "genericSaveError": "Помилка збереження конфігурації",
+      "genericRestartError": "Помилка перезапуску контейнера",
+      "copyCommandFailed": "Не вдалося скопіювати в буфер обміну"
+    },
+    "fields": {
+      "hostWebUiPort": "Порт веб-інтерфейсу на хості",
+      "dockerImage": "Docker-образ",
+      "volumeBindMounts": "Прив’язки томів (bind)",
+      "hostConfigDirQui": "Каталог конфігурації хоста (/config)",
+      "hostConfigDirQuiHelp": "Зберігає config.toml, базу qui.db, кеш іконок і журнали під час роботи.",
+      "hostDataDir": "Каталог даних хоста (/data)",
+      "hostDataDirHelp": "Потрібен для hardlink/reflink cross-seed і сканування «сиріт».",
+      "hostConfigDirQbit": "Каталог конфігурації хоста (/config)",
+      "hostConfigDirQbitHelp": "Містить qBittorrent.conf, журнали, файли стану та резервні копії торрентів.",
+      "hostDownloadsDir": "Каталог завантажень хоста (/downloads)",
+      "hostDownloadsHelp": "Типова цільова папка для активних і завершених торрентів.",
+      "puid": "PUID",
+      "puidHelp": "ID користувача",
+      "pgid": "PGID",
+      "pgidHelp": "ID групи",
+      "umask": "UMASK",
+      "umaskHelpQui": "наприклад 002 або 022",
+      "umaskHelpQbit": "наприклад 022 або 002",
+      "logLevel": "Рівень журналу (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Рівень журналу",
+      "restartPolicy": "Політика перезапуску",
+      "restartPolicyPlaceholder": "Політика перезапуску",
+      "timezone": "Часовий пояс (TZ)",
+      "baseUrl": "Базова URL-адреса (QUI__BASE_URL)",
+      "baseUrlHelp": "Необов’язкова публічна URL-адреса, коли Qui за зворотним проксі.",
+      "bitTorrentPeerPort": "Пір-порт BitTorrent",
+      "peerPortHelp": "Вхідний трафік TCP і UDP (типово: 6881).",
+      "dockerCommandPreview": "Попередній перегляд команди Docker",
+      "copy": "Копіювати",
+      "copied": "Скопійовано",
+      "quiImageHelp": "наприклад qui-desktop:local або ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "наприклад lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Проброшено на порт контейнера 7476 (типово: 7476).",
+      "qbitPortMappedHelp": "Проброшено на порт контейнера 8080 (типово: 8080).",
+      "dataPathPlaceholder": "/шлях/до/завантажень (необов’язково)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Перезапустити контейнер",
+      "cancel": "Скасувати",
+      "saveApply": "Зберегти та застосувати"
+    }
+  },
   "header": {
     "currentInstance": "Поточний екземпляр: {{name}}. Натисніть, щоб перемкнути.",
     "connected": "Підключено",
