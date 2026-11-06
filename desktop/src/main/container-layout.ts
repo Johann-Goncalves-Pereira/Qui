@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import {
 	DEFAULT_GAZELLE_PORT,
@@ -48,6 +49,7 @@ export function quiContainerRunArgs(
 	image: string,
 	hostConfig: string,
 	downloads?: string,
+	envExists: (filePath: string) => boolean = existsSync,
 ): string[] {
 	const args = [
 		'run',
@@ -63,6 +65,10 @@ export function quiContainerRunArgs(
 			'-v',
 			`${downloads}:/downloads`,
 		)
+	}
+	const envPath = path.join(hostConfig, '.env')
+	if (envExists(envPath)) {
+		args.push('--env-file', envPath)
 	}
 	args.push('-v', `${hostConfig}:/config`, '--restart', 'unless-stopped', image)
 	return args

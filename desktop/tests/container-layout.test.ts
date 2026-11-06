@@ -68,6 +68,17 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 		expect(args.at(-1)).toBe('qui-desktop:local')
 	})
 
+	it('adds --env-file when an .env file exists in the qui config directory', () => {
+		const args = quiContainerRunArgs(
+			'qui-desktop:local',
+			'/host/qui',
+			undefined,
+			() => true,
+		)
+		expect(args).toContain('--env-file')
+		expect(args).toContain(path.join('/host/qui', '.env'))
+	})
+
 	it('mounts the downloads directory and adds host-gateway resolution (BR-desktop-16)', () => {
 		const args = quiContainerRunArgs(
 			'qui-desktop:local',
