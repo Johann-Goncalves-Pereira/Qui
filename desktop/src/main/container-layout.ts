@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import {
 	DEFAULT_QBIT_PORT,
@@ -35,8 +36,9 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 export function quiContainerRunArgs(
 	image: string,
 	hostConfig: string,
+	envExists: (filePath: string) => boolean = existsSync,
 ): string[] {
-	return [
+	const args = [
 		'run',
 		'-d',
 		'--name',
@@ -45,10 +47,13 @@ export function quiContainerRunArgs(
 		`${DEFAULT_QUI_PORT}:7476`,
 		'-v',
 		`${hostConfig}:/config`,
-		'--restart',
-		'unless-stopped',
-		image,
 	]
+	const envPath = path.join(hostConfig, '.env')
+	if (envExists(envPath)) {
+		args.push('--env-file', envPath)
+	}
+	args.push('--restart', 'unless-stopped', image)
+	return args
 }
 
 export function qbitContainerRunArgs(

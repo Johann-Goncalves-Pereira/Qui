@@ -39,6 +39,12 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 		expect(args.at(-1)).toBe('qui-desktop:local')
 	})
 
+	it('adds --env-file when an .env file exists in the qui config directory', () => {
+		const args = quiContainerRunArgs('qui-desktop:local', '/host/qui', () => true)
+		expect(args).toContain('--env-file')
+		expect(args).toContain(path.join('/host/qui', '.env'))
+	})
+
 	it('mounts qBittorrent config and the download directory', () => {
 		const args = qbitContainerRunArgs('qbit:latest', '/host/qbit', '/host/dl')
 		expect(args).toContain('/host/qbit:/config')
