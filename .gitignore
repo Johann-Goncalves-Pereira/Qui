@@ -68,6 +68,7 @@ docs/*
 !docs/agents/
 !docs/adr/
 !docs/standards/
+!docs/specs/
 .mcp_unused.json
 config.toml
 .env
