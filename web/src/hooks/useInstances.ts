@@ -5,8 +5,10 @@
 
 import { crossSeedRoutesKey } from "@/hooks/useCrossSeedRoutes"
 import { api } from "@/lib/api"
+import { autoProvisionCompanionInstanceIfEligible } from "@/lib/desktop-companion-instance"
 import type { InstanceFormData, InstanceResponse } from "@/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react"
 
 export function useInstances() {
   const queryClient = useQueryClient()
@@ -45,6 +47,14 @@ export function useInstances() {
       queryClient.invalidateQueries({ queryKey: ["instances"] })
     },
   })
+
+  useEffect(() => {
+    if (instances !== undefined && instances.length === 0) {
+      void autoProvisionCompanionInstanceIfEligible(instances, (data) =>
+        createMutation.mutate(data)
+      )
+    }
+  }, [instances, createMutation])
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: {

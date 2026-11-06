@@ -690,7 +690,8 @@
       "regular": "Normale",
       "hardlink": "Hardlink",
       "reflink": "Reflink"
-    }
+    },
+    "addLocalCompanionInstance": "Aggiungi qBittorrent locale"
   },
   "route": {
     "foundOnAddedTo": "Trovato su {{source}}, aggiunto a {{crossSeed}}",

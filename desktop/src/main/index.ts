@@ -146,12 +146,14 @@ async function loadQuiWebUi(): Promise<void> {
 						QUI_IMAGE,
 						dirs.quiConfig,
 						'/config',
+						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
 					await dockerManager.alignContainer(
 						QBIT_CONTAINER_NAME,
 						QBIT_IMAGE,
 						dirs.qbitConfig,
 						'/config',
+						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
 					const { qui, qbit } = await dockerManager.ensureContainersRunning()
 					if (tray) tray.updateDockerStatus(qui, qbit)

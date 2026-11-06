@@ -279,6 +279,27 @@ describe('DockerManager', () => {
 		])
 	})
 
+	it('realigns container when missing required extra mount (BR-desktop-16)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			'docker inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
+		] = {
+			stdout: `${QUI_IMAGE}||/config=/host/qui;\n`,
+			stderr: '',
+		}
+		const manager = new DockerManager(mock, () => {})
+
+		await manager.alignContainer('qui', QUI_IMAGE, '/host/qui', '/config', [
+			{ hostDir: '/host/dl', containerDir: '/downloads' },
+		])
+
+		expect(mock.executedCommands.map(c => c.args[0])).toEqual([
+			'inspect',
+			'stop',
+			'rm',
+		])
+	})
+
 	it('leaves the container alone when the copy fails', async () => {
 		const mock = new MockDockerExecutor()
 		mock.responses[
