@@ -11,6 +11,7 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 | You want to… | Do this |
 | --- | --- |
 | Install or update the downloadable macOS app | [updates.md](updates.md) |
+| Understand desktop semantic versioning & PR pipeline | [versioning.md](versioning.md) |
 | Day-to-day develop UI with hot reload | [dev-mode.md](dev-mode.md) |
 | Rebuild the local Docker image + clear Electron cache after pulling code | [refresh-script.md](refresh-script.md) |
 | Open a PR on this fork without fighting upstream | [upstream-sync.md](upstream-sync.md) |
@@ -53,6 +54,7 @@ pnpm --dir desktop install:local
 ## Related pages
 
 - [updates.md](updates.md) — install / update the downloadable app and Docker images
+- [versioning.md](versioning.md) — desktop semver baseline (`0.0.0`) and automated PR merge bump
 - [dev-mode.md](dev-mode.md) — hot-reload Electron + Vite
 - [refresh-script.md](refresh-script.md) — one-command local image rebuild
 - [upstream-sync.md](upstream-sync.md) — fork sync with `autobrr/qui` before merge
@@ -79,3 +81,6 @@ pnpm --dir desktop install:local
 - `BR-desktop-19` in `docs/specs/catalog.md` — Vite origin in desktop dev mode.
 - `BR-desktop-20` in `docs/specs/catalog.md` — desktop refresh script.
 - `BR-desktop-21` in `docs/specs/catalog.md` — upstream-sync PR gate.
+- `BR-desktop-22` in `docs/specs/catalog.md` — desktop semantic versioning starting at `0.0.0` with PR merge patch increment.
+- `BR-web-07` in `docs/specs/catalog.md` — bare version display in status bar footer.
+
