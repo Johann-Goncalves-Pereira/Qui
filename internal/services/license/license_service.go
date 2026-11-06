@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -19,7 +21,36 @@ import (
 const (
 	offlineGracePeriod = 7 * 24 * time.Hour
 	ProductNamePremium = "premium-access"
+
+	EnvPremiumOverride = "QUI_PREMIUM_OVERRIDE"
+	EnvDevLicenseKey   = "QUI_DEV_LICENSE_KEY"
+	EnvLicenseKey      = "QUI_LICENSE_KEY"
 )
+
+func isEnvPremiumOverride() bool {
+	val := strings.TrimSpace(os.Getenv(EnvPremiumOverride))
+	if strings.EqualFold(val, "true") || val == "1" || strings.EqualFold(val, "yes") {
+		return true
+	}
+	if strings.TrimSpace(os.Getenv(EnvLicenseKey)) != "" || strings.TrimSpace(os.Getenv(EnvDevLicenseKey)) != "" {
+		return true
+	}
+	return false
+}
+
+func isMatchingEnvLicenseKey(key string) bool {
+	trimmed := strings.TrimSpace(key)
+	if trimmed == "" {
+		return false
+	}
+	if devKey := strings.TrimSpace(os.Getenv(EnvDevLicenseKey)); devKey != "" && trimmed == devKey {
+		return true
+	}
+	if envKey := strings.TrimSpace(os.Getenv(EnvLicenseKey)); envKey != "" && trimmed == envKey {
+		return true
+	}
+	return false
+}
 
 var (
 	ErrDodoClientNotConfigured = errors.New("dodo client not configured")
@@ -53,6 +84,32 @@ func (s *Service) ActivateAndStoreLicense(ctx context.Context, licenseKey string
 		existingLicense = nil
 	}
 
+	if isMatchingEnvLicenseKey(licenseKey) || (isEnvPremiumOverride() && strings.TrimSpace(licenseKey) != "") {
+		now := time.Now()
+		devLicense := &models.ProductLicense{
+			LicenseKey:    licenseKey,
+			ProductName:   ProductNamePremium,
+			Status:        models.LicenseStatusActive,
+			ActivatedAt:   now,
+			LastValidated: now,
+			Provider:      "env",
+			Username:      username,
+			CreatedAt:     now,
+			UpdatedAt:     now,
+		}
+		if existingLicense != nil {
+			devLicense.ID = existingLicense.ID
+			if err := s.licenseRepo.UpdateLicenseStatus(ctx, devLicense.ID, models.LicenseStatusActive); err != nil {
+				return nil, fmt.Errorf("failed to update dev license: %w", err)
+			}
+		} else {
+			if err := s.licenseRepo.StoreLicense(ctx, devLicense); err != nil {
+				return nil, fmt.Errorf("failed to store dev license: %w", err)
+			}
+		}
+		return devLicense, nil
+	}
+
 	fingerprint, err := GetDeviceID("qui-premium", username, s.configDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get machine ID: %w", err)
@@ -67,6 +124,10 @@ func (s *Service) ValidateAndStoreLicense(ctx context.Context, licenseKey string
 	existingLicense, err := s.licenseRepo.GetLicenseByKey(ctx, licenseKey)
 	if err != nil {
 		return nil, err
+	}
+
+	if existingLicense.Provider == "env" || isMatchingEnvLicenseKey(licenseKey) {
+		return existingLicense, nil
 	}
 
 	if err := s.validateExistingDodoLicense(ctx, existingLicense); err != nil {
@@ -237,6 +298,9 @@ func (s *Service) ensureDodoActivation(ctx context.Context, license *models.Prod
 
 // HasPremiumAccess checks if the user has premium access
 func (s *Service) HasPremiumAccess(ctx context.Context) (bool, error) {
+	if isEnvPremiumOverride() {
+		return true, nil
+	}
 	return s.licenseRepo.HasPremiumAccess(ctx)
 }
 
@@ -261,6 +325,10 @@ func (s *Service) RefreshAllLicenses(ctx context.Context) error {
 	}
 
 	for _, license := range licenses {
+		if license.Provider == "env" {
+			continue
+		}
+
 		if !revalidates(license.Status) {
 			continue
 		}
@@ -386,6 +454,10 @@ func (s *Service) ValidateLicenses(ctx context.Context) (bool, error) {
 	}
 
 	for _, license := range licenses {
+		if license.Provider == "env" {
+			continue
+		}
+
 		if !revalidates(license.Status) {
 			allValid = false
 			continue
