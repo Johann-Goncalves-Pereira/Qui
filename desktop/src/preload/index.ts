@@ -4,7 +4,12 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BiometricAuthResult } from '../shared/types.js'
+import type {
+	BiometricAuthResult,
+	DockerContainerStatus,
+	QBitContainerConfig,
+	QuiContainerConfig,
+} from '../shared/types.js'
 
 export interface QuiDesktopBridge {
 	/** macOS Touch ID / fingerprint after web sign-in or registration (no password storage). */
@@ -17,6 +22,21 @@ export interface QuiDesktopBridge {
 	hasSavedAccount: () => Promise<boolean>
 	/** Touch ID, then the encrypted account. Null when cancelled or missing. */
 	unlockAccount: () => Promise<{ username: string; password: string } | null>
+	getDockerStatus: () => Promise<{
+		qui: DockerContainerStatus
+		qbit: DockerContainerStatus
+	}>
+	getQuiConfig: () => Promise<QuiContainerConfig>
+	getQBitConfig: () => Promise<QBitContainerConfig>
+	saveQuiConfig: (
+		config: QuiContainerConfig,
+	) => Promise<{ success: boolean; error?: string }>
+	saveQBitConfig: (
+		config: QBitContainerConfig,
+	) => Promise<{ success: boolean; error?: string }>
+	restartContainer: (
+		name: string,
+	) => Promise<{ success: boolean; error?: string }>
 }
 
 const bridge: QuiDesktopBridge = {
@@ -30,6 +50,15 @@ const bridge: QuiDesktopBridge = {
 		ipcRenderer.invoke('account:save', username, password),
 	hasSavedAccount: () => ipcRenderer.invoke('account:has'),
 	unlockAccount: () => ipcRenderer.invoke('account:unlock'),
+	getDockerStatus: () => ipcRenderer.invoke('docker:status'),
+	getQuiConfig: () => ipcRenderer.invoke('docker:get-qui-config'),
+	getQBitConfig: () => ipcRenderer.invoke('docker:get-qbit-config'),
+	saveQuiConfig: (config: QuiContainerConfig) =>
+		ipcRenderer.invoke('docker:save-qui-config', config),
+	saveQBitConfig: (config: QBitContainerConfig) =>
+		ipcRenderer.invoke('docker:save-qbit-config', config),
+	restartContainer: (name: string) =>
+		ipcRenderer.invoke('docker:restart-container', name),
 }
 
 contextBridge.exposeInMainWorld('quiDesktop', bridge)
