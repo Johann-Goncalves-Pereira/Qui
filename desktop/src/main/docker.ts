@@ -4,7 +4,7 @@
  */
 
 import { execFile } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -15,6 +15,7 @@ import {
 	DEFAULT_QUI_PORT,
 	GAZELLE_CONTAINER_NAME,
 	GAZELLE_IMAGE,
+	GAZELLE_REPO_URL,
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
@@ -34,7 +35,6 @@ import {
 	defaultQBitConfig,
 	defaultQuiConfig,
 	dockerDataDirs,
-	gazelleContainerRunArgs,
 	imageDigestHasUpdate,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
@@ -46,10 +46,16 @@ import {
 
 const execFileAsync = promisify(execFile)
 
+export interface DockerExecOptions {
+	cwd?: string
+	timeout?: number
+}
+
 export interface DockerExecutor {
 	exec(
 		command: string,
 		args: string[],
+		options?: DockerExecOptions,
 	): Promise<{ stdout: string; stderr: string }>
 }
 
@@ -99,13 +105,15 @@ export class CliDockerExecutor implements DockerExecutor {
 	async exec(
 		command: string,
 		args: string[],
+		options?: DockerExecOptions,
 	): Promise<{ stdout: string; stderr: string }> {
 		const executable = command === 'docker' ? this.locateBinary() : command
 		const pathValue = [path.dirname(executable), DEFAULT_EXEC_PATH].join(
 			path.delimiter,
 		)
 		return execFileAsync(executable, args, {
-			timeout: 120000,
+			timeout: options?.timeout ?? 120000,
+			cwd: options?.cwd,
 			env: {
 				...process.env,
 				PATH: pathValue,
@@ -122,6 +130,13 @@ export class DockerManager {
 		private readonly executor: DockerExecutor = new CliDockerExecutor(),
 		private readonly mkdir: (dir: string) => void = dir => {
 			mkdirSync(dir, { recursive: true })
+		},
+		private readonly fileExists: (filePath: string) => boolean = existsSync,
+		private readonly writeFile: (filePath: string, content: string) => void = (
+			filePath,
+			content,
+		) => {
+			writeFileSync(filePath, content, 'utf8')
 		},
 	) {}
 
@@ -243,33 +258,101 @@ export class DockerManager {
 		)
 	}
 
+	async ensureGazelleRepoCloned(repoDir: string): Promise<void> {
+		const composeFile = path.join(repoDir, 'docker-compose.yml')
+		if (!this.fileExists(composeFile)) {
+			await this.executor.exec(
+				'git',
+				['clone', '--depth', '1', GAZELLE_REPO_URL, repoDir],
+				{ timeout: 300000 },
+			)
+		}
+	}
+
+	ensureGazelleComposeOverride(repoDir: string): void {
+		const overrideFile = path.join(repoDir, 'docker-compose.override.yml')
+		if (!this.fileExists(overrideFile)) {
+			const content = [
+				'services:',
+				'  web:',
+				`    container_name: ${GAZELLE_CONTAINER_NAME}`,
+				`    image: ${GAZELLE_IMAGE}`,
+				'',
+			].join('\n')
+			this.writeFile(overrideFile, content)
+		}
+	}
+
+	private async composeExec(
+		composeArgs: string[],
+		cwd: string,
+	): Promise<{ stdout: string; stderr: string }> {
+		try {
+			return await this.executor.exec('docker', ['compose', ...composeArgs], {
+				cwd,
+				timeout: 600000,
+			})
+		} catch (err) {
+			const errMsg = err instanceof Error ? err.message : String(err)
+			if (
+				errMsg.includes('unknown command: docker compose') ||
+				errMsg.includes('is not a docker command')
+			) {
+				return await this.executor.exec('docker-compose', composeArgs, {
+					cwd,
+					timeout: 600000,
+				})
+			}
+			throw err
+		}
+	}
+
 	async startGazelle(): Promise<DockerContainerStatus> {
 		const dirs = dockerDataDirs(homedir(), process.platform)
 		this.mkdir(dirs.gazelleConfig)
 		this.mkdir(dirs.gazelleData)
-		return this.ensureContainer(
-			GAZELLE_CONTAINER_NAME,
-			GAZELLE_IMAGE,
-			DEFAULT_GAZELLE_PORT,
-			gazelleContainerRunArgs(
-				GAZELLE_IMAGE,
-				dirs.gazelleConfig,
-				dirs.gazelleData,
-			),
-		)
+		this.mkdir(dirs.gazelleRepo)
+
+		const current = await this.getGazelleStatus()
+		if (current.state === 'running') {
+			return current
+		}
+
+		try {
+			await this.ensureGazelleRepoCloned(dirs.gazelleRepo)
+			this.ensureGazelleComposeOverride(dirs.gazelleRepo)
+			await this.composeExec(['up', '-d'], dirs.gazelleRepo)
+		} catch (error) {
+			const msg = error instanceof Error ? error.message : String(error)
+			throw new Error(`Failed to provision Gazelle companion: ${msg}`)
+		}
+
+		return this.getGazelleStatus()
 	}
 
 	async stopGazelle(): Promise<DockerContainerStatus> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
 		try {
-			await this.executor.exec('docker', ['stop', GAZELLE_CONTAINER_NAME])
+			const composeFile = path.join(dirs.gazelleRepo, 'docker-compose.yml')
+			if (this.fileExists(composeFile)) {
+				await this.composeExec(['stop'], dirs.gazelleRepo)
+			} else {
+				await this.executor.exec('docker', ['stop', GAZELLE_CONTAINER_NAME])
+			}
 		} catch {
-			// Container may already be stopped or absent
+			// Container/stack may already be stopped or absent
 		}
 		return this.getGazelleStatus()
 	}
 
 	async restartGazelle(): Promise<DockerContainerStatus> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
 		try {
+			const composeFile = path.join(dirs.gazelleRepo, 'docker-compose.yml')
+			if (this.fileExists(composeFile)) {
+				await this.composeExec(['restart'], dirs.gazelleRepo)
+				return this.getGazelleStatus()
+			}
 			await this.executor.exec('docker', ['restart', GAZELLE_CONTAINER_NAME])
 			return this.getGazelleStatus()
 		} catch {

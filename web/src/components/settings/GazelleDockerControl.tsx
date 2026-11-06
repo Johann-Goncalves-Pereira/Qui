@@ -188,8 +188,14 @@ function GazelleDockerControlInner() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Deploy a local OPSnet/Gazelle tracker container (ghcr.io/opsnet/gazelle) mapped to port 7001 with persistent state in the desktop data directory.
+        Deploy a local OPSnet/Gazelle tracker stack mapped to port 7001 with persistent state in the desktop data directory.
       </p>
+
+      {actionPending && isNotFound && (
+        <p className="text-xs text-muted-foreground italic">
+          Cloning OPSnet/Gazelle repository and building Docker Compose containers... this may take several minutes on initial install.
+        </p>
+      )}
 
       {errorMessage && (
         <Alert variant="destructive" className="py-2 text-xs">
