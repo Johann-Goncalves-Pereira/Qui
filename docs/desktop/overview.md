@@ -38,6 +38,7 @@ pnpm --dir desktop install:local
 
 - **Main window**: The native window stays clear, so a later glass change can still show the desktop. The Glassmorphism row is a slider for how much of the theme color the page keeps. At 100% the row is unchecked and the page is solid. Any lower value checks the row, keeps that much of the theme color on the shell, sidebar, cards, and popovers, and turns on the macOS HUD vibrancy so the desktop behind the window is blurred. The default below 100% is 60%. On launch the window shows a spinner and a process code block, starts the Docker containers, waits until `GET /api/version` succeeds, then loads the real Qui page at `QUI_WEB_LOGIN_URL` (`http://localhost:7476/login`). That page is the same one a browser gets. There is no second sign-in form.
 - **Tray** (menu bar): The status item is the Qui mark at 14pt. The title is empty while idle and shows live download and upload speeds while transfers run. The menu has Docker status, transfer stats, pause/resume, **Check for Docker Updates…**, **Check for Qui Updates…**, **Reload Qui web app**, and Quit.
+- **Application menu**: Tailored native macOS and desktop menu bar (`Qui`, `File`, `Edit`, `Transfers`, `View`, `Window`, `Help`) with torrent domain shortcuts (Add Torrent `Cmd+O`/`Cmd+N`, Pause/Resume All, Open Downloads/Config Folders, Preferences `Cmd+,`, and Updates). Standard `View` omits DevTools for normal users; a dedicated top-level **Developer** menu is registered only when hot-reload dev mode is active (`QUI_DESKTOP_DEV=1`).
 - **Docker**: Packaged (downloadable) builds default the Qui image to `ghcr.io/johann-goncalves-pereira/qui:latest`. Local development defaults to `qui-desktop:local` (rebuild with `./scripts/desktop-refresh`). Override with `QUI_DESKTOP_IMAGE`. The CLI is resolved from `~/.docker/bin/docker`, `/opt/homebrew/bin/docker`, `/usr/local/bin/docker`, or `Docker.app`. Qui’s `/config` and qBittorrent’s config are bind-mounted under the desktop data folder, so replacing a container does not delete the account. The shared `downloads` directory is mounted into both containers (`/downloads`) and host-gateway resolution is passed to the Qui container so Qui and qBittorrent can interoperate directly on local filesystem data. A container that was created without that mount is copied onto the host before it is removed.
   The **Docker image update** dialog appears only when the remote manifest shares no digest with the local image, and not again for a digest you dismissed with Later.
 - **App updates**: Unsigned GitHub Releases (`.dmg` / `.zip`). The tray and launch check open the download URL; the user replaces Qui.app. See [updates.md](updates.md).
@@ -74,9 +75,9 @@ pnpm --dir desktop install:local
 - `BR-desktop-17` in `docs/specs/catalog.md` — packaged GHCR vs local Qui image.
 - `BR-desktop-18` in `docs/specs/catalog.md` — unsigned release download prompt.
 - `BR-desktop-19` in `docs/specs/catalog.md` — Vite origin in desktop dev mode.
-- `BR-desktop-20` in `docs/specs/catalog.md` — desktop refresh script.
 - `BR-desktop-21` in `docs/specs/catalog.md` — upstream-sync PR gate.
-- `BR-desktop-22` in `docs/specs/catalog.md` — Clean install pre-seeds companion qBittorrent.conf with subnet authentication bypass to prevent random session password and IP ban lockouts.
+- `BR-desktop-22` in `docs/specs/catalog.md` — clean install pre-seeds companion qBittorrent auth bypass.
+- `BR-desktop-23` in `docs/specs/catalog.md` — Qui application menu and hot-reload Developer menu.
 - `BR-web-03` in `docs/specs/catalog.md` — Status bar footer with streamlined borderless service indicators.
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
 - `BR-web-06` in `docs/specs/catalog.md` — Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access.
