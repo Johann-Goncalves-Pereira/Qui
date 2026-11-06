@@ -123,6 +123,7 @@ export class DockerManager {
 		private readonly mkdir: (dir: string) => void = dir => {
 			mkdirSync(dir, { recursive: true })
 		},
+		private readonly quiImage: string = QUI_IMAGE,
 	) {}
 
 	/**
@@ -229,9 +230,9 @@ export class DockerManager {
 		const dirs = dockerDataDirs(homedir(), process.platform)
 		const quiStatus = await this.ensureContainer(
 			QUI_CONTAINER_NAME,
-			QUI_IMAGE,
+			this.quiImage,
 			DEFAULT_QUI_PORT,
-			quiContainerRunArgs(QUI_IMAGE, dirs.quiConfig, dirs.downloads),
+			quiContainerRunArgs(this.quiImage, dirs.quiConfig, dirs.downloads),
 		)
 
 		const qbitStatus = await this.ensureContainer(
