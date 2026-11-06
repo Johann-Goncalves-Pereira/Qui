@@ -337,7 +337,7 @@ graph TD
 
 ## 3. Related Specifications & Architecture
 
-- `BR-desktop-23` — Canonical Homebrew Cask distribution specification, zap coverage, and package manager blueprints.
+- `BR-desktop-24` — Canonical Homebrew Cask distribution specification, zap coverage, and package manager blueprints.
 - [`docs/desktop/overview.md`](overview.md) — Main desktop architecture and lifecycle.
 - [`docs/desktop/updates.md`](updates.md) — Unsigned GitHub release asset management.
 - [`Casks/qui.rb`](../../Casks/qui.rb) — Homebrew Cask formula.

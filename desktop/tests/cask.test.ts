@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-describe('Homebrew Cask specification (BR-desktop-23)', () => {
+describe('Homebrew Cask specification (BR-desktop-24)', () => {
 	const caskPath = resolve(__dirname, '../../Casks/qui.rb')
 	const packageJsonPath = resolve(__dirname, '../package.json')
 
