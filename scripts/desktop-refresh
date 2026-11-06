@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Rebuild qui-desktop:local, recreate the Qui container, clear Electron web caches.
+# Usage: ./scripts/desktop-refresh [--pull] [--install-app] [--open]
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+DO_PULL=0
+DO_INSTALL=0
+DO_OPEN=0
+for arg in "$@"; do
+	case "$arg" in
+		--pull) DO_PULL=1 ;;
+		--install-app) DO_INSTALL=1 ;;
+		--open) DO_OPEN=1 ;;
+		-h|--help)
+			echo "Usage: $0 [--pull] [--install-app] [--open]"
+			exit 0
+			;;
+		*)
+			echo "Unknown flag: $arg" >&2
+			exit 1
+			;;
+	esac
+done
+
+if [[ "$DO_PULL" -eq 1 ]]; then
+	echo "==> git pull"
+	git pull --ff-only
+fi
+
+echo "==> make frontend"
+make frontend
+
+VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo desktop-local)"
+GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+echo "==> docker build -t qui-desktop:local"
+docker build \
+	-t qui-desktop:local \
+	-f distrib/docker/Dockerfile \
+	--build-arg "VERSION=${VERSION}" \
+	--build-arg "GIT_COMMIT=${GIT_COMMIT}" \
+	--build-arg "BUILD_DATE=${BUILD_DATE}" \
+	.
+
+echo "==> recreate qui container"
+if docker ps -a --format '{{.Names}}' | grep -qx qui; then
+	docker stop qui >/dev/null || true
+	docker rm qui >/dev/null || true
+fi
+
+QUI_DATA="${HOME}/Library/Application Support/Qui"
+mkdir -p "${QUI_DATA}/docker/qui" "${QUI_DATA}/docker/downloads"
+
+# Match desktop bind mounts; the Electron app will realign on next launch.
+docker run -d \
+	--name qui \
+	--restart unless-stopped \
+	-p 7476:7476 \
+	-v "${QUI_DATA}/docker/qui:/config" \
+	-v "${QUI_DATA}/docker/downloads:/downloads" \
+	--add-host=host.docker.internal:host-gateway \
+	qui-desktop:local \
+	>/dev/null
+
+echo "==> clear Electron service worker / HTTP caches"
+rm -rf \
+	"${QUI_DATA}/Service Worker" \
+	"${QUI_DATA}/Cache" \
+	"${QUI_DATA}/Code Cache" \
+	2>/dev/null || true
+
+if [[ "$DO_INSTALL" -eq 1 ]]; then
+	echo "==> install Qui.app to /Applications"
+	pnpm --dir desktop install:local
+fi
+
+if [[ "$DO_OPEN" -eq 1 ]]; then
+	echo "==> open Qui"
+	open -a Qui || open -a /Applications/Qui.app || true
+fi
+
+echo "Done. Tray → Reload Qui web app if the window was already open."

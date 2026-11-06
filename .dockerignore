@@ -14,3 +14,6 @@ CLAUDE.md
 distrib/docker/docker-compose*.yml
 .themes-temp
 **/.env*
+# Host-built macOS/Windows binary must never replace the Linux image binary.
+qui
+qui.exe
