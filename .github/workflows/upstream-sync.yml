@@ -1,0 +1,53 @@
+name: Upstream sync
+
+# Required gate: PRs targeting develop/main must merge cleanly with
+# autobrr/qui develop. Conflicts fail the check; resolve on the PR branch
+# before merge (sync → merge → CI).
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-sync-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  upstream-sync:
+    name: Merge autobrr/qui develop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch upstream develop
+        run: |
+          git remote add upstream https://github.com/autobrr/qui.git
+          git fetch --no-tags upstream develop
+
+      - name: Attempt merge without committing
+        id: merge
+        run: |
+          set +e
+          git merge --no-commit --no-ff upstream/develop
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+            git merge --abort || true
+            exit 0
+          fi
+          echo "clean=false" >> "$GITHUB_OUTPUT"
+          echo "::error::Conflicts merging autobrr/qui develop into this PR. Resolve them on the branch (merge or rebase upstream), then push again."
+          echo "Conflicted paths:"
+          git diff --name-only --diff-filter=U || true
+          git merge --abort || true
+          exit 1
