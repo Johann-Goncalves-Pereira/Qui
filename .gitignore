@@ -69,6 +69,9 @@ docs/*
 !docs/adr/
 !docs/standards/
 !docs/specs/
+!docs/README.md
+!docs/desktop/
+!docs/web/
 .mcp_unused.json
 config.toml
 .env
