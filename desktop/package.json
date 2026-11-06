@@ -12,7 +12,10 @@
     "test": "vitest run",
     "start": "pnpm build && electron dist/main/index.js",
     "dev": "tsc -w",
+    "dev:app": "pnpm build && concurrently -k \"tsc -w --preserveWatchOutput\" \"QUI_DESKTOP_DEV=1 electronmon dist/main/index.js\"",
+    "refresh": "../scripts/desktop-refresh",
     "package:mac": "pnpm build && electron-builder --mac --dir -c.mac.identity=null",
+    "package:mac:release": "pnpm build && electron-builder --mac dmg zip -c.mac.identity=null",
     "install:local": "pnpm package:mac && rm -rf /Applications/Qui.app && cp -R release/mac-arm64/Qui.app /Applications/ && echo 'Qui.app successfully installed to /Applications/Qui.app'"
   },
   "build": {
@@ -37,7 +40,9 @@
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
-        "dir"
+        "dir",
+        "dmg",
+        "zip"
       ],
       "identity": null
     }
@@ -49,8 +54,10 @@
     "@biomejs/biome": "^2.5.10",
     "@eslint/js": "^9.20.0",
     "@types/node": "^24.19.2",
+    "concurrently": "^9.2.1",
     "electron": "^35.0.0",
     "electron-builder": "^26.18.0",
+    "electronmon": "^2.0.3",
     "eslint": "^9.20.0",
     "globals": "^16.0.0",
     "typescript": "^5.8.2",

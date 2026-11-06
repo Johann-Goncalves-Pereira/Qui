@@ -2,9 +2,9 @@
 
 ## Areas
 
-| Area | Overview |
-| ---- | -------- |
-| Desktop (Electron) | [desktop/overview.md](desktop/overview.md) |
+| Area | Pages |
+| ---- | ----- |
+| Desktop (Electron) | [overview](desktop/overview.md) (how-to index) · [install & updates](desktop/updates.md) · [dev hot reload](desktop/dev-mode.md) · [local refresh script](desktop/refresh-script.md) · [upstream sync gate](desktop/upstream-sync.md) |
 | Web (browser + embedded in desktop) | [web/electron-desktop.md](web/electron-desktop.md) |
 
 ## Spec catalog

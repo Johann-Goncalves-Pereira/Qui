@@ -80,4 +80,16 @@ describe("StatusBarFooter component (BR-web-03)", () => {
 
     expect(screen.getByText("qBittorrent-nox Container Configuration")).toBeDefined()
   })
+
+  it("renders streamlined icon-dot-port indicators without green box borders (BR-web-03)", () => {
+    renderWithProviders()
+
+    const quiBtn = screen.getByText("qui:7476").closest("button")
+    const qbitBtn = screen.getByText("qbittorrent:8080").closest("button")
+
+    expect(quiBtn?.className).not.toContain("border-emerald-500")
+    expect(quiBtn?.className).not.toContain("bg-emerald-500/5")
+    expect(qbitBtn?.className).not.toContain("border-emerald-500")
+    expect(qbitBtn?.className).not.toContain("bg-emerald-500/5")
+  })
 })

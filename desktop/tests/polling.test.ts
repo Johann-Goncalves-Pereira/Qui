@@ -10,7 +10,7 @@ import {
 	STATS_POLL_BACKGROUND_MS,
 } from '../src/main/stats-polling.js'
 
-describe('Adaptive transfer stats polling (BR-desktop-18)', () => {
+describe('Adaptive transfer stats polling (BR-desktop-24)', () => {
 	it('uses active fast polling when window is visible and not minimized', () => {
 		const interval = computeStatsPollInterval({
 			destroyed: false,

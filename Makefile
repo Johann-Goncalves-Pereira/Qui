@@ -27,7 +27,7 @@ INTERNAL_WEB_DIR = internal/web
 # Go build flags
 LDFLAGS = -ldflags "-X github.com/autobrr/qui/internal/buildinfo.Version=$(VERSION) -X github.com/autobrr/qui/internal/buildinfo.Commit=$(GIT_COMMIT) -X github.com/autobrr/qui/internal/buildinfo.Date=$(BUILD_DATE)"
 
-.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose clean test test-postgres test-frontend help themes-fetch themes-clean lint lint-full lint-ratchet lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
+.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh clean test test-postgres test-frontend help themes-fetch themes-clean lint lint-full lint-ratchet lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
 
 # Default target
 all: build
@@ -74,6 +74,16 @@ frontend:
 backend: themes-fetch
 	@echo "Building backend..."
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/qui
+
+# Electron shell against Vite (expects make dev / API on :7476 and Vite on :5173).
+desktop-dev:
+	@echo "Starting Qui Desktop in hot-reload mode (QUI_DESKTOP_DEV=1)…"
+	@echo "Ensure make dev (or air + pnpm --dir web dev) is already running."
+	cd desktop && pnpm install && QUI_DESKTOP_DEV=1 pnpm run dev:app
+
+# Rebuild qui-desktop:local, recreate container, clear Electron caches.
+desktop-refresh:
+	./scripts/desktop-refresh
 
 # Development mode - run both frontend and backend
 dev:
@@ -327,6 +337,8 @@ help:
 	@echo "  make dev-backend    - Run backend with hot reload"
 	@echo "  make dev-frontend   - Run frontend development server"
 	@echo "  make dev-expose     - Run frontend dev server exposed on 0.0.0.0"
+	@echo "  make desktop-dev    - Electron + Vite hot reload (QUI_DESKTOP_DEV=1)"
+	@echo "  make desktop-refresh - Rebuild qui-desktop:local and clear Electron caches"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test           - Run all Go tests with race detection"
