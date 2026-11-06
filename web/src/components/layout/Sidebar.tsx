@@ -4,12 +4,6 @@
  */
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
 import { UnifiedScopeDropdownSection } from "@/components/layout/UnifiedScopeDropdownSection"
 import { Logo } from "@/components/ui/Logo"
 import { NapsterLogo } from "@/components/ui/NapsterLogo"
@@ -21,9 +15,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useCrossSeedInstanceState } from "@/hooks/useCrossSeedInstanceState"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
 import { useTheme } from "@/hooks/useTheme"
-import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
 import { api } from "@/lib/api"
-import { getAppVersion } from "@/lib/build-info"
 import { demoLinks, isDemo } from "@/lib/demo"
 import { normalizeUnifiedInstanceIds } from "@/lib/instances"
 import { cn } from "@/lib/utils"
@@ -32,12 +24,8 @@ import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-route
 import { navigateWithSearch } from "@/lib/router-search"
 import {
   Archive,
-  Check,
-  Code,
-  Copyright,
   FileText,
   GitBranch,
-  Globe,
   HardDrive,
   Home,
   Loader2,
@@ -117,7 +105,7 @@ const navigation: NavItem[] = [
 ]
 
 export function Sidebar() {
-  const { t, i18n } = useTranslation("common")
+  const { t } = useTranslation("common")
   const location = useLocation()
   const navigate = useNavigate()
   const routeSearch = useSearch({ strict: false }) as Record<string, unknown> | undefined
@@ -169,8 +157,6 @@ export function Sidebar() {
   const hasConfiguredInstances = (instances?.length ?? 0) > 0
 
   const { state: crossSeedInstanceState } = useCrossSeedInstanceState()
-
-  const appVersion = getAppVersion()
 
   const desktopShell = typeof window !== "undefined" && window.quiDesktop !== undefined
   const mark = theme === "swizzin" ? (
@@ -346,67 +332,6 @@ export function Sidebar() {
           )}
         </div>
       </nav>
-
-      <div className="flex-shrink-0 p-3">
-        <Separator className="mx-3 mb-3" />
-
-        <div className="flex items-center justify-between px-3 pb-3">
-          <div className="flex flex-col gap-1 text-[10px] text-sidebar-foreground/40 select-none">
-            <span className="font-medium text-sidebar-foreground/50">{t("sidebar.version", { version: appVersion })}</span>
-            <div className="flex items-center gap-1">
-              <Copyright className="h-2.5 w-2.5" />
-              <span>{new Date().getFullYear()} autobrr</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-0.5">
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-sidebar-foreground/40 hover:text-sidebar-foreground"
-                    >
-                      <Globe className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {t("sidebar.language")}
-                </TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="end" side="top">
-                {supportedLanguages.map((lng) => (
-                  <DropdownMenuItem
-                    key={lng}
-                    onClick={() => changeLanguage(lng)}
-                    className="flex items-center justify-between gap-4"
-                  >
-                    {languageNames[lng]}
-                    {i18n.language === lng && <Check className="h-3.5 w-3.5" />}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-sidebar-foreground/40 hover:text-sidebar-foreground"
-              asChild
-            >
-              <a
-                href="https://github.com/autobrr/qui"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("sidebar.viewOnGitHub")}
-              >
-                <Code className="h-3.5 w-3.5" />
-              </a>
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

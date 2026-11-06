@@ -10,8 +10,11 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { Schema } from 'effect'
 import {
+	DEFAULT_GAZELLE_PORT,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
+	GAZELLE_CONTAINER_NAME,
+	GAZELLE_IMAGE,
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
@@ -22,11 +25,22 @@ import {
 	DockerContainerStatusSchema,
 	type DockerUpdateInfo,
 	DockerUpdateInfoSchema,
+	type QBitContainerConfig,
+	QBitContainerConfigSchema,
+	type QuiContainerConfig,
+	QuiContainerConfigSchema,
 } from '../shared/types.js'
 import {
+	defaultQBitConfig,
+	defaultQuiConfig,
 	dockerDataDirs,
+	gazelleContainerRunArgs,
 	imageDigestHasUpdate,
+	parseInspectToQBitConfig,
+	parseInspectToQuiConfig,
+	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
+	quiConfigToRunArgs,
 	quiContainerRunArgs,
 } from './container-layout.js'
 
@@ -121,6 +135,7 @@ export class DockerManager {
 		desiredImage: string,
 		hostDir: string,
 		containerDir: string,
+		requiredExtraMounts?: Array<{ hostDir: string; containerDir: string }>,
 	): Promise<void> {
 		let raw: string
 		try {
@@ -135,10 +150,18 @@ export class DockerManager {
 			return
 		}
 		const [image = '', mounts = ''] = raw.split('||')
-		const mounted = mounts
-			.split(';')
-			.some(entry => entry === `${containerDir}=${hostDir}`)
-		if (mounted && image === desiredImage) {
+		const mountEntries = mounts.split(';')
+		const mounted = mountEntries.some(
+			entry => entry === `${containerDir}=${hostDir}`,
+		)
+		const extraMounted =
+			!requiredExtraMounts ||
+			requiredExtraMounts.every(req =>
+				mountEntries.some(
+					entry => entry === `${req.containerDir}=${req.hostDir}`,
+				),
+			)
+		if (mounted && extraMounted && image === desiredImage) {
 			return
 		}
 		await this.executor.exec('docker', ['stop', name])
@@ -208,7 +231,7 @@ export class DockerManager {
 			QUI_CONTAINER_NAME,
 			QUI_IMAGE,
 			DEFAULT_QUI_PORT,
-			quiContainerRunArgs(QUI_IMAGE, dirs.quiConfig),
+			quiContainerRunArgs(QUI_IMAGE, dirs.quiConfig, dirs.downloads),
 		)
 
 		const qbitStatus = await this.ensureContainer(
@@ -219,6 +242,48 @@ export class DockerManager {
 		)
 
 		return { qui: quiStatus, qbit: qbitStatus }
+	}
+
+	async getGazelleStatus(): Promise<DockerContainerStatus> {
+		return this.getContainerStatus(
+			GAZELLE_CONTAINER_NAME,
+			DEFAULT_GAZELLE_PORT,
+			GAZELLE_IMAGE,
+		)
+	}
+
+	async startGazelle(): Promise<DockerContainerStatus> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
+		this.mkdir(dirs.gazelleConfig)
+		this.mkdir(dirs.gazelleData)
+		return this.ensureContainer(
+			GAZELLE_CONTAINER_NAME,
+			GAZELLE_IMAGE,
+			DEFAULT_GAZELLE_PORT,
+			gazelleContainerRunArgs(
+				GAZELLE_IMAGE,
+				dirs.gazelleConfig,
+				dirs.gazelleData,
+			),
+		)
+	}
+
+	async stopGazelle(): Promise<DockerContainerStatus> {
+		try {
+			await this.executor.exec('docker', ['stop', GAZELLE_CONTAINER_NAME])
+		} catch {
+			// Container may already be stopped or absent
+		}
+		return this.getGazelleStatus()
+	}
+
+	async restartGazelle(): Promise<DockerContainerStatus> {
+		try {
+			await this.executor.exec('docker', ['restart', GAZELLE_CONTAINER_NAME])
+			return this.getGazelleStatus()
+		} catch {
+			return this.startGazelle()
+		}
 	}
 
 	private async ensureContainer(
@@ -306,7 +371,7 @@ export class DockerManager {
 			await this.executor.exec('docker', ['rm', containerName])
 			const runArgs =
 				containerName === QUI_CONTAINER_NAME
-					? quiContainerRunArgs(image, dirs.quiConfig)
+					? quiContainerRunArgs(image, dirs.quiConfig, dirs.downloads)
 					: qbitContainerRunArgs(image, dirs.qbitConfig, dirs.downloads)
 			await this.executor.exec('docker', runArgs)
 			return true
@@ -320,6 +385,106 @@ export class DockerManager {
 			await this.executor.exec('docker', ['image', 'inspect', image])
 		} catch {
 			await this.executor.exec('docker', ['pull', image])
+		}
+	}
+
+	async getQuiConfig(): Promise<QuiContainerConfig> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
+		const fallback = defaultQuiConfig(dirs)
+		try {
+			const { stdout } = await this.executor.exec('docker', [
+				'inspect',
+				QUI_CONTAINER_NAME,
+			])
+			return parseInspectToQuiConfig(stdout, fallback)
+		} catch {
+			return fallback
+		}
+	}
+
+	async getQBitConfig(): Promise<QBitContainerConfig> {
+		const dirs = dockerDataDirs(homedir(), process.platform)
+		const fallback = defaultQBitConfig(dirs)
+		try {
+			const { stdout } = await this.executor.exec('docker', [
+				'inspect',
+				QBIT_CONTAINER_NAME,
+			])
+			return parseInspectToQBitConfig(stdout, fallback)
+		} catch {
+			return fallback
+		}
+	}
+
+	async applyQuiConfig(
+		rawConfig: unknown,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const config = Schema.decodeUnknownSync(QuiContainerConfigSchema)(
+				rawConfig,
+			)
+			this.mkdir(config.configPath)
+			if (config.dataPath) {
+				this.mkdir(config.dataPath)
+			}
+			try {
+				await this.executor.exec('docker', ['stop', QUI_CONTAINER_NAME])
+			} catch {
+				// Container might not be running
+			}
+			try {
+				await this.executor.exec('docker', ['rm', QUI_CONTAINER_NAME])
+			} catch {
+				// Container might not exist
+			}
+			await this.pullIfMissing(config.image)
+			const args = quiConfigToRunArgs(config)
+			await this.executor.exec('docker', args)
+			return { success: true }
+		} catch (err) {
+			const error = err instanceof Error ? err.message : String(err)
+			return { success: false, error }
+		}
+	}
+
+	async applyQBitConfig(
+		rawConfig: unknown,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const config = Schema.decodeUnknownSync(QBitContainerConfigSchema)(
+				rawConfig,
+			)
+			this.mkdir(config.configPath)
+			this.mkdir(config.downloadsPath)
+			try {
+				await this.executor.exec('docker', ['stop', QBIT_CONTAINER_NAME])
+			} catch {
+				// Container might not be running
+			}
+			try {
+				await this.executor.exec('docker', ['rm', QBIT_CONTAINER_NAME])
+			} catch {
+				// Container might not exist
+			}
+			await this.pullIfMissing(config.image)
+			const args = qbitConfigToRunArgs(config)
+			await this.executor.exec('docker', args)
+			return { success: true }
+		} catch (err) {
+			const error = err instanceof Error ? err.message : String(err)
+			return { success: false, error }
+		}
+	}
+
+	async restartContainer(
+		containerName: string,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			await this.executor.exec('docker', ['restart', containerName])
+			return { success: true }
+		} catch (err) {
+			const error = err instanceof Error ? err.message : String(err)
+			return { success: false, error }
 		}
 	}
 }

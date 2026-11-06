@@ -30,6 +30,92 @@
     "showSidebar": "Mostra barra laterale",
     "hideSidebar": "Nascondi barra laterale"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Contenitore Qui ({{state}}) sulla porta {{port}}. Clicca per configurare Docker.",
+    "tooltipQbit": "Contenitore qBittorrent-nox ({{state}}) sulla porta {{port}}. Clicca per configurare Docker.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Configurazione container Qui",
+      "description": "Parametri Docker ufficiali per autobrr/qui in base alla documentazione di distribuzione."
+    },
+    "qbit": {
+      "title": "Configurazione container qBittorrent-nox",
+      "description": "Parametri Docker ufficiali per linuxserver/qbittorrent in base alla documentazione di distribuzione."
+    },
+    "state": {
+      "running": "In esecuzione"
+    },
+    "toast": {
+      "quiSaved": "Configurazione container Qui salvata",
+      "qbitSaved": "Configurazione container qBittorrent-nox salvata",
+      "quiRestartStarted": "Riavvio del container Qui avviato",
+      "qbitRestartStarted": "Riavvio del container qBittorrent-nox avviato",
+      "copyCommandSuccess": "Comando docker run copiato negli appunti",
+      "saveFailed": "Impossibile salvare la configurazione",
+      "restartFailed": "Impossibile riavviare il container",
+      "genericSaveError": "Errore durante il salvataggio della configurazione",
+      "genericRestartError": "Errore durante il riavvio del container",
+      "copyCommandFailed": "Impossibile copiare negli appunti"
+    },
+    "fields": {
+      "hostWebUiPort": "Porta Web UI host",
+      "dockerImage": "Immagine Docker",
+      "volumeBindMounts": "Mount dei volumi (bind)",
+      "hostConfigDirQui": "Directory di configurazione host (/config)",
+      "hostConfigDirQuiHelp": "Memorizza config.toml, il database qui.db, la cache delle icone e i log di runtime.",
+      "hostDataDir": "Directory dati host (/data)",
+      "hostDataDirHelp": "Richiesta per hardlink/reflink cross-seed e scansioni orfani.",
+      "hostConfigDirQbit": "Directory di configurazione host (/config)",
+      "hostConfigDirQbitHelp": "Contiene qBittorrent.conf, log, file di stato e backup dei torrent.",
+      "hostDownloadsDir": "Directory download host (/downloads)",
+      "hostDownloadsHelp": "Cartella di destinazione predefinita per torrent attivi e completati.",
+      "puid": "PUID",
+      "puidHelp": "ID utente",
+      "pgid": "PGID",
+      "pgidHelp": "ID gruppo",
+      "umask": "UMASK",
+      "umaskHelpQui": "es. 002 o 022",
+      "umaskHelpQbit": "es. 022 o 002",
+      "logLevel": "Livello di log (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Livello di log",
+      "restartPolicy": "Policy di riavvio",
+      "restartPolicyPlaceholder": "Policy di riavvio",
+      "timezone": "Fuso orario (TZ)",
+      "baseUrl": "URL base (QUI__BASE_URL)",
+      "baseUrlHelp": "URL pubblico opzionale quando Qui è dietro un proxy inverso.",
+      "bitTorrentPeerPort": "Porta peer BitTorrent",
+      "peerPortHelp": "Traffico in ingresso TCP e UDP (predefinito: 6881).",
+      "dockerCommandPreview": "Anteprima comando Docker",
+      "copy": "Copia",
+      "copied": "Copiato",
+      "quiImageHelp": "es. qui-desktop:local o ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "es. lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Mappata sulla porta container 7476 (predefinita: 7476).",
+      "qbitPortMappedHelp": "Mappata sulla porta container 8080 (predefinita: 8080).",
+      "dataPathPlaceholder": "/percorso/scaricamenti (opzionale)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Riavvia container",
+      "cancel": "Annulla",
+      "saveApply": "Salva e applica"
+    }
+  },
   "header": {
     "currentInstance": "Istanza attuale: {{name}}. Clicca per cambiare istanza.",
     "connected": "Connesso",

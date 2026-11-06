@@ -712,7 +712,8 @@
       "regular": "Звичайний",
       "hardlink": "Жорстке посилання",
       "reflink": "Рефлінк"
-    }
+    },
+    "addLocalCompanionInstance": "Додати локальний qBittorrent"
   },
   "route": {
     "foundOnAddedTo": "Знайдено на {{source}}, додано до {{crossSeed}}",

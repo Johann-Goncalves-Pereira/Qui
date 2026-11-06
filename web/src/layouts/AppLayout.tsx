@@ -7,6 +7,7 @@ import { Outlet } from "@tanstack/react-router"
 import { MobileFooterNav } from "@/components/layout/MobileFooterNav"
 import { Header } from "@/components/layout/Header"
 import { Sidebar } from "@/components/layout/Sidebar"
+import { StatusBarFooter } from "@/components/layout/StatusBarFooter"
 import { LayoutRouteProvider } from "@/contexts/LayoutRouteContext"
 import { usePersistedSidebarState } from "@/hooks/usePersistedSidebarState"
 import { Menu } from "lucide-react"
@@ -78,6 +79,7 @@ function AppLayoutContent() {
         )}>
           <Outlet />
         </main>
+        <StatusBarFooter />
       </div>
 
       {/* Mobile Footer Navigation */}

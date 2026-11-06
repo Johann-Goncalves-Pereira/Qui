@@ -14,11 +14,13 @@ import {
 	ipcMain,
 	nativeTheme,
 	safeStorage,
+	shell,
 } from 'electron'
 import {
 	APP_NAME,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
+	GAZELLE_WEB_ORIGIN,
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
@@ -144,12 +146,14 @@ async function loadQuiWebUi(): Promise<void> {
 						QUI_IMAGE,
 						dirs.quiConfig,
 						'/config',
+						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
 					await dockerManager.alignContainer(
 						QBIT_CONTAINER_NAME,
 						QBIT_IMAGE,
 						dirs.qbitConfig,
 						'/config',
+						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
 					const { qui, qbit } = await dockerManager.ensureContainersRunning()
 					if (tray) tray.updateDockerStatus(qui, qbit)
@@ -223,6 +227,52 @@ function registerIpcHandlers(): void {
 			return dockerManager.updateAndRestartContainer(containerName, image)
 		},
 	)
+
+	ipcMain.handle('docker:get-qui-config', async () =>
+		dockerManager.getQuiConfig(),
+	)
+
+	ipcMain.handle('docker:get-qbit-config', async () =>
+		dockerManager.getQBitConfig(),
+	)
+
+	ipcMain.handle('docker:save-qui-config', async (_event, config: unknown) =>
+		dockerManager.applyQuiConfig(config),
+	)
+
+	ipcMain.handle('docker:save-qbit-config', async (_event, config: unknown) =>
+		dockerManager.applyQBitConfig(config),
+	)
+
+	ipcMain.handle(
+		'docker:restart-container',
+		async (_event, containerName: unknown) => {
+			if (typeof containerName !== 'string') {
+				return { success: false, error: 'Invalid container name' }
+			}
+			return dockerManager.restartContainer(containerName)
+		},
+	)
+
+	ipcMain.handle('docker:gazelle:status', async () => {
+		return dockerManager.getGazelleStatus()
+	})
+
+	ipcMain.handle('docker:gazelle:start', async () => {
+		return dockerManager.startGazelle()
+	})
+
+	ipcMain.handle('docker:gazelle:stop', async () => {
+		return dockerManager.stopGazelle()
+	})
+
+	ipcMain.handle('docker:gazelle:restart', async () => {
+		return dockerManager.restartGazelle()
+	})
+
+	ipcMain.handle('docker:gazelle:open-web', async () => {
+		await shell.openExternal(GAZELLE_WEB_ORIGIN)
+	})
 
 	ipcMain.handle('api:transfer-stats', async () => {
 		return apiClient.getTransferStats()

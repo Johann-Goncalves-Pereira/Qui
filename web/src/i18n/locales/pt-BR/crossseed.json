@@ -690,7 +690,8 @@
       "description": "Isto removerá o diretório de busca e seu histórico. Torrents já adicionados não serão afetados.",
       "cancel": "Cancelar",
       "delete": "Excluir"
-    }
+    },
+    "addLocalCompanionInstance": "Adicionar qBittorrent local"
   },
   "route": {
     "foundOnAddedTo": "Encontrado em {{source}}, adicionado a {{crossSeed}}",

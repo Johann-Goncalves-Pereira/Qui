@@ -30,6 +30,92 @@
     "showSidebar": "Show sidebar",
     "hideSidebar": "Hide sidebar"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Qui container ({{state}}) on port {{port}}. Click to configure Docker settings.",
+    "tooltipQbit": "qBittorrent-nox container ({{state}}) on port {{port}}. Click to configure Docker settings.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Qui Container Configuration",
+      "description": "Official Docker parameters for autobrr/qui based on the deployment documentation."
+    },
+    "qbit": {
+      "title": "qBittorrent-nox Container Configuration",
+      "description": "Official Docker parameters for linuxserver/qbittorrent based on the deployment documentation."
+    },
+    "state": {
+      "running": "Running"
+    },
+    "toast": {
+      "quiSaved": "Qui container configuration saved",
+      "qbitSaved": "qBittorrent-nox container configuration saved",
+      "quiRestartStarted": "Qui container restart initiated",
+      "qbitRestartStarted": "qBittorrent-nox container restart initiated",
+      "copyCommandSuccess": "Copied docker run command to clipboard",
+      "saveFailed": "Failed to save configuration",
+      "restartFailed": "Failed to restart container",
+      "genericSaveError": "Error saving configuration",
+      "genericRestartError": "Error restarting container",
+      "copyCommandFailed": "Could not copy to clipboard"
+    },
+    "fields": {
+      "hostWebUiPort": "Host Web UI Port",
+      "dockerImage": "Docker Image",
+      "volumeBindMounts": "Volume Bind Mounts",
+      "hostConfigDirQui": "Host Config Directory (/config)",
+      "hostConfigDirQuiHelp": "Stores config.toml, qui.db database, icon cache, and runtime logs.",
+      "hostDataDir": "Host Data Directory (/data)",
+      "hostDataDirHelp": "Required for cross-seed hardlink/reflink operations and orphan scans.",
+      "hostConfigDirQbit": "Host Config Directory (/config)",
+      "hostConfigDirQbitHelp": "Contains qBittorrent.conf, logs, state files, and torrent backup data.",
+      "hostDownloadsDir": "Host Downloads Directory (/downloads)",
+      "hostDownloadsHelp": "Default target folder where active and completed torrents are saved.",
+      "puid": "PUID",
+      "puidHelp": "User ID",
+      "pgid": "PGID",
+      "pgidHelp": "Group ID",
+      "umask": "UMASK",
+      "umaskHelpQui": "e.g. 002 or 022",
+      "umaskHelpQbit": "e.g. 022 or 002",
+      "logLevel": "Log Level (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Log level",
+      "restartPolicy": "Restart Policy",
+      "restartPolicyPlaceholder": "Restart policy",
+      "timezone": "Timezone (TZ)",
+      "baseUrl": "Base URL (QUI__BASE_URL)",
+      "baseUrlHelp": "Optional public URL when Qui sits behind a reverse proxy.",
+      "bitTorrentPeerPort": "BitTorrent Peer Port",
+      "peerPortHelp": "TCP & UDP incoming traffic (default: 6881).",
+      "dockerCommandPreview": "Docker Command Preview",
+      "copy": "Copy",
+      "copied": "Copied",
+      "quiImageHelp": "e.g. qui-desktop:local or ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "e.g. lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Mapped to container port 7476 (default: 7476).",
+      "qbitPortMappedHelp": "Mapped to container port 8080 (default: 8080).",
+      "dataPathPlaceholder": "/path/to/downloads (optional)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Restart Container",
+      "cancel": "Cancel",
+      "saveApply": "Save & Apply"
+    }
+  },
   "header": {
     "currentInstance": "Current instance: {{name}}. Click to switch instances.",
     "connected": "Connected",

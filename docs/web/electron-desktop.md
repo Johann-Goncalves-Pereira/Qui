@@ -12,9 +12,11 @@ The Glassmorphism slider calls `window.quiDesktop.setWindowMaterial` with a
 boolean: true when the theme color is below 100%, false at 100%. The native
 window stays clear either way. Below 100%, the page shell, sidebar, cards, and
 popovers keep that percentage of the active theme, and the shell turns on HUD
-vibrancy so the desktop behind the window is blurred. At 100% the page is
-solid and vibrancy is off. In a normal browser the helper does nothing.
-Glassmorphism is not its own theme.
+vibrancy so the desktop behind the window is blurred. To maintain contrast and
+prevent heavy muddiness over macOS HUD vibrancy, the main navigation sidebar and
+filter sidebar panels apply a calibrated lighter surface blend and translucency
+scale. At 100% the page is solid and vibrancy is off. In a normal browser the
+helper does nothing. Glassmorphism is not its own theme.
 
 Setup and sign-in call `saveAccount`. On the login page, `unlockAccount` asks
 for Touch ID and returns the saved username and password. Pages that show the
@@ -39,5 +41,7 @@ compatible with upstream changes:
 
 - `BR-web-01` in `docs/specs/catalog.md` — desktop biometric gate session flag.
 - `BR-web-02` in `docs/specs/catalog.md` — desktop header height lg:h-12 (48px).
+- `BR-web-03` in `docs/specs/catalog.md` — status bar footer with service indicators and relocated chrome.
+- `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs (Qui and qBittorrent).
+- `BR-web-05` in `docs/specs/catalog.md` — calibrated glassmorphism sidebar translucency.
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
-

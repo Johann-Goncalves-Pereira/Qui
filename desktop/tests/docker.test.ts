@@ -13,7 +13,10 @@ import {
 	resolveDockerBinary,
 } from '../src/main/docker.js'
 import {
+	DEFAULT_GAZELLE_PORT,
 	DEFAULT_QUI_PORT,
+	GAZELLE_CONTAINER_NAME,
+	GAZELLE_IMAGE,
 	QUI_CONTAINER_NAME,
 	QUI_IMAGE,
 } from '../src/shared/constants.js'
@@ -276,6 +279,27 @@ describe('DockerManager', () => {
 		])
 	})
 
+	it('realigns container when missing required extra mount (BR-desktop-16)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			'docker inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
+		] = {
+			stdout: `${QUI_IMAGE}||/config=/host/qui;\n`,
+			stderr: '',
+		}
+		const manager = new DockerManager(mock, () => {})
+
+		await manager.alignContainer('qui', QUI_IMAGE, '/host/qui', '/config', [
+			{ hostDir: '/host/dl', containerDir: '/downloads' },
+		])
+
+		expect(mock.executedCommands.map(c => c.args[0])).toEqual([
+			'inspect',
+			'stop',
+			'rm',
+		])
+	})
+
 	it('leaves the container alone when the copy fails', async () => {
 		const mock = new MockDockerExecutor()
 		mock.responses[
@@ -319,5 +343,114 @@ describe('DockerManager', () => {
 			'rm',
 			'run',
 		])
+	})
+
+	it('applies custom Qui container config and recreates container', async () => {
+		const mock = new MockDockerExecutor()
+		const manager = new DockerManager(mock, () => {})
+
+		const res = await manager.applyQuiConfig({
+			port: 7476,
+			configPath: '/qui/config',
+			dataPath: '/qui/data',
+			puid: '1000',
+			pgid: '1000',
+			umask: '002',
+			logLevel: 'INFO',
+			baseUrl: '',
+			tz: 'UTC',
+			restartPolicy: 'unless-stopped',
+			image: QUI_IMAGE,
+		})
+
+		expect(res.success).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'stop')).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'rm')).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'run')).toBe(true)
+	})
+
+	it('applies custom qBittorrent container config and recreates container', async () => {
+		const mock = new MockDockerExecutor()
+		const manager = new DockerManager(mock, () => {})
+
+		const res = await manager.applyQBitConfig({
+			port: 8080,
+			peerPort: 6881,
+			configPath: '/qbit/config',
+			downloadsPath: '/qbit/downloads',
+			puid: '1000',
+			pgid: '1000',
+			umask: '022',
+			tz: 'UTC',
+			restartPolicy: 'unless-stopped',
+			image: 'lscr.io/linuxserver/qbittorrent:latest',
+		})
+
+		expect(res.success).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'run')).toBe(true)
+	})
+
+	it('restarts a named container via restartContainer', async () => {
+		const mock = new MockDockerExecutor()
+		const manager = new DockerManager(mock)
+
+		const res = await manager.restartContainer(QUI_CONTAINER_NAME)
+		expect(res.success).toBe(true)
+		expect(mock.executedCommands).toEqual([
+			{ command: 'docker', args: ['restart', QUI_CONTAINER_NAME] },
+		])
+	})
+
+	it('inspects Gazelle container status (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+		] = {
+			stdout: 'running|true\n',
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock)
+		const status = await manager.getGazelleStatus()
+
+		expect(status.name).toBe(GAZELLE_CONTAINER_NAME)
+		expect(status.state).toBe('running')
+		expect(status.port).toBe(DEFAULT_GAZELLE_PORT)
+		expect(status.image).toBe(GAZELLE_IMAGE)
+	})
+
+	it('starts Gazelle container when stopped or not found (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+		] = {
+			stdout: 'running|true\n',
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock, () => {})
+		const status = await manager.startGazelle()
+
+		expect(status.state).toBe('running')
+		expect(mock.executedCommands.some(c => c.args[0] === 'inspect')).toBe(true)
+	})
+
+	it('stops and restarts Gazelle container cleanly (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[
+			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+		] = {
+			stdout: 'exited|false\n',
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock, () => {})
+		const stopStatus = await manager.stopGazelle()
+		expect(stopStatus.state).toBe('stopped')
+		expect(mock.executedCommands.some(c => c.args[0] === 'stop')).toBe(true)
+
+		const restartStatus = await manager.restartGazelle()
+		expect(restartStatus.state).toBe('stopped')
+		expect(mock.executedCommands.some(c => c.args[0] === 'restart')).toBe(true)
 	})
 })

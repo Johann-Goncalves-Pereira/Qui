@@ -30,6 +30,92 @@
     "showSidebar": "Zobrazit postranní panel",
     "hideSidebar": "Skrýt postranní panel"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Kontejner Qui ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Docker.",
+    "tooltipQbit": "Kontejner qBittorrent-nox ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Docker.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Konfigurace kontejneru Qui",
+      "description": "Oficiální parametry Dockeru pro autobrr/qui podle dokumentace nasazení."
+    },
+    "qbit": {
+      "title": "Konfigurace kontejneru qBittorrent-nox",
+      "description": "Oficiální parametry Dockeru pro linuxserver/qbittorrent podle dokumentace nasazení."
+    },
+    "state": {
+      "running": "Běží"
+    },
+    "toast": {
+      "quiSaved": "Konfigurace kontejneru Qui uložena",
+      "qbitSaved": "Konfigurace kontejneru qBittorrent-nox uložena",
+      "quiRestartStarted": "Restart kontejneru Qui zahájen",
+      "qbitRestartStarted": "Restart kontejneru qBittorrent-nox zahájen",
+      "copyCommandSuccess": "Příkaz docker run zkopírován do schránky",
+      "saveFailed": "Uložení konfigurace selhalo",
+      "restartFailed": "Restart kontejneru selhal",
+      "genericSaveError": "Chyba při ukládání konfigurace",
+      "genericRestartError": "Chyba při restartu kontejneru",
+      "copyCommandFailed": "Nepodařilo se zkopírovat do schránky"
+    },
+    "fields": {
+      "hostWebUiPort": "Port webového rozhraní na hostiteli",
+      "dockerImage": "Docker image",
+      "volumeBindMounts": "Bind mounty svazků",
+      "hostConfigDirQui": "Konfigurační adresář hostitele (/config)",
+      "hostConfigDirQuiHelp": "Ukládá config.toml, databázi qui.db, cache ikon a běhové logy.",
+      "hostDataDir": "Datový adresář hostitele (/data)",
+      "hostDataDirHelp": "Vyžadováno pro cross-seed hardlinky/reflinky a skeny osiřelých souborů.",
+      "hostConfigDirQbit": "Konfigurační adresář hostitele (/config)",
+      "hostConfigDirQbitHelp": "Obsahuje qBittorrent.conf, logy, stavové soubory a zálohy torrentů.",
+      "hostDownloadsDir": "Adresář stahování hostitele (/downloads)",
+      "hostDownloadsHelp": "Výchozí cílová složka pro aktivní a dokončené torrenty.",
+      "puid": "PUID",
+      "puidHelp": "ID uživatele",
+      "pgid": "PGID",
+      "pgidHelp": "ID skupiny",
+      "umask": "UMASK",
+      "umaskHelpQui": "např. 002 nebo 022",
+      "umaskHelpQbit": "např. 022 nebo 002",
+      "logLevel": "Úroveň logování (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Úroveň logování",
+      "restartPolicy": "Zásady restartu",
+      "restartPolicyPlaceholder": "Zásady restartu",
+      "timezone": "Časové pásmo (TZ)",
+      "baseUrl": "Základní URL (QUI__BASE_URL)",
+      "baseUrlHelp": "Volitelná veřejná URL, když Qui běží za reverzním proxy.",
+      "bitTorrentPeerPort": "Port peerů BitTorrent",
+      "peerPortHelp": "Příchozí provoz TCP a UDP (výchozí: 6881).",
+      "dockerCommandPreview": "Náhled příkazu Docker",
+      "copy": "Kopírovat",
+      "copied": "Zkopírováno",
+      "quiImageHelp": "např. qui-desktop:local nebo ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "např. lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Mapováno na port kontejneru 7476 (výchozí: 7476).",
+      "qbitPortMappedHelp": "Mapováno na port kontejneru 8080 (výchozí: 8080).",
+      "dataPathPlaceholder": "/cesta/ke/stahování (volitelné)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Restartovat kontejner",
+      "cancel": "Zrušit",
+      "saveApply": "Uložit a použít"
+    }
+  },
   "header": {
     "currentInstance": "Aktuální instance: {{name}}. Klikněte pro přepnutí instance.",
     "connected": "Připojeno",

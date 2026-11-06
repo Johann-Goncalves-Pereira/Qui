@@ -690,7 +690,8 @@
       "description": "Això suprimirà el directori d'exploració i el seu historial d'execucions. Els torrents que ja s'hagin afegit no es veuran afectats.",
       "cancel": "Cancel·la",
       "delete": "Elimina"
-    }
+    },
+    "addLocalCompanionInstance": "Afegeix qBittorrent local"
   },
   "route": {
     "foundOnAddedTo": "Trobat a {{source}}, afegit a {{crossSeed}}",

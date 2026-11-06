@@ -17,6 +17,92 @@ declare global {
       saveAccount?: (username: string, password: string) => Promise<void>
       hasSavedAccount?: () => Promise<boolean>
       unlockAccount?: () => Promise<{ username: string; password: string } | null>
+      getDockerStatus?: () => Promise<{
+        qui: { name: string; state: string; status: string; image: string; port: number }
+        qbit: { name: string; state: string; status: string; image: string; port: number }
+      }>
+      getQuiConfig?: () => Promise<{
+        port: number
+        configPath: string
+        dataPath?: string
+        puid?: string
+        pgid?: string
+        umask?: string
+        logLevel?: string
+        baseUrl?: string
+        tz?: string
+        restartPolicy: string
+        image: string
+      }>
+      getQBitConfig?: () => Promise<{
+        port: number
+        peerPort: number
+        configPath: string
+        downloadsPath: string
+        puid?: string
+        pgid?: string
+        umask?: string
+        tz?: string
+        restartPolicy: string
+        image: string
+      }>
+      saveQuiConfig?: (config: {
+        port: number
+        configPath: string
+        dataPath?: string
+        puid?: string
+        pgid?: string
+        umask?: string
+        logLevel?: string
+        baseUrl?: string
+        tz?: string
+        restartPolicy: string
+        image: string
+      }) => Promise<{ success: boolean; error?: string }>
+      saveQBitConfig?: (config: {
+        port: number
+        peerPort: number
+        configPath: string
+        downloadsPath: string
+        puid?: string
+        pgid?: string
+        umask?: string
+        tz?: string
+        restartPolicy: string
+        image: string
+      }) => Promise<{ success: boolean; error?: string }>
+      restartContainer?: (name: string) => Promise<{ success: boolean; error?: string }>
+      gazelle?: {
+        getStatus?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        start?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        stop?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        restart?: () => Promise<{
+          name: string
+          state: "running" | "stopped" | "not_found" | "unknown"
+          status: string
+          image: string
+          port: number
+        }>
+        openWebUi?: () => Promise<void>
+      }
     }
   }
 
