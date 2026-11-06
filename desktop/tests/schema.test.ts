@@ -11,6 +11,8 @@ import {
 	DesktopConfigSchema,
 	DockerContainerStatusSchema,
 	DockerUpdateInfoSchema,
+	QBitContainerConfigSchema,
+	QuiContainerConfigSchema,
 	TorrentTransferStatsSchema,
 } from '../src/shared/types.js'
 
@@ -87,6 +89,43 @@ describe('Effect/Schema desktop validation', () => {
 		}
 		const decoded = Schema.decodeUnknownSync(DesktopConfigSchema)(valid)
 		expect(decoded.theme).toBe('minimal')
+	})
+
+	it('validates QuiContainerConfigSchema structure and types', () => {
+		const valid = {
+			port: 7476,
+			configPath: '/path/to/qui',
+			dataPath: '/path/to/data',
+			puid: '1000',
+			pgid: '1000',
+			umask: '002',
+			logLevel: 'INFO',
+			baseUrl: '/qui',
+			tz: 'UTC',
+			restartPolicy: 'unless-stopped',
+			image: 'qui-desktop:local',
+		}
+		const decoded = Schema.decodeUnknownSync(QuiContainerConfigSchema)(valid)
+		expect(decoded.port).toBe(7476)
+		expect(decoded.logLevel).toBe('INFO')
+	})
+
+	it('validates QBitContainerConfigSchema structure and types', () => {
+		const valid = {
+			port: 8080,
+			peerPort: 6881,
+			configPath: '/path/to/qbit',
+			downloadsPath: '/path/to/downloads',
+			puid: '1000',
+			pgid: '1000',
+			umask: '022',
+			tz: 'America/New_York',
+			restartPolicy: 'unless-stopped',
+			image: 'lscr.io/linuxserver/qbittorrent:latest',
+		}
+		const decoded = Schema.decodeUnknownSync(QBitContainerConfigSchema)(valid)
+		expect(decoded.port).toBe(8080)
+		expect(decoded.peerPort).toBe(6881)
 	})
 
 	it('enforces capitalized app name branding Qui (BR-desktop-06)', () => {

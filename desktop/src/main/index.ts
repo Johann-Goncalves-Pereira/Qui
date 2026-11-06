@@ -31,6 +31,11 @@ import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
 import { dockerDataDirs, updatesWorthPrompting } from './container-layout.js'
 import { DockerManager } from './docker.js'
+import {
+	findMagnetUrlInArgs,
+	MagnetManager,
+	registerMagnetProtocolHandler,
+} from './magnet.js'
 import { openWrappedQui, waitForQuiHttpReady } from './qui-ready.js'
 import { startupPageUrl } from './startup-page.js'
 import { AppTray } from './tray.js'
@@ -57,20 +62,40 @@ const biometricAuth = new BiometricAuthService()
 let dockerImageUpdatePromptShownThisSession = false
 const apiClient = new QuiApiClient()
 const appUpdater = new AppReleaseUpdater()
+const magnetManager = new MagnetManager(QUI_WEB_ORIGIN)
+
+registerMagnetProtocolHandler(app)
 
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
 	app.quit()
 } else {
-	app.on('second-instance', () => {
+	app.on('second-instance', (_event, commandLine) => {
 		if (mainWindow) {
 			if (mainWindow.isMinimized()) mainWindow.restore()
 			mainWindow.show()
 			mainWindow.focus()
+		}
+		const magnetUrl = findMagnetUrlInArgs(commandLine)
+		if (magnetUrl) {
+			magnetManager.handleMagnetUrl(magnetUrl, mainWindow)
+		} else {
 			void loadQuiWebUi()
 		}
 	})
+}
+
+// macOS emits 'open-url' when clicking a magnet link, which can happen before whenReady()
+app.on('open-url', (event, url) => {
+	event.preventDefault()
+	magnetManager.handleMagnetUrl(url, mainWindow)
+})
+
+// Cold start on Windows / Linux / CLI launch with magnet URI argument
+const initialMagnetUrl = findMagnetUrlInArgs(process.argv)
+if (initialMagnetUrl) {
+	magnetManager.handleMagnetUrl(initialMagnetUrl, mainWindow)
 }
 
 function showStartupPage(message: string, processInfo?: string): string {
@@ -133,7 +158,9 @@ async function loadQuiWebUi(): Promise<void> {
 				},
 				waitForHttp: () => waitForQuiHttpReady({ baseUrl: QUI_WEB_ORIGIN }),
 				openWeb: async () => {
-					await win.loadURL(QUI_WEB_LOGIN_URL)
+					const targetUrl =
+						magnetManager.consumePendingAddUrl() ?? QUI_WEB_LOGIN_URL
+					await win.loadURL(targetUrl)
 				},
 				unavailableMessage: `Nothing is serving ${QUI_WEB_ORIGIN} yet. Check Docker, then use Tray → Reload Qui web app.`,
 			})
@@ -145,6 +172,11 @@ async function loadQuiWebUi(): Promise<void> {
 			openingQui = null
 		}
 		if (result === 'opened') {
+			magnetManager.setQuiReady(true)
+			const pendingAddUrl = magnetManager.consumePendingAddUrl()
+			if (pendingAddUrl && mainWindow) {
+				void mainWindow.loadURL(pendingAddUrl)
+			}
 			await checkAndPromptDockerUpdates()
 			const appRelease = await appUpdater.checkForUpdates()
 			if (appRelease.hasUpdate && mainWindow) {
@@ -191,6 +223,32 @@ function registerIpcHandlers(): void {
 			{ containerName, image }: { containerName: string; image: string },
 		) => {
 			return dockerManager.updateAndRestartContainer(containerName, image)
+		},
+	)
+
+	ipcMain.handle('docker:get-qui-config', async () =>
+		dockerManager.getQuiConfig(),
+	)
+
+	ipcMain.handle('docker:get-qbit-config', async () =>
+		dockerManager.getQBitConfig(),
+	)
+
+	ipcMain.handle('docker:save-qui-config', async (_event, config: unknown) =>
+		dockerManager.applyQuiConfig(config),
+	)
+
+	ipcMain.handle('docker:save-qbit-config', async (_event, config: unknown) =>
+		dockerManager.applyQBitConfig(config),
+	)
+
+	ipcMain.handle(
+		'docker:restart-container',
+		async (_event, containerName: unknown) => {
+			if (typeof containerName !== 'string') {
+				return { success: false, error: 'Invalid container name' }
+			}
+			return dockerManager.restartContainer(containerName)
 		},
 	)
 
@@ -357,8 +415,12 @@ async function bootstrapApp(): Promise<void> {
 		},
 		onAddTorrent: () => {
 			if (mainWindow) {
+				if (mainWindow.isMinimized()) mainWindow.restore()
 				mainWindow.show()
 				mainWindow.focus()
+				if (magnetManager.isQuiReady()) {
+					void mainWindow.loadURL(`${QUI_WEB_ORIGIN}/add`)
+				}
 			}
 		},
 		onCheckUpdates: async () => {

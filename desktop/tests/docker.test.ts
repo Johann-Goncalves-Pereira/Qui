@@ -276,7 +276,7 @@ describe('DockerManager', () => {
 		])
 	})
 
-	it('realigns container when missing required extra mount (BR-desktop-14)', async () => {
+	it('realigns container when missing required extra mount (BR-desktop-15)', async () => {
 		const mock = new MockDockerExecutor()
 		mock.responses[
 			'docker inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
@@ -339,6 +339,62 @@ describe('DockerManager', () => {
 			'stop',
 			'rm',
 			'run',
+		])
+	})
+
+	it('applies custom Qui container config and recreates container', async () => {
+		const mock = new MockDockerExecutor()
+		const manager = new DockerManager(mock, () => {})
+
+		const res = await manager.applyQuiConfig({
+			port: 7476,
+			configPath: '/qui/config',
+			dataPath: '/qui/data',
+			puid: '1000',
+			pgid: '1000',
+			umask: '002',
+			logLevel: 'INFO',
+			baseUrl: '',
+			tz: 'UTC',
+			restartPolicy: 'unless-stopped',
+			image: QUI_IMAGE,
+		})
+
+		expect(res.success).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'stop')).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'rm')).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'run')).toBe(true)
+	})
+
+	it('applies custom qBittorrent container config and recreates container', async () => {
+		const mock = new MockDockerExecutor()
+		const manager = new DockerManager(mock, () => {})
+
+		const res = await manager.applyQBitConfig({
+			port: 8080,
+			peerPort: 6881,
+			configPath: '/qbit/config',
+			downloadsPath: '/qbit/downloads',
+			puid: '1000',
+			pgid: '1000',
+			umask: '022',
+			tz: 'UTC',
+			restartPolicy: 'unless-stopped',
+			image: 'lscr.io/linuxserver/qbittorrent:latest',
+		})
+
+		expect(res.success).toBe(true)
+		expect(mock.executedCommands.some(c => c.args[0] === 'run')).toBe(true)
+	})
+
+	it('restarts a named container via restartContainer', async () => {
+		const mock = new MockDockerExecutor()
+		const manager = new DockerManager(mock)
+
+		const res = await manager.restartContainer(QUI_CONTAINER_NAME)
+		expect(res.success).toBe(true)
+		expect(mock.executedCommands).toEqual([
+			{ command: 'docker', args: ['restart', QUI_CONTAINER_NAME] },
 		])
 	})
 })

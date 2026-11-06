@@ -330,8 +330,8 @@ export function Header({
 
   const { state: crossSeedInstanceState } = useCrossSeedInstanceState()
 
-  // Dense mode uses reduced header height
-  const headerHeight = viewMode === "dense" ? "lg:h-12" : "lg:h-16"
+  // Desktop header uses h-12 (48px) in both standard and dense modes
+  const headerHeight = "lg:h-12"
   const innerHeight = viewMode === "dense" ? "h-10 lg:h-auto" : "h-12 lg:h-auto"
   const smInnerHeight = viewMode === "dense" ? "sm:h-10 lg:h-auto" : "sm:h-12 lg:h-auto"
 

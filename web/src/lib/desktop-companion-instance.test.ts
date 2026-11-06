@@ -14,7 +14,7 @@ import {
   resetProvisioningState
 } from "./desktop-companion-instance"
 
-describe("Desktop companion qBittorrent instance (BR-web-02)", () => {
+describe("Desktop companion qBittorrent instance (BR-web-06)", () => {
   beforeEach(() => {
     resetProvisioningState()
     delete (window as { quiDesktop?: unknown }).quiDesktop

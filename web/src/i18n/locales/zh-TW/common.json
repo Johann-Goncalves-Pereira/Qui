@@ -30,6 +30,92 @@
     "showSidebar": "顯示側邊欄",
     "hideSidebar": "隱藏側邊欄"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Qui 容器（{{state}}）連接埠 {{port}}。點擊以設定 Docker。",
+    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）連接埠 {{port}}。點擊以設定 Docker。",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Qui 容器設定",
+      "description": "依部署文件，autobrr/qui 的官方 Docker 參數。"
+    },
+    "qbit": {
+      "title": "qBittorrent-nox 容器設定",
+      "description": "依部署文件，linuxserver/qbittorrent 的官方 Docker 參數。"
+    },
+    "state": {
+      "running": "執行中"
+    },
+    "toast": {
+      "quiSaved": "已儲存 Qui 容器設定",
+      "qbitSaved": "已儲存 qBittorrent-nox 容器設定",
+      "quiRestartStarted": "已開始重新啟動 Qui 容器",
+      "qbitRestartStarted": "已開始重新啟動 qBittorrent-nox 容器",
+      "copyCommandSuccess": "已將 docker run 指令複製到剪貼簿",
+      "saveFailed": "無法儲存設定",
+      "restartFailed": "無法重新啟動容器",
+      "genericSaveError": "儲存設定時發生錯誤",
+      "genericRestartError": "重新啟動容器時發生錯誤",
+      "copyCommandFailed": "無法複製到剪貼簿"
+    },
+    "fields": {
+      "hostWebUiPort": "主機 Web UI 連接埠",
+      "dockerImage": "Docker 映像",
+      "volumeBindMounts": "磁碟區繫結掛載",
+      "hostConfigDirQui": "主機設定目錄（/config）",
+      "hostConfigDirQuiHelp": "存放 config.toml、qui.db 資料庫、圖示快取與執行時日誌。",
+      "hostDataDir": "主機資料目錄（/data）",
+      "hostDataDirHelp": "跨種硬連結/reflink 與孤立掃描所需。",
+      "hostConfigDirQbit": "主機設定目錄（/config）",
+      "hostConfigDirQbitHelp": "包含 qBittorrent.conf、記錄檔、狀態檔與種子備份資料。",
+      "hostDownloadsDir": "主機下載目錄（/downloads）",
+      "hostDownloadsHelp": "進行中與已完成種子的預設儲存位置。",
+      "puid": "PUID",
+      "puidHelp": "使用者 ID",
+      "pgid": "PGID",
+      "pgidHelp": "群組 ID",
+      "umask": "UMASK",
+      "umaskHelpQui": "例如 002 或 022",
+      "umaskHelpQbit": "例如 022 或 002",
+      "logLevel": "記錄層級（QUI__LOG_LEVEL）",
+      "logLevelPlaceholder": "記錄層級",
+      "restartPolicy": "重新啟動原則",
+      "restartPolicyPlaceholder": "重新啟動原則",
+      "timezone": "時區（TZ）",
+      "baseUrl": "基礎 URL（QUI__BASE_URL）",
+      "baseUrlHelp": "當 Qui 位於反向代理後時的可選公開 URL。",
+      "bitTorrentPeerPort": "BitTorrent 對等連接埠",
+      "peerPortHelp": "TCP 與 UDP 入站流量（預設：6881）。",
+      "dockerCommandPreview": "Docker 指令預覽",
+      "copy": "複製",
+      "copied": "已複製",
+      "quiImageHelp": "例如 qui-desktop:local 或 ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "例如 lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "對應至容器連接埠 7476（預設：7476）。",
+      "qbitPortMappedHelp": "對應至容器連接埠 8080（預設：8080）。",
+      "dataPathPlaceholder": "/下載路徑（選填）",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "重新啟動容器",
+      "cancel": "取消",
+      "saveApply": "儲存並套用"
+    }
+  },
   "header": {
     "currentInstance": "目前實例：{{name}}。點選切換實例。",
     "connected": "已連線",

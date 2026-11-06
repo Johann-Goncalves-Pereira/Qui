@@ -30,6 +30,92 @@
     "showSidebar": "사이드바 표시",
     "hideSidebar": "사이드바 숨기기"
   },
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "tooltipQui": "Qui 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Docker 설정을 구성합니다.",
+    "tooltipQbit": "qBittorrent-nox 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Docker 설정을 구성합니다.",
+    "copyright": "{{year}} autobrr"
+  },
+  "docker": {
+    "qui": {
+      "title": "Qui 컨테이너 구성",
+      "description": "배포 문서에 따른 autobrr/qui의 공식 Docker 매개변수입니다."
+    },
+    "qbit": {
+      "title": "qBittorrent-nox 컨테이너 구성",
+      "description": "배포 문서에 따른 linuxserver/qbittorrent의 공식 Docker 매개변수입니다."
+    },
+    "state": {
+      "running": "실행 중"
+    },
+    "toast": {
+      "quiSaved": "Qui 컨테이너 구성이 저장되었습니다",
+      "qbitSaved": "qBittorrent-nox 컨테이너 구성이 저장되었습니다",
+      "quiRestartStarted": "Qui 컨테이너 재시작이 시작되었습니다",
+      "qbitRestartStarted": "qBittorrent-nox 컨테이너 재시작이 시작되었습니다",
+      "copyCommandSuccess": "docker run 명령이 클립보드에 복사되었습니다",
+      "saveFailed": "구성을 저장하지 못했습니다",
+      "restartFailed": "컨테이너를 다시 시작하지 못했습니다",
+      "genericSaveError": "구성 저장 중 오류가 발생했습니다",
+      "genericRestartError": "컨테이너 재시작 중 오류가 발생했습니다",
+      "copyCommandFailed": "클립보드에 복사할 수 없습니다"
+    },
+    "fields": {
+      "hostWebUiPort": "호스트 웹 UI 포트",
+      "dockerImage": "Docker 이미지",
+      "volumeBindMounts": "볼륨 바인드 마운트",
+      "hostConfigDirQui": "호스트 구성 디렉터리 (/config)",
+      "hostConfigDirQuiHelp": "config.toml, qui.db 데이터베이스, 아이콘 캐시 및 런타임 로그를 저장합니다.",
+      "hostDataDir": "호스트 데이터 디렉터리 (/data)",
+      "hostDataDirHelp": "크로스 시드 하드링크/리플링크 작업 및 고아 스캔에 필요합니다.",
+      "hostConfigDirQbit": "호스트 구성 디렉터리 (/config)",
+      "hostConfigDirQbitHelp": "qBittorrent.conf, 로그, 상태 파일 및 토렌트 백업 데이터를 포함합니다.",
+      "hostDownloadsDir": "호스트 다운로드 디렉터리 (/downloads)",
+      "hostDownloadsHelp": "활성 및 완료된 토렌트가 저장되는 기본 대상 폴더입니다.",
+      "puid": "PUID",
+      "puidHelp": "사용자 ID",
+      "pgid": "PGID",
+      "pgidHelp": "그룹 ID",
+      "umask": "UMASK",
+      "umaskHelpQui": "예: 002 또는 022",
+      "umaskHelpQbit": "예: 022 또는 002",
+      "logLevel": "로그 수준 (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "로그 수준",
+      "restartPolicy": "재시작 정책",
+      "restartPolicyPlaceholder": "재시작 정책",
+      "timezone": "시간대 (TZ)",
+      "baseUrl": "기본 URL (QUI__BASE_URL)",
+      "baseUrlHelp": "Qui가 역방향 프록시 뒤에 있을 때 선택적 공개 URL입니다.",
+      "bitTorrentPeerPort": "BitTorrent 피어 포트",
+      "peerPortHelp": "TCP 및 UDP 수신 트래픽(기본값: 6881).",
+      "dockerCommandPreview": "Docker 명령 미리보기",
+      "copy": "복사",
+      "copied": "복사됨",
+      "quiImageHelp": "예: qui-desktop:local 또는 ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "예: lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "컨테이너 포트 7476에 매핑됩니다(기본값: 7476).",
+      "qbitPortMappedHelp": "컨테이너 포트 8080에 매핑됩니다(기본값: 8080).",
+      "dataPathPlaceholder": "/다운로드/경로 (선택 사항)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "컨테이너 다시 시작",
+      "cancel": "취소",
+      "saveApply": "저장 및 적용"
+    }
+  },
   "header": {
     "currentInstance": "현재 인스턴스: {{name}}. 클릭하여 인스턴스를 전환합니다.",
     "connected": "연결됨",

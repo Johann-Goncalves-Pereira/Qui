@@ -14,14 +14,22 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
   The **Docker image update** dialog appears only when the remote manifest shares no digest with the local image, and not again for a digest you dismissed with Later.
 - **Companion Instance**: Qui Desktop runs `qbittorrent-nox` alongside Qui. When no instances exist or on initial setup, the desktop integration provisions a default `Local qBittorrent` instance (`http://host.docker.internal:8080`) with Local Filesystem Access (`hasLocalFilesystemAccess: true`). This immediately satisfies Directory Scanner (`/cross-seed`) and Orphan Scanner requirements without manual instance configuration.
 - **Account**: Registration and sign-in save the username and password with Electron `safeStorage`. The next sign-in on the login page asks for Touch ID and submits that saved account. A browser session does not see the vault.
-- **Sidebar (Electron only)**: The word “qui” is omitted and the logo sits on the right of the sidebar header. The traffic lights are vertically centered with that logo while the sidebar is open.
+- **Sidebar (Electron only)**: The word “qui” is omitted and the logo sits on the right of the sidebar header. The traffic lights are vertically centered with that logo while the sidebar is open. Version metadata and utility buttons are relocated to the bottom status bar footer.
+- **Status bar footer & Docker configuration**: A dedicated footer sits below `<main>`, displaying live status badges and mapped ports for `qui` (7476) and `qbittorrent-nox` (8080) alongside relocated version metadata, copyright, language picker, and GitHub links. Clicking each service opens a modal with official Docker parameters (ports, bind mounts, PUID/PGID, UMASK, log level, and restart policies) that allows users to edit and apply configurations.
 
 ## Related spec
 
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
+- `BR-web-05` in `docs/specs/catalog.md` — calibrated glassmorphism sidebar translucency.
 - `BR-desktop-07` in `docs/specs/catalog.md` — main window loads the bundled Qui web URL (wrapper).
+
 - `BR-desktop-09` in `docs/specs/catalog.md` — startup spinner and process code block.
 - `BR-desktop-10` in `docs/specs/catalog.md` — Docker CLI path resolution.
 - `BR-desktop-11` in `docs/specs/catalog.md` — Qui data survives container replacement.
 - `BR-desktop-12` in `docs/specs/catalog.md` — encrypted account and Touch ID sign-in.
 - `BR-desktop-13` in `docs/specs/catalog.md` — Docker update prompt does not repeat a dismissed digest.
+- `BR-desktop-14` in `docs/specs/catalog.md` — Docker configuration schemas and IPC inspection.
+- `BR-desktop-15` in `docs/specs/catalog.md` — Qui container bind-mounts the shared downloads directory and resolves host gateway to communicate with bundled qbittorrent-nox.
+- `BR-web-03` in `docs/specs/catalog.md` — Status bar footer with Docker service indicators.
+- `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
+- `BR-web-06` in `docs/specs/catalog.md` — Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access.

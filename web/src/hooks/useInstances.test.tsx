@@ -37,7 +37,7 @@ function createWrapper() {
   )
 }
 
-describe("useInstances auto-provisioning hook (BR-web-02)", () => {
+describe("useInstances auto-provisioning hook (BR-web-06)", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resetProvisioningState()

@@ -25,6 +25,14 @@
       "dist/**/*",
       "package.json"
     ],
+    "protocols": [
+      {
+        "name": "Magnet URI Scheme",
+        "schemes": [
+          "magnet"
+        ]
+      }
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
