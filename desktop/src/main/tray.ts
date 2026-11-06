@@ -34,6 +34,7 @@ export interface TrayCallbacks {
 	onResumeAll: () => Promise<void>
 	onAddTorrent: () => void
 	onCheckUpdates: () => Promise<void>
+	onCheckAppUpdates?: () => Promise<void>
 	onQuitApp: () => void
 }
 
@@ -161,6 +162,12 @@ export class AppTray {
 				],
 			},
 			{ type: 'separator' },
+			{
+				label: `Check for ${APP_NAME} Updates...`,
+				click: () => {
+					void this.callbacks.onCheckAppUpdates?.()
+				},
+			},
 			{
 				label: `Show ${APP_NAME}`,
 				click: () => {

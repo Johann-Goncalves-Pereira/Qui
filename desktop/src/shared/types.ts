@@ -50,3 +50,17 @@ export const DesktopConfigSchema = Schema.Struct({
 })
 
 export type DesktopConfig = typeof DesktopConfigSchema.Type
+
+export const AppReleaseInfoSchema = Schema.Struct({
+	hasUpdate: Schema.Boolean,
+	currentVersion: Schema.String,
+	latestVersion: Schema.String,
+	tagName: Schema.String,
+	name: Schema.String,
+	body: Schema.String,
+	htmlUrl: Schema.String,
+	downloadUrl: Schema.optional(Schema.String),
+	publishedAt: Schema.String,
+})
+
+export type AppReleaseInfo = typeof AppReleaseInfoSchema.Type

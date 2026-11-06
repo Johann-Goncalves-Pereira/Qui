@@ -19,6 +19,7 @@ import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
 import { DockerManager } from './docker.js'
 import { AppTray } from './tray.js'
+import { AppReleaseUpdater } from './updater.js'
 import { createGlassWindow } from './window.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -32,6 +33,7 @@ let isQuitting = false
 const dockerManager = new DockerManager()
 const authService = new BiometricAuthService()
 const apiClient = new QuiApiClient()
+const appUpdater = new AppReleaseUpdater()
 
 // Single instance lock
 const gotTheLock = app.requestSingleInstanceLock()
@@ -97,6 +99,10 @@ function registerIpcHandlers(): void {
 
 	ipcMain.handle('api:transfer-stats', async () => {
 		return apiClient.getTransferStats()
+	})
+
+	ipcMain.handle('updater:check-app-update', async () => {
+		return appUpdater.checkForUpdates()
 	})
 }
 
@@ -169,6 +175,10 @@ async function bootstrapApp(): Promise<void> {
 		onCheckUpdates: async () => {
 			await checkAndPromptDockerUpdates()
 		},
+		onCheckAppUpdates: async () => {
+			const info = await appUpdater.checkForUpdates()
+			await appUpdater.promptUpdateIfAvailable(mainWindow, info)
+		},
 		onQuitApp: () => {
 			app.quit()
 		},
@@ -183,6 +193,11 @@ async function bootstrapApp(): Promise<void> {
 		}
 		// Check for updates and prompt user if updates exist
 		await checkAndPromptDockerUpdates()
+		// Check for desktop app updates
+		const appRelease = await appUpdater.checkForUpdates()
+		if (appRelease.hasUpdate) {
+			await appUpdater.promptUpdateIfAvailable(mainWindow, appRelease)
+		}
 	})
 
 	// Start live transfer stats polling
