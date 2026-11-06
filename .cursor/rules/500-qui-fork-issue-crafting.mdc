@@ -1,0 +1,34 @@
+---
+description: Invariants for crafting issues in the Qui Desktop fork project. Enforces upstream Docker layout dependency awareness and compatibility checks with github-issue-crafting.
+alwaysApply: true
+---
+
+# Qui Fork Issue Crafting Invariants
+
+When crafting or updating GitHub Issues (including using `$github-issue-crafting` or native planning) in this project:
+
+## 1. Core Fork Context
+- This repository (`Johann-Goncalves-Pereira/Qui`) is a specialized fork of upstream Qui (`autobrr/qui`) designed to build, package, and distribute a native **Desktop Application for Qui** (Electron shell in `desktop/`, macOS Touch ID biometrics, menu bar dynamic speed tray, window HUD vibrancy / Glassmorphism, and Docker lifecycle management).
+- The desktop shell embeds the web interface (`web/`) and orchestrates Docker containers (`ghcr.io/autobrr/qui` and `qbittorrent-nox`).
+
+## 2. Upstream Docker Layout Dependency & Breakage Risk
+- The desktop app layout directly follows what Docker pushes from the upstream project's Docker image (`ghcr.io/autobrr/qui`).
+- **Critical Risk:** Upstream changes independently. Future updates to the upstream Docker image may modify DOM hierarchies, CSS classes, header/sidebar heights, navigation routes, or backend APIs.
+- Any uncoordinated change from the upstream Docker image can collide with or break this desktop application and its desktop-only UI extensions (e.g. `window.quiDesktop`, Glassmorphism vibrancy, custom header alignments, and status bar footers).
+
+## 3. Mandatory Section in Every Issue
+Every Feature, Bug, Chore, or Epic issue created for this project MUST include the following section:
+
+```markdown
+## ⚠️ Upstream Docker Alignment & Breaking Change Risk
+- **Target Architectural Layer:** [Desktop Shell `desktop/` | Web UI `web/` | Docker Orchestration | Backend `internal/`]
+- **Upstream Layout Coupling:** [High | Medium | Low | None]
+- **Potential Breakage Vectors:** [Upstream DOM changes, CSS class shifts, API contract breaks]
+- **Defensive Guardrails & Isolation:** [Guarded by window.quiDesktop, graceful degradation in standalone browser, resilient styling]
+- **Future Upstream Sync Impact:** [Isolation strategy to prevent rebase conflicts]
+```
+
+## 4. Execution Guidance
+- Always use humanized Title Case titles (e.g., `Add Status Bar Footer with Live Docker Container Health`), never conventional commit prefixes.
+- Update `docs/specs/catalog.md` (`BR-desktop-XX` or `BR-web-XX`), docs overview, and failing tests before implementation (`050-docs.mdc`).
+- Consult `.cursor/skills/qui-fork-issue-crafting/SKILL.md` for full templates and procedures.
