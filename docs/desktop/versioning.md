@@ -34,12 +34,23 @@ That script:
 
 1. Creates a short-lived `chore/desktop-bump-*` branch from up-to-date `develop`.
 2. Runs `node desktop/scripts/bump-version.mjs` (patch +1 in `desktop/package.json`).
-3. Commits `chore(desktop): bump version to <ver> [skip ci]`.
-4. Opens a PR and **squash-merges** it (respects Protect develop — no direct push).
-5. Pulls `develop` and creates / pushes tag `v<ver>` on the squash tip.
+3. Updates `Casks/qui.rb` `version` to match.
+4. Commits `chore(desktop): bump version to <ver> [skip ci]`.
+5. Opens a PR and **squash-merges** it (respects Protect develop — no direct push).
+6. Pulls `develop` and creates / pushes tag `v<ver>` on the squash tip.
+7. Runs `scripts/desktop-publish-release-local` so **GitHub Releases → Latest** is
+   `Qui v<ver>` (uploads `desktop/release/Qui-<ver>-*` when those files exist).
 
-Release **assets** (`.dmg` / `.zip`) still need either free Actions minutes later
-or a local `pnpm --dir desktop package:mac:release` + manual GitHub Release upload.
+Release **assets** (`.dmg` / `.zip`) still need a local package first:
+
+```bash
+pnpm --dir desktop package:mac:release
+./scripts/desktop-publish-release-local
+```
+
+Do **not** publish a marketing `v1.0.0` (or any tag) that is not the
+`desktop/package.json` semver — `/releases/latest` drives the in-app updater and
+Homebrew `livecheck`.
 
 ## Optional Actions workflows (disabled while budget is $0)
 

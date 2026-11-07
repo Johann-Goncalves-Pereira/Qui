@@ -64,9 +64,19 @@ On clean `develop` / `main` after the feature SM:
 # or: make desktop-version-bump
 ```
 
-This opens a bump PR, squash-merges it, and pushes `v<ver>` on the base tip.
-It does **not** build `.dmg`/`.zip` (that still needs Actions minutes or local
-`pnpm --dir desktop package:mac:release`).
+This opens a bump PR (also updates `Casks/qui.rb`), squash-merges it, pushes
+`v<ver>`, and runs `desktop-publish-release-local` so GitHub **Latest** matches
+the desktop semver.
+
+Build assets when you need downloadable `.dmg`/`.zip` (before or after bump):
+
+```bash
+pnpm --dir desktop package:mac:release
+./scripts/desktop-publish-release-local
+```
+
+Never leave a mismatched marketing tag (e.g. `v1.0.0`) as Latest while
+`desktop/package.json` is `0.0.x` — the in-app updater uses `/releases/latest`.
 
 Skip Phase C when:
 
