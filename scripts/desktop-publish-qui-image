@@ -36,11 +36,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "desktop-publish-qui-image: ensuring frontend dist…"
-if [ ! -f web/dist/index.html ]; then
-  make frontend
-fi
-
 echo "desktop-publish-qui-image: fetching community themes…"
 make themes-fetch
 
@@ -49,6 +44,9 @@ if [ ! -d "internal/themes/assets/premium" ] || [ -z "$(ls -A internal/themes/as
   echo "desktop-publish-qui-image: error: no premium themes found in internal/themes/assets/premium" >&2
   exit 1
 fi
+
+echo "desktop-publish-qui-image: building frontend dist…"
+make frontend
 
 echo "desktop-publish-qui-image: cross-compile linux/${ARCH} qui on host…"
 GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \

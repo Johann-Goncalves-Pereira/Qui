@@ -45,10 +45,27 @@ EOF
 )"
 
 if gh release view "$TAG" >/dev/null 2>&1; then
-  echo "desktop-publish-release-local: release ${TAG} exists; ensuring Latest + assets"
+  echo "desktop-publish-release-local: release ${TAG} exists; verifying assets and ensuring Latest"
   gh release edit "$TAG" --title "$TITLE" --latest
   if [ "${#ASSETS[@]}" -gt 0 ]; then
-    gh release upload "$TAG" "${ASSETS[@]}" --clobber
+    EXISTING_ASSETS="$(gh release view "$TAG" --json assets --jq '.assets[] | "\(.name):\(.size)"' 2>/dev/null || true)"
+    UPLOAD_CANDIDATES=()
+    for f in "${ASSETS[@]}"; do
+      fname="$(basename "$f")"
+      fsize="$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo 0)"
+      if printf '%s\n' "$EXISTING_ASSETS" | grep -qx "${fname}:${fsize}"; then
+        echo "desktop-publish-release-local: asset ${fname} (${fsize} bytes) already matches ${TAG}; skipping"
+      else
+        UPLOAD_CANDIDATES+=("$f")
+      fi
+    done
+
+    if [ "${#UPLOAD_CANDIDATES[@]}" -gt 0 ]; then
+      echo "desktop-publish-release-local: uploading ${#UPLOAD_CANDIDATES[@]} new/updated asset(s) to ${TAG}"
+      gh release upload "$TAG" "${UPLOAD_CANDIDATES[@]}" --clobber
+    else
+      echo "desktop-publish-release-local: all ${#ASSETS[@]} assets already up to date on ${TAG}"
+    fi
   fi
 else
   echo "desktop-publish-release-local: creating ${TAG} as Latest"
