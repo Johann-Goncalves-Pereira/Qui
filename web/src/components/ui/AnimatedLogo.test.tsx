@@ -13,7 +13,7 @@ afterEach(() => {
   cleanup()
 })
 
-describe("AnimatedLogo (BR-web-09)", () => {
+describe("AnimatedLogo (BR-web-11)", () => {
   it("renders with default sprint mode and passes backwards-compatible classes", () => {
     const { container } = render(<AnimatedLogo className="h-16 w-16 test-custom" />)
     const svg = container.querySelector("svg")
@@ -96,7 +96,7 @@ describe("AnimatedLogo (BR-web-09)", () => {
   })
 })
 
-describe("RabbitSpinner (BR-web-09)", () => {
+describe("RabbitSpinner (BR-web-11)", () => {
   it("renders accessible status role and turbo mode spinner", () => {
     const { container } = render(<RabbitSpinner label="Synchronizing..." className="size-4" />)
     const status = screen.getByRole("status")
@@ -107,7 +107,8 @@ describe("RabbitSpinner (BR-web-09)", () => {
   })
 })
 
-describe("LoadingOverlay (BR-web-09)", () => {
+describe("LoadingOverlay (BR-web-11)", () => {
+
   it("renders full status banner with message and articulated logo", () => {
     render(<LoadingOverlay message="Loading torrents" submessage="Connecting to daemon" />)
     const status = screen.getByRole("status")

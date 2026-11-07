@@ -10,6 +10,7 @@ import {
 	defaultQBitConfig,
 	defaultQuiConfig,
 	dockerDataDirs,
+	ensureDockerDataPermissions,
 	ensureQbitPreseedConfig,
 	gazelleContainerRunArgs,
 	imageDigestHasUpdate,
@@ -103,10 +104,32 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 		expect(args).toContain('--add-host=host.docker.internal:host-gateway')
 	})
 
-	it('mounts qBittorrent config and the download directory', () => {
+	it('mounts qBittorrent config and the download directory with PUID/PGID (BR-desktop-29)', () => {
 		const args = qbitContainerRunArgs('qbit:latest', '/host/qbit', '/host/dl')
 		expect(args).toContain('/host/qbit:/config')
 		expect(args).toContain('/host/dl:/downloads')
+		expect(args).toContain('PUID=1000')
+		expect(args).toContain('PGID=1000')
+		expect(args).toContain('UMASK=022')
+	})
+
+	it('ensures docker data directories have 0755 traversal permissions (BR-desktop-29)', () => {
+		const home = path.join('Users', 'ada')
+		const dirs = dockerDataDirs(home, 'darwin')
+		const chmodCalls: Array<{ path: string; mode: number }> = []
+		ensureDockerDataPermissions(dirs, (p, mode) => {
+			chmodCalls.push({ path: p, mode })
+		})
+
+		expect(chmodCalls.length).toBe(5)
+		for (const call of chmodCalls) {
+			expect(call.mode).toBe(0o755)
+		}
+		expect(chmodCalls.some(c => c.path === dirs.qbitConfig)).toBe(true)
+		expect(chmodCalls.some(c => c.path === dirs.downloads)).toBe(true)
+		expect(chmodCalls.some(c => c.path === path.dirname(dirs.quiConfig))).toBe(
+			true,
+		)
 	})
 
 	it('mounts Gazelle config and database directories with port 7001', () => {

@@ -45,6 +45,9 @@ vi.mock("@/hooks/useDirScan", () => ({
   useUpdateDirScanDirectory: () => mocks.mutation,
   useUpdateDirScanSettings: () => mocks.mutation,
 }))
+vi.mock("@/hooks/useInstances", () => ({
+  useInstances: () => ({ instances: [], isLoading: false, error: null }),
+}))
 
 import type { InstanceResponse } from "@/types"
 import { DirScanTab } from "../DirScanTab"

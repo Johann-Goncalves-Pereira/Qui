@@ -88,3 +88,34 @@ export async function autoProvisionCompanionInstanceIfEligible(
     isProvisioning = false
   }
 }
+
+/**
+ * Returns default instance URL for new instance forms (companion host in desktop, localhost in browser).
+ */
+export function defaultInstanceHost(): string {
+  return isDesktopEnvironment() ? COMPANION_INSTANCE_HOST : "http://localhost:8080"
+}
+
+/**
+ * Normalizes loopback host addresses (localhost, 127.0.0.1, [::1]) to host.docker.internal
+ * when running inside the desktop shell so containerized Qui does not encounter connection refusal.
+ */
+export function normalizeDesktopHost(host: string): string {
+  if (!isDesktopEnvironment()) {
+    return host
+  }
+  const trimmed = host.trim()
+  try {
+    const url = new URL(trimmed)
+    const h = url.hostname.toLowerCase()
+    if (h === "localhost" || h === "127.0.0.1" || h === "[::1]" || h === "::1") {
+      url.hostname = "host.docker.internal"
+      return url.toString().replace(/\/$/, "")
+    }
+  } catch {
+    return trimmed
+      .replace(/^http:\/\/localhost(?::(\d+))?/, "http://host.docker.internal:$1")
+      .replace(/^http:\/\/127\.0\.0\.1(?::(\d+))?/, "http://host.docker.internal:$1")
+  }
+  return trimmed
+}

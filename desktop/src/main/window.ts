@@ -28,6 +28,7 @@ export function createMainWindow(): BrowserWindow {
 		title: APP_NAME,
 		icon: path.join(__dirname, '../assets/branding/logo.png'),
 		titleBarStyle: 'hiddenInset',
+		trafficLightPosition: DEFAULT_TRAFFIC_LIGHT_POSITION,
 		transparent: true,
 		backgroundColor: material.backgroundColor,
 		visualEffectState: 'active',
