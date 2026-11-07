@@ -1,7 +1,7 @@
 cask "qui" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.0.19"
+  version "0.0.20"
   sha256 :no_check
 
   url "https://github.com/Johann-Goncalves-Pereira/Qui/releases/download/v#{version}/Qui-#{version}-#{arch}.dmg"
