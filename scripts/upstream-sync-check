@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Local upstream-sync gate (BR-desktop-21).
+# Dry-merge autobrr/qui develop into HEAD without dirtying the worktree.
+# Exit 0 when clean; exit 1 on conflicts or fetch failure.
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "upstream-sync-check: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+UPSTREAM_URL="${QUI_UPSTREAM_URL:-https://github.com/autobrr/qui.git}"
+UPSTREAM_REF="${QUI_UPSTREAM_REF:-develop}"
+
+echo "upstream-sync-check: fetching ${UPSTREAM_URL} ${UPSTREAM_REF}…"
+git fetch --no-tags --quiet "$UPSTREAM_URL" "$UPSTREAM_REF"
+
+UPSTREAM_TIP="$(git rev-parse FETCH_HEAD)"
+HEAD_TIP="$(git rev-parse HEAD)"
+
+echo "upstream-sync-check: dry-merge HEAD (${HEAD_TIP:0:7}) ← upstream (${UPSTREAM_TIP:0:7})"
+
+# merge-tree --write-tree exits non-zero when the merge has conflicts (Git ≥ 2.38).
+set +e
+tree_out="$(git merge-tree --write-tree HEAD FETCH_HEAD 2>&1)"
+status=$?
+set -e
+
+if [ "$status" -eq 0 ]; then
+  echo "upstream-sync-check: clean (no conflicts with autobrr/qui ${UPSTREAM_REF})"
+  exit 0
+fi
+
+echo "upstream-sync-check: CONFLICTS merging autobrr/qui ${UPSTREAM_REF} into this branch." >&2
+echo "Resolve on the feature branch (never push develop directly):" >&2
+echo "  git fetch upstream ${UPSTREAM_REF}   # or: git fetch ${UPSTREAM_URL} ${UPSTREAM_REF}" >&2
+echo "  git merge FETCH_HEAD" >&2
+echo "Conflict details:" >&2
+printf '%s\n' "$tree_out" >&2
+exit 1

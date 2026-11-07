@@ -1,0 +1,14 @@
+# Local upstream-sync gate
+
+This fork does **not** use GitHub Actions for the upstream merge probe (Actions
+usage is budget-blocked at $0). The gate is local.
+
+## Before push or squash-merge
+
+1. Ensure hooks are installed once per clone: `make install-hooks`
+2. On the **feature branch** (never push `develop` directly): `make upstream-sync`
+3. On conflicts: merge/rebase `autobrr/qui` `develop` into the feature branch, fix, re-run
+4. Then push / `gh pr merge --squash`
+
+Do not require or wait for a GitHub status check named `Merge autobrr/qui develop`.
+See `docs/desktop/upstream-sync.md` (`BR-desktop-21`).
