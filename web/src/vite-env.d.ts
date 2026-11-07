@@ -96,6 +96,7 @@ declare global {
         publishedAt: string
       }>
       promptUpdates?: () => Promise<boolean>
+      applyUpdate?: (version?: string) => Promise<{ success: boolean; error?: string }>
       gazelle?: {
         getStatus?: () => Promise<{
           name: string
