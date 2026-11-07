@@ -85,10 +85,11 @@ git pull origin "$BASE_BRANCH"
 git branch -d "$BRANCH" 2>/dev/null || true
 
 # Tag the develop tip that contains the bump (after squash).
+# Force non-interactive lightweight tag (repo may default to annotated + $EDITOR).
 if git rev-parse "v${NEW_VER}" >/dev/null 2>&1; then
   echo "desktop-version-bump-local: tag v${NEW_VER} already exists locally"
 else
-  git tag "v${NEW_VER}"
+  GIT_EDITOR=true git tag -a "v${NEW_VER}" -m "desktop ${NEW_VER}"
 fi
 git push origin "v${NEW_VER}"
 
