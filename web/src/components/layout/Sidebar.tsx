@@ -158,7 +158,6 @@ export function Sidebar() {
 
   const { state: crossSeedInstanceState } = useCrossSeedInstanceState()
 
-  const desktopShell = typeof window !== "undefined" && window.quiDesktop !== undefined
   const mark = theme === "swizzin" ? (
     <SwizzinLogo className="h-5 w-5" />
   ) : theme === "napster" ? (
@@ -166,24 +165,20 @@ export function Sidebar() {
   ) : (
     <Logo className="h-5 w-5" />
   )
-  const brand = desktopShell ? (
+  const brand = (
     <span className="ml-auto flex items-center">{mark}</span>
-  ) : (
-    <span className="flex items-center gap-2">
-      {mark}
-      qui
-    </span>
   )
-  const brandRowStyle: CSSProperties | undefined = desktopShell
-    ? ({ WebkitAppRegion: "drag" } as CSSProperties)
-    : undefined
+  const brandRowStyle: CSSProperties | undefined =
+    typeof window !== "undefined"
+      ? ({ WebkitAppRegion: "drag" } as CSSProperties)
+      : undefined
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-sidebar border-sidebar-border">
-      <div className={desktopShell ? "flex h-12 items-center px-4" : "p-6"} style={brandRowStyle}>
+      <div className="flex h-12 items-center px-4" style={brandRowStyle}>
         <h2 className="flex w-full items-center text-lg font-semibold text-sidebar-foreground">
           {isDemo ? (
-            <a href="/" target="_top" className="flex items-center gap-2 hover:opacity-80">{brand}</a>
+            <a href="/" target="_top" className="ml-auto flex items-center hover:opacity-80">{brand}</a>
           ) : brand}
         </h2>
       </div>

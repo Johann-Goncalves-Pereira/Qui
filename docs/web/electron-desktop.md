@@ -21,7 +21,8 @@ helper does nothing. Glassmorphism is not its own theme.
 Setup and sign-in call `saveAccount`. On the login page, `unlockAccount` asks
 for Touch ID and returns the saved username and password. Pages that show the
 sidebar call `setSidebarChrome(true)` so the traffic lights line up with the
-logo.
+logo. On the sidebar, the "qui" text is omitted and the logo is pushed to the
+right (`ml-auto`), vertically centered with the traffic lights in the 48px row.
 
 ## Desktop Header Height & Docker Layout Resilience
 
@@ -69,5 +70,6 @@ without modifying original upstream component trees (`web/src/pages/`):
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs (Qui and qBittorrent).
 - `BR-web-05` in `docs/specs/catalog.md` — calibrated glassmorphism sidebar translucency.
 - `BR-web-08` in `docs/specs/catalog.md` — declarative React 19 `<ViewTransition>` and router view transitions across pages and action boundaries.
+- `BR-web-10` in `docs/specs/catalog.md` — sidebar header h-12 brand row with 'qui' text omitted and logo pushed to the right.
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
 
