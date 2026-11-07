@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Toutes les instances sont désactivées",
     "noInstancesConfigured": "Aucune instance configurée",
     "logout": "Déconnexion",
-    "version": "Version {{version}}",
     "language": "Langue",
     "viewOnGitHub": "Voir sur GitHub",
     "rssRunning": "RSS cross-seed en cours d'exécution",

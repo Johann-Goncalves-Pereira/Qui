@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Alle Instanzen sind deaktiviert",
     "noInstancesConfigured": "Keine Instanzen konfiguriert",
     "logout": "Abmelden",
-    "version": "Version {{version}}",
     "language": "Sprache",
     "viewOnGitHub": "Auf GitHub ansehen",
     "rssRunning": "Cross-Seed-RSS läuft",

@@ -21,7 +21,6 @@
     "allInstancesDisabled": "All instances are disabled",
     "noInstancesConfigured": "No instances configured",
     "logout": "Logout",
-    "version": "Version {{version}}",
     "language": "Language",
     "viewOnGitHub": "View on GitHub",
     "rssRunning": "Cross-seed RSS running",

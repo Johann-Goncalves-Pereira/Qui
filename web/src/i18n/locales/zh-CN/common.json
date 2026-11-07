@@ -21,7 +21,6 @@
     "allInstancesDisabled": "所有实例均已禁用",
     "noInstancesConfigured": "尚未配置实例",
     "logout": "退出登录",
-    "version": "版本 {{version}}",
     "language": "语言",
     "viewOnGitHub": "在 GitHub 上查看",
     "rssRunning": "辅种 RSS 运行中",

@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Všechny instance jsou zakázány",
     "noInstancesConfigured": "Žádné instance nejsou nakonfigurovány",
     "logout": "Odhlásit se",
-    "version": "Verze {{version}}",
     "language": "Jazyk",
     "viewOnGitHub": "Zobrazit na GitHubu",
     "rssRunning": "RSS křížového sdílení běží",

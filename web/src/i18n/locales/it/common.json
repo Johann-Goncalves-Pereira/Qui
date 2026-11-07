@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Tutte le istanze sono disabilitate",
     "noInstancesConfigured": "Nessuna istanza configurata",
     "logout": "Esci",
-    "version": "Versione {{version}}",
     "language": "Lingua",
     "viewOnGitHub": "Visualizza su GitHub",
     "rssRunning": "RSS cross-seed in esecuzione",

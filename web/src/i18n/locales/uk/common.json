@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Всі екземпляри вимкнено",
     "noInstancesConfigured": "Екземпляри не налаштовано",
     "logout": "Вийти",
-    "version": "Версія {{version}}",
     "language": "Мова",
     "viewOnGitHub": "Переглянути на GitHub",
     "rssRunning": "RSS cross-seed активний",
