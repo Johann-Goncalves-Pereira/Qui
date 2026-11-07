@@ -10,6 +10,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { Schema } from 'effect'
 import {
+	CURRENT_APP_VERSION,
 	DEFAULT_GAZELLE_PORT,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
@@ -523,7 +524,11 @@ export class DockerManager {
 	private async loadForkImageFromGithubRelease(
 		desiredImage: string,
 	): Promise<void> {
-		const url = quiDesktopImageArchiveUrl(GITHUB_REPO, this.processArch)
+		const url = quiDesktopImageArchiveUrl(
+			GITHUB_REPO,
+			this.processArch,
+			CURRENT_APP_VERSION,
+		)
 		const bytes = await this.fetchBinary(url)
 		const archivePath = path.join(
 			tmpdir(),
