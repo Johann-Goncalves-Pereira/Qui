@@ -19,6 +19,7 @@ import { useEffect } from "react"
 import { MobileScrollProvider, useMobileScroll } from "@/contexts/MobileScrollContext"
 import { TorrentSelectionProvider } from "@/contexts/TorrentSelectionContext"
 import { useCustomThemes } from "@/hooks/useCustomThemes"
+import { ViewTransitionBoundary } from "@/components/transitions/ViewTransitionBoundary"
 
 function AppLayoutContent() {
   const { t } = useTranslation("common")
@@ -77,7 +78,9 @@ function AppLayoutContent() {
           isFooterVisible ? "pb-[calc(4rem+env(safe-area-inset-bottom))]" : "pb-0",
           "lg:pb-0"
         )}>
-          <Outlet />
+          <ViewTransitionBoundary name="page-main-content">
+            <Outlet />
+          </ViewTransitionBoundary>
         </main>
         <StatusBarFooter />
       </div>

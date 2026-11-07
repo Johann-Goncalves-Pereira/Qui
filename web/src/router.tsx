@@ -15,6 +15,7 @@ export const router = createRouter({
   routeTree,
   basepath,
   defaultPreload: "intent",
+  defaultViewTransition: true,
   context: {
     auth: undefined!,
   },

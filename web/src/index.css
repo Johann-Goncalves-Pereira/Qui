@@ -460,3 +460,33 @@ html[data-glass="on"] .bg-popover {
 html[data-glass="on"] .bg-muted {
   background-color: color-mix(in oklab, var(--muted) var(--glass-surface), transparent);
 }
+
+/* View Transitions (BR-web-07) */
+@layer utilities {
+  ::view-transition-old(page-main-content),
+  ::view-transition-new(page-main-content) {
+    animation-duration: 200ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  ::view-transition-old(dialog-surface),
+  ::view-transition-new(dialog-surface) {
+    animation-duration: 180ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  ::view-transition-old(sheet-surface),
+  ::view-transition-new(sheet-surface) {
+    animation-duration: 220ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
+    }
+  }
+}
+

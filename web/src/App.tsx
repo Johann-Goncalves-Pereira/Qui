@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { SyncStreamProvider } from "@/contexts/SyncStreamContext"
 import { useDynamicFavicon } from "@/hooks/useDynamicFavicon"
+import { ActionTransitionProvider } from "@/components/transitions/ActionTransition"
 import { initializePWANativeTheme } from "@/utils/pwaNativeTheme"
 import { initializeTheme } from "@/utils/theme"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -45,8 +46,10 @@ function App() {
         <BuiltinThemesLoader />
         <DiscScanToasts />
         <TooltipProvider>
-          <RouterProvider router={router} />
-          <Toaster />
+          <ActionTransitionProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+          </ActionTransitionProvider>
         </TooltipProvider>
       </SyncStreamProvider>
     </QueryClientProvider>
