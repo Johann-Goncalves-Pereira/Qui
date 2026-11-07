@@ -75,6 +75,15 @@ brew trust local/qui
 brew install --cask local/qui/qui
 ```
 
+> [!TIP]
+> **First Launch on macOS (Sonoma, Sequoia, and newer):**
+> If macOS displays `"Qui.app" is damaged and can't be opened. You should move it to the Trash.`, run:
+> ```bash
+> xattr -cr /Applications/Qui.app
+> open -a Qui
+> ```
+> See [macOS Gatekeeper Notice](#macos-gatekeeper-notice-unsigned--ad-hoc-binaries) below for the explanation and alternative resolution steps.
+
 ---
 
 ### Managing the Application
@@ -105,20 +114,32 @@ The `zap` stanza removes:
 
 ---
 
-### macOS Gatekeeper Notice (Unsigned Binaries)
+### macOS Gatekeeper Notice (Unsigned & Ad-Hoc Binaries)
 
-Qui Desktop releases are currently unsigned (no Apple Developer ID certificate).
-When launching the app for the first time, macOS Gatekeeper may display a warning.
+#### Why This Happened
 
-To allow Qui Desktop:
+On macOS (Sonoma, Sequoia, and newer), when Homebrew Cask downloads an app that is not signed with a paid Apple Developer ID certificate, macOS Gatekeeper applies the `com.apple.quarantine` attribute to the app bundle.
 
-1. **Option 1 (Terminal command):**
-   ```bash
-   xattr -cr /Applications/Qui.app
-   ```
-2. **Option 2 (System Settings):**
-   Open **System Settings → Privacy & Security**, scroll down to the Security section,
-   and click **Open Anyway** next to Qui.
+When an unsigned or ad-hoc signed app has this quarantine attribute, Gatekeeper refuses to execute it and displays this security dialog:
+
+> "Qui.app" is damaged and can't be opened. You should move it to the Trash.
+
+#### How to Fix It Immediately
+
+Run this command in your macOS Terminal:
+
+```bash
+xattr -cr /Applications/Qui.app
+```
+
+Then launch Qui:
+
+```bash
+open -a Qui
+```
+
+Alternatively:
+- Open **System Settings → Privacy & Security**, scroll down to the Security section, and click **Open Anyway** next to Qui.
 
 ---
 

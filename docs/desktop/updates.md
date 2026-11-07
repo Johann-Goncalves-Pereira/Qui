@@ -19,8 +19,10 @@ developing against this repo. Developers who build from source should use
    https://github.com/Johann-Goncalves-Pereira/Qui/releases
 3. Download the macOS **`.dmg`** (preferred) or **`.zip`**.
 4. Open the archive and drag **Qui.app** into `/Applications`.
-5. First launch may show a Gatekeeper warning (builds are unsigned). Use
-   **System Settings → Privacy & Security** to allow Qui, or right-click → Open.
+5. First launch may show a Gatekeeper warning (builds are unsigned). On macOS
+   (Sonoma, Sequoia, and newer), Gatekeeper may display `"Qui.app" is damaged and can't be opened. You should move it to the Trash.`
+   To fix it immediately, run `xattr -cr /Applications/Qui.app` and `open -a Qui`, or
+   use **System Settings → Privacy & Security** to allow Qui (or right-click → Open).
 6. Sign in (or complete `/setup`) in the embedded web UI. Qui and qBittorrent
    containers start automatically.
 
