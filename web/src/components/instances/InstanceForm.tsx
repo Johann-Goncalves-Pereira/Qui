@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useInstances } from "@/hooks/useInstances"
 import { DEFAULT_REANNOUNCE_SETTINGS, instanceUrlSchema } from "@/lib/instance-validation"
+import { defaultInstanceHost, normalizeDesktopHost } from "@/lib/desktop-companion-instance"
 import { formatErrorMessage } from "@/lib/format-error-message"
 import type { Instance, InstanceFormData } from "@/types"
 import { useForm } from "@tanstack/react-form"
@@ -34,7 +35,7 @@ function getInstanceAuthType(instance?: Instance): InstanceAuthType {
 function getInstanceFormDefaults(instance?: Instance): InstanceFormData {
   return {
     name: instance?.name ?? "",
-    host: instance?.host ?? "http://localhost:8080",
+    host: instance?.host ?? defaultInstanceHost(),
     username: instance?.username ?? "",
     password: "",
     apiKey: instance?.hasApiKey ? "<redacted>" : "",
@@ -133,6 +134,11 @@ export function InstanceForm({ instance, onSuccess, onCancel, formId }: Instance
         const { apiKey, ...rest } = submitData
         submitData = rest
       }
+    }
+
+    submitData = {
+      ...submitData,
+      host: normalizeDesktopHost(submitData.host),
     }
 
     if (instance) {

@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { useInstances } from "@/hooks/useInstances"
 import { useIncognitoMode } from "@/lib/incognito"
 import { DEFAULT_REANNOUNCE_SETTINGS, instanceUrlSchema } from "@/lib/instance-validation"
+import { defaultInstanceHost, normalizeDesktopHost } from "@/lib/desktop-companion-instance"
 import { formatErrorMessage } from "@/lib/format-error-message"
 import type { Instance, InstanceFormData } from "@/types"
 import { useForm } from "@tanstack/react-form"
@@ -96,7 +97,12 @@ export function InstanceSettingsPanel({ instance }: InstanceSettingsPanelProps) 
       }
     }
 
-    updateInstance({ id: instance.id, data: submitData }, {
+    const submitDataWithNormalizedHost = {
+      ...submitData,
+      host: normalizeDesktopHost(submitData.host),
+    }
+
+    updateInstance({ id: instance.id, data: submitDataWithNormalizedHost }, {
       onSuccess: () => {
         toast.success(t("preferences.settingsPanel.toast.updatedTitle"), {
           description: t("preferences.settingsPanel.toast.updatedDescription"),
@@ -113,7 +119,7 @@ export function InstanceSettingsPanel({ instance }: InstanceSettingsPanelProps) 
   const form = useForm({
     defaultValues: {
       name: instance?.name ?? "",
-      host: instance?.host ?? "http://localhost:8080",
+      host: instance?.host ?? defaultInstanceHost(),
       username: instance?.username ?? "",
       password: "",
       apiKey: instance?.hasApiKey ? "<redacted>" : "",
@@ -135,7 +141,7 @@ export function InstanceSettingsPanel({ instance }: InstanceSettingsPanelProps) 
       prevInstanceId.current = instance?.id
       form.reset({
         name: instance?.name ?? "",
-        host: instance?.host ?? "http://localhost:8080",
+        host: instance?.host ?? defaultInstanceHost(),
         username: instance?.username ?? "",
         password: "",
         apiKey: instance?.hasApiKey ? "<redacted>" : "",
