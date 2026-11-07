@@ -11,7 +11,9 @@ import {
   isDesktopEnvironment,
   shouldAutoProvisionCompanionInstance,
   autoProvisionCompanionInstanceIfEligible,
-  resetProvisioningState
+  resetProvisioningState,
+  defaultInstanceHost,
+  normalizeDesktopHost,
 } from "./desktop-companion-instance"
 
 describe("Desktop companion qBittorrent instance (BR-web-06)", () => {
@@ -102,5 +104,28 @@ describe("Desktop companion qBittorrent instance (BR-web-06)", () => {
     const secondCall = await autoProvisionCompanionInstanceIfEligible([], createMock)
     expect(secondCall).toBe(false)
     expect(createMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("returns appropriate default instance host depending on desktop environment (BR-web-09)", () => {
+    expect(defaultInstanceHost()).toBe("http://localhost:8080")
+    window.quiDesktop = {}
+    expect(defaultInstanceHost()).toBe("http://host.docker.internal:8080")
+  })
+
+  it("normalizes loopback addresses to host.docker.internal only in desktop shell (BR-web-09)", () => {
+    // In standalone browser: left untouched
+    expect(normalizeDesktopHost("http://localhost:8080")).toBe("http://localhost:8080")
+    expect(normalizeDesktopHost("http://127.0.0.1:8080")).toBe("http://127.0.0.1:8080")
+
+    // In desktop shell: normalized to host gateway
+    window.quiDesktop = {}
+    expect(normalizeDesktopHost("http://localhost:8080")).toBe("http://host.docker.internal:8080")
+    expect(normalizeDesktopHost("http://127.0.0.1:8080")).toBe("http://host.docker.internal:8080")
+    expect(normalizeDesktopHost("http://127.0.0.1:8080/")).toBe("http://host.docker.internal:8080")
+    expect(normalizeDesktopHost("http://localhost")).toBe("http://host.docker.internal")
+
+    // Non-loopback addresses remain untouched
+    expect(normalizeDesktopHost("http://192.168.1.50:8080")).toBe("http://192.168.1.50:8080")
+    expect(normalizeDesktopHost("https://remote.seedbox.com/qbt")).toBe("https://remote.seedbox.com/qbt")
   })
 })
