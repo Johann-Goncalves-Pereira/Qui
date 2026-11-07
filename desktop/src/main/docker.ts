@@ -52,6 +52,7 @@ import {
 	imageDigestHasUpdate,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
+	parseQBitCredentialsFromLogs,
 	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
 	quiConfigToRunArgs,
@@ -637,15 +638,39 @@ export class DockerManager {
 	async getQBitConfig(): Promise<QBitContainerConfig> {
 		const dirs = dockerDataDirs(homedir(), process.platform)
 		const fallback = defaultQBitConfig(dirs)
+		let config = fallback
 		try {
 			const { stdout } = await this.executor.exec('docker', [
 				'inspect',
 				QBIT_CONTAINER_NAME,
 			])
-			return parseInspectToQBitConfig(stdout, fallback)
+			config = parseInspectToQBitConfig(stdout, fallback)
 		} catch {
-			return fallback
+			config = fallback
 		}
+
+		try {
+			const { stdout: logs } = await this.executor.exec('docker', [
+				'logs',
+				'--tail',
+				'200',
+				QBIT_CONTAINER_NAME,
+			])
+			const creds = parseQBitCredentialsFromLogs(logs)
+			config = {
+				...config,
+				username: creds.username,
+				password: creds.password,
+				isTemporaryPassword: creds.isTemporary,
+			}
+		} catch {
+			config = {
+				...config,
+				username: config.username || 'admin',
+			}
+		}
+
+		return config
 	}
 
 	async applyQuiConfig(

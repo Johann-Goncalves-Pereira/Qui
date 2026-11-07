@@ -153,14 +153,46 @@ Accepted=true
 
 [Preferences]
 Connection\\ResolvePeerCountries=true
-
-[WebUI]
-Address=*
-ServerDomains=*
-AuthSubnetWhitelistEnabled=true
-AuthSubnetWhitelist=10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1/32
-LocalHostAuth=false
+WebUI\\Address=*
+WebUI\\ServerDomains=*
+WebUI\\AuthSubnetWhitelistEnabled=true
+WebUI\\AuthSubnetWhitelist=10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1/32, ::ffff:10.0.0.0/104, ::ffff:172.16.0.0/108, ::ffff:192.168.0.0/112, ::ffff:127.0.0.1/128, ::ffff:0:0/96
+WebUI\\LocalHostAuth=false
 `
+
+export interface QBitCredentials {
+	username: string
+	password?: string
+	isTemporary?: boolean
+}
+
+/**
+ * Extracts administrator username and temporary session password from qBittorrent-nox container logs.
+ */
+export function parseQBitCredentialsFromLogs(logs: string): QBitCredentials {
+	let username = 'admin'
+	let password: string | undefined
+	let isTemporary = false
+
+	const userMatches = [
+		...logs.matchAll(/The WebUI administrator username is:\s*([^\r\n]+)/gi),
+	]
+	if (userMatches.length > 0) {
+		username = userMatches[userMatches.length - 1][1].trim()
+	}
+
+	const passMatches = [
+		...logs.matchAll(
+			/A temporary password is provided for this session:\s*([^\r\n]+)/gi,
+		),
+	]
+	if (passMatches.length > 0) {
+		password = passMatches[passMatches.length - 1][1].trim()
+		isTemporary = true
+	}
+
+	return { username, password, isTemporary }
+}
 
 /**
  * Ensures that qBittorrent has an initial configuration file on clean install.
@@ -366,6 +398,7 @@ export function defaultQBitConfig(
 		tz: 'UTC',
 		restartPolicy: 'unless-stopped',
 		image,
+		username: 'admin',
 	}
 }
 

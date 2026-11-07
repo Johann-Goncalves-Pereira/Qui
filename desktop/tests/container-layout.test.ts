@@ -6,7 +6,6 @@
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-	DEFAULT_QBIT_PRESEED_CONF,
 	defaultQBitConfig,
 	defaultQuiConfig,
 	dockerDataDirs,
@@ -16,6 +15,7 @@ import {
 	imageDigestHasUpdate,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
+	parseQBitCredentialsFromLogs,
 	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
 	quiConfigToRunArgs,
@@ -306,16 +306,38 @@ describe('Docker container config arguments & inspect parsing', () => {
 		const seeded = ensureQbitPreseedConfig(qbitConfigDir, mockFs)
 		expect(seeded).toBe(true)
 		expect(createdDirs.has(path.join(qbitConfigDir, 'qBittorrent'))).toBe(true)
-		expect(writtenFiles.get(confPath)).toBe(DEFAULT_QBIT_PRESEED_CONF)
 		expect(writtenFiles.get(confPath)).toContain(
-			'AuthSubnetWhitelistEnabled=true',
+			'WebUI\\AuthSubnetWhitelistEnabled=true',
 		)
-		expect(writtenFiles.get(confPath)).toContain('LocalHostAuth=false')
+		expect(writtenFiles.get(confPath)).toContain('WebUI\\LocalHostAuth=false')
+		expect(writtenFiles.get(confPath)).toContain('WebUI\\Address=*')
 
 		// Second run: existing config preserved without overwrite
 		writtenFiles.set(confPath, '[Custom]\nuser_edited=true')
 		const secondRun = ensureQbitPreseedConfig(qbitConfigDir, mockFs)
 		expect(secondRun).toBe(false)
 		expect(writtenFiles.get(confPath)).toBe('[Custom]\nuser_edited=true')
+	})
+
+	it('parses qBittorrent username and temporary password from container logs (BR-desktop-43)', () => {
+		const logs = `
+LocalPeer: failed to listen on local socket.
+The WebUI administrator username is: admin
+WebUI will be started shortly.
+The WebUI administrator password was not set. A temporary password is provided for this session: wG5hHhawM
+Connection to localhost succeeded!
+`
+		const creds = parseQBitCredentialsFromLogs(logs)
+		expect(creds.username).toBe('admin')
+		expect(creds.password).toBe('wG5hHhawM')
+		expect(creds.isTemporary).toBe(true)
+
+		// Returns defaults when no password found
+		const emptyCreds = parseQBitCredentialsFromLogs(
+			'Normal output without credentials',
+		)
+		expect(emptyCreds.username).toBe('admin')
+		expect(emptyCreds.password).toBeUndefined()
+		expect(emptyCreds.isTemporary).toBe(false)
 	})
 })
