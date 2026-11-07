@@ -477,7 +477,7 @@ describe('DockerManager', () => {
 		).toBe(true)
 	})
 
-	it('writes restart: unless-stopped and mitigates Puppeteer preview crash (BR-desktop-37)', async () => {
+	it('writes restart: unless-stopped and mitigates Puppeteer preview crash (BR-desktop-38)', async () => {
 		const mock = new MockDockerExecutor()
 		let inspectCalls = 0
 		mock.exec = async (command, args, options) => {

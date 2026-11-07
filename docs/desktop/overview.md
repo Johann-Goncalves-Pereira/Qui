@@ -77,7 +77,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-13` in `docs/specs/catalog.md` — Docker update prompt does not repeat a dismissed digest.
 - `BR-desktop-14` in `docs/specs/catalog.md` — Docker configuration schemas and IPC inspection.
 - `BR-desktop-15` in `docs/specs/catalog.md` — Gazelle Docker companion container can be started, stopped, and queried via desktop bridge and settings UI.
-- `BR-desktop-37` in `docs/specs/catalog.md` — Gazelle companion compose stack enforces restart resilience (`restart: unless-stopped`) and headless preview crash mitigation, exposing `openWebUi` in sandboxed preload bridge.
+- `BR-desktop-38` in `docs/specs/catalog.md` — Gazelle companion compose stack enforces restart resilience (`restart: unless-stopped`) and headless preview crash mitigation, exposing `openWebUi` in sandboxed preload bridge.
 - `BR-web-14` in `docs/specs/catalog.md` — Status bar footer reactively displays Gazelle container indicator when companion is running and opens Gazelle WebUI on click.
 - `BR-desktop-16` in `docs/specs/catalog.md` — Qui container bind-mounts the shared downloads directory and resolves host gateway to communicate with bundled qbittorrent-nox.
 - `BR-desktop-17` in `docs/specs/catalog.md` — packaged GHCR vs local Qui image.
@@ -85,6 +85,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-20` in `docs/specs/catalog.md` — desktop refresh script.
 - `BR-desktop-22` in `docs/specs/catalog.md` — clean install pre-seeds companion qBittorrent auth bypass.
 - `BR-desktop-23` in `docs/specs/catalog.md` — Qui application menu and hot-reload Developer menu.
+- `BR-desktop-37` in `docs/specs/catalog.md` — electronmon watch patterns, incremental `tsc`, and main-module discovery for SIGSEGV-free `dev:app`.
 - `BR-desktop-24` in `docs/specs/catalog.md` — Homebrew Cask distribution and package manager blueprints.
 - `BR-desktop-25` in `docs/specs/catalog.md` — desktop semantic versioning starting at `0.0.0` with PR merge patch increment.
 - `BR-desktop-28` in `docs/specs/catalog.md` — Qui branded animated SVG logo and cached theme tokens for startup screen.

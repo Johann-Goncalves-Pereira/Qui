@@ -13,7 +13,7 @@
     "version:bump": "node scripts/bump-version.mjs",
     "start": "pnpm build && electron dist/main/index.js",
     "dev": "tsc -w",
-    "dev:app": "pnpm build && concurrently -k \"tsc -w --preserveWatchOutput\" \"QUI_DESKTOP_DEV=1 electronmon dist/main/index.js\"",
+    "dev:app": "pnpm build && concurrently -k \"tsc -w --preserveWatchOutput\" \"env -u ELECTRON_RUN_AS_NODE QUI_DESKTOP_DEV=1 electronmon dist/main/index.js\"",
     "refresh": "../scripts/desktop-refresh",
     "package:mac": "pnpm build && electron-builder --mac --dir -c.mac.identity=\"-\"",
     "package:mac:release": "pnpm build && electron-builder --mac dmg zip -c.mac.identity=\"-\"",
@@ -56,6 +56,16 @@
       ],
       "identity": "-"
     }
+  },
+  "electronmon": {
+    "patterns": [
+      "!src/**",
+      "!**/*.d.ts",
+      "!**/*.d.cts",
+      "!**/*.map",
+      "!dist/assets/**",
+      "!dist/.tsbuildinfo"
+    ]
   },
   "dependencies": {
     "effect": "^3.13.0"

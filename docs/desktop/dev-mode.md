@@ -14,7 +14,22 @@ Electron via `electronmon`.
   `air` / `make dev`). Companion containers are skipped so they do not bind
   `:7476`.
 
-## How to run
+## How to run (One Command)
+
+Run the unified hot-reload runner from the repository root:
+
+```bash
+./desktop-dev.sh
+# or: make desktop-dev
+```
+
+This single command automatically:
+1. Verifies/starts the backend API on `:7476` (Docker container or local Go server).
+2. Launches the Vite development server on `:5173` with React Fast Refresh / HMR.
+3. Compiles and launches Electron in dev mode with `tsc -w` and `electronmon` watching main/preload scripts.
+4. Cleanly terminates all child processes when you press `Ctrl+C`.
+
+### Manual / Split-Terminal Run (Alternative)
 
 **Terminal 1 — web + Go API (Vite on `:5173`, API on `:7476`):**
 
@@ -23,13 +38,10 @@ make dev
 # equivalent: air in one process + pnpm --dir web dev
 ```
 
-Wait until Vite reports its local URL and the backend is listening on `7476`.
-
 **Terminal 2 — Electron shell:**
 
 ```bash
-make desktop-dev
-# or: cd desktop && pnpm install && QUI_DESKTOP_DEV=1 pnpm run dev:app
+cd desktop && pnpm install && QUI_DESKTOP_DEV=1 pnpm run dev:app
 ```
 
 What that starts:
@@ -40,6 +52,26 @@ What that starts:
 
 The window loads `http://localhost:5173` (login at `/login`). Vite proxies
 `/api` to `http://localhost:7476`.
+
+## Electronmon runner stability (BR-desktop-37)
+
+`desktop/package.json` is `"type": "module"`, so electronmon's CommonJS
+`require` hook never sees ESM main imports. Without extra wiring, every
+`tsc -w` emit under `dist/` is treated as a renderer change and floods
+`webContents.reloadIgnoringCache()` during boot — which historically ended in
+a fatal `SIGSEGV` when `reset` raced those reloads.
+
+Mitigations shipped for this runner:
+
+1. **Watch patterns** — `electronmon.patterns` ignores `src/**`, `**/*.d.ts`,
+   `**/*.d.cts`, `**/*.map`, `dist/assets/**`, and `dist/.tsbuildinfo`.
+2. **Incremental `tsc`** — `desktop/tsconfig.json` sets `incremental` with
+   `tsBuildInfoFile: "dist/.tsbuildinfo"` so `tsc -w` after `pnpm build` does
+   not re-emit the whole tree on startup.
+3. **Main-module discovery** — `registerElectronmonMainModules()` walks
+   compiled `.js` / `.cjs` under `dist/` (skipping `assets/`) and sends
+   `{ type: 'discover', file }` over electronmon's IPC so later main/preload
+   edits restart the process instead of reloading the renderer.
 
 ## Environment overrides
 
@@ -91,3 +123,5 @@ In production builds (`QUI_DESKTOP_DEV` unset or `0`), the **Developer** menu an
 
 - `BR-desktop-19` — origin selection for production vs desktop dev.
 - `BR-desktop-23` — Qui application menu and hot-reload Developer menu.
+- `BR-desktop-37` — electronmon development runner patterns and module discovery synchronization.
+

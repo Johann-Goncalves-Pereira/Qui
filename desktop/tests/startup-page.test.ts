@@ -70,4 +70,31 @@ describe('Startup page (BR-desktop-09, BR-desktop-28)', () => {
 		expect(html).toContain('.custom-class { color: red; }')
 		expect(html).toContain('class="dark"')
 	})
+
+	it('honors cachedTheme.isDark when it disagrees with prefersDark parameter', () => {
+		const html = startupPageDocument(
+			'Starting Qui…',
+			'Connecting…',
+			true, // system is dark
+			{
+				id: 'custom-light',
+				name: 'Custom Light',
+				isDark: false, // user preference is light
+				cssVars: {
+					light: {
+						'--background': '#f4f5f7',
+						'--card': '#ffffff',
+						'--primary': '#0055ff',
+					},
+					dark: {
+						'--background': '#101010',
+					},
+				},
+			},
+		)
+
+		expect(html).toContain('background:#f4f5f7')
+		expect(html).toContain('--primary:#0055ff')
+		expect(html).not.toContain('class="dark"')
+	})
 })
