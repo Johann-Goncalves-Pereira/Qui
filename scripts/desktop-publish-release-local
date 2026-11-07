@@ -35,9 +35,10 @@ xattr -cr /Applications/Qui.app
 \`\`\`
 
 The Qui **GUI** ships as this fork’s Docker image (not \`ghcr.io/autobrr/qui\`).
-Packaged apps pull \`ghcr.io/johann-goncalves-pereira/qui:latest\` when GHCR is
-public, otherwise they \`docker load\` the \`qui-desktop-image-*.tar.gz\` asset
-from this release.
+Packaged apps embed the \`qui-desktop-image-*.tar.gz\` archive directly inside
+\`Qui.app/Contents/Resources/assets/\` for offline, zero-network first launch.
+When updating or launching, Qui Desktop automatically synchronizes and recreates
+the container using the matching versioned tag.
 
 Built/published locally while GitHub Actions usage is blocked (\$0 budget).
 EOF

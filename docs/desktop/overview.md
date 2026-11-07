@@ -86,6 +86,9 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-24` in `docs/specs/catalog.md` — Homebrew Cask distribution and package manager blueprints.
 - `BR-desktop-25` in `docs/specs/catalog.md` — desktop semantic versioning starting at `0.0.0` with PR merge patch increment.
 - `BR-desktop-28` in `docs/specs/catalog.md` — Qui branded animated SVG logo and cached theme tokens for startup screen.
+- `BR-desktop-29` in `docs/specs/catalog.md` — upstream web update prompt suppression in desktop shell.
+- `BR-desktop-30` in `docs/specs/catalog.md` — desktop-specific component update dialog and reload requirements.
+- `BR-desktop-31` in `docs/specs/catalog.md` — automated pre-update data backup and zero-data-loss protection.
 - `BR-web-03` in `docs/specs/catalog.md` — Status bar footer with streamlined borderless service indicators.
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
 - `BR-web-06` in `docs/specs/catalog.md` — Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access.

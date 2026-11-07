@@ -18,6 +18,7 @@ import {
 } from 'electron'
 import {
 	APP_NAME,
+	CURRENT_APP_VERSION,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
 	GAZELLE_WEB_ORIGIN,
@@ -31,12 +32,14 @@ import {
 import { AccountVault } from './account-vault.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
+import { createPreUpdateBackup } from './backup.js'
 import {
 	dockerDataDirs,
 	ensureDockerDataPermissions,
 	ensureQbitPreseedConfig,
 	updatesWorthPrompting,
 } from './container-layout.js'
+import { formatContainerUpdatePrompt } from './container-updater-dialog.js'
 import { DockerManager } from './docker.js'
 import {
 	findMagnetUrlInArgs,
@@ -107,6 +110,7 @@ const quiWebLogin = quiWebLoginUrl(quiWebOrigin)
 const quiImage = resolveQuiImage({
 	isPackaged: app.isPackaged,
 	envImage: process.env.QUI_DESKTOP_IMAGE,
+	version: CURRENT_APP_VERSION,
 })
 
 const dockerManager = new DockerManager(undefined, undefined, quiImage)
@@ -393,6 +397,10 @@ function registerIpcHandlers(): void {
 			console.warn('Failed to handle theme:sync IPC:', error)
 		}
 	})
+
+	ipcMain.on('app:get-version', event => {
+		event.returnValue = app.getVersion() || CURRENT_APP_VERSION
+	})
 }
 
 function dismissalFile(): string {
@@ -449,15 +457,14 @@ async function checkAndPromptDockerUpdates(options?: {
 		)
 		if (updates.length > 0 && mainWindow) {
 			dockerImageUpdatePromptShownThisSession = true
-			const names = updates.map(u => u.image).join(', ')
+			const promptDetails = formatContainerUpdatePrompt(updates, quiImage)
 			const { response } = await dialog.showMessageBox(mainWindow, {
 				type: 'question',
-				title: `${APP_NAME} - Docker Image Updates Available`,
-				message: `Updates are available for: ${names}`,
-				detail:
-					'Would you like to pull the latest Docker image(s) and restart the containers now? Your Qui account stays in the desktop data folder.',
+				title: promptDetails.title,
+				message: promptDetails.message,
+				detail: promptDetails.detail,
 				buttons: ['Update Now', 'Later'],
-				defaultId: 1,
+				defaultId: 0,
 				cancelId: 1,
 			})
 
@@ -471,18 +478,34 @@ async function checkAndPromptDockerUpdates(options?: {
 			}
 
 			if (response === 0) {
+				try {
+					await createPreUpdateBackup('docker-update')
+				} catch {
+					// Non-fatal backup failure
+				}
 				for (const u of updates) {
 					const name =
 						u.image === quiImage ? QUI_CONTAINER_NAME : QBIT_CONTAINER_NAME
 					await dockerManager.updateAndRestartContainer(name, u.image)
 				}
-				dialog.showMessageBox(mainWindow, {
+				await dialog.showMessageBox(mainWindow, {
 					type: 'info',
 					title: APP_NAME,
 					message: 'Containers updated successfully!',
+					detail: `Updated components: ${promptDetails.componentTypes.join(', ')}.\nAutomated pre-update backup was saved in Application Support.`,
 				})
-				void loadQuiWebUi()
+				if (promptDetails.componentTypes.includes('qui')) {
+					void loadQuiWebUi()
+				}
 			}
+		} else if (options?.force && mainWindow) {
+			await dialog.showMessageBox(mainWindow, {
+				type: 'info',
+				title: APP_NAME,
+				message: 'All containers are up to date.',
+				detail:
+					'qui and qbittorrent-nox are running the latest container images.',
+			})
 		}
 	} catch {
 		// Non-blocking update check

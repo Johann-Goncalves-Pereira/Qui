@@ -24,7 +24,10 @@ import {
 	QUI_IMAGE,
 	QUI_IMAGE_LOCAL,
 } from '../shared/constants.js'
-import { quiDesktopImageArchiveUrl } from '../shared/qui-image.js'
+import {
+	quiDesktopImageArchiveUrl,
+	quiEmbeddedImageArchiveRelativePath,
+} from '../shared/qui-image.js'
 import {
 	type DockerContainerStatus,
 	DockerContainerStatusSchema,
@@ -156,6 +159,7 @@ export class DockerManager {
 		},
 		private readonly fetchBinary: BinaryFetcher = defaultBinaryFetch,
 		private readonly processArch: string = process.arch,
+		private readonly resourcesPath: string = process.resourcesPath ?? '',
 	) {}
 
 	/**
@@ -483,10 +487,13 @@ export class DockerManager {
 	}
 
 	/**
-	 * Ensure `image` exists locally. Prefer inspect → pull; if pull fails
-	 * (e.g. fork GHCR not published yet / $0 Actions), retag `qui-desktop:local`
-	 * when that alias is present, else `docker load` the GitHub Releases archive
-	 * so packaged apps still get this fork’s GUI (never upstream autobrr).
+	 * Ensure `image` exists locally.
+	 * 1. If inspect succeeds, image is ready.
+	 * 2. Check for embedded archive inside the application bundle (process.resourcesPath).
+	 *    If present, docker load it instantly without network dependencies.
+	 * 3. Fallback to `docker pull`.
+	 * 4. Fallback to retagging `qui-desktop:local` if present.
+	 * 5. Fallback to downloading release archive from GitHub Releases.
 	 */
 	private async pullIfMissing(image: string): Promise<void> {
 		try {
@@ -494,6 +501,32 @@ export class DockerManager {
 			return
 		} catch {
 			// missing locally
+		}
+
+		// First priority for packaged app: load embedded image archive if bundled
+		if (this.resourcesPath) {
+			const embeddedArchive = path.join(
+				this.resourcesPath,
+				quiEmbeddedImageArchiveRelativePath(this.processArch),
+			)
+			if (this.fileExists(embeddedArchive)) {
+				try {
+					await this.executor.exec('docker', ['load', '-i', embeddedArchive], {
+						timeout: 600_000,
+					})
+					await this.executor.exec('docker', [
+						'image',
+						'inspect',
+						QUI_IMAGE_LOCAL,
+					])
+					if (image !== QUI_IMAGE_LOCAL) {
+						await this.executor.exec('docker', ['tag', QUI_IMAGE_LOCAL, image])
+					}
+					return
+				} catch {
+					// Fall through to pull / network fallback
+				}
+			}
 		}
 
 		try {

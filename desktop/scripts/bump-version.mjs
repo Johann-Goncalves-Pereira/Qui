@@ -37,6 +37,17 @@ function run() {
 
 	pkg.version = newVersion
 	writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8')
+
+	const webPkgPath = path.resolve(__dirname, '../../web/package.json')
+	try {
+		const webRaw = readFileSync(webPkgPath, 'utf8')
+		const webPkg = JSON.parse(webRaw)
+		webPkg.version = newVersion
+		writeFileSync(webPkgPath, JSON.stringify(webPkg, null, 2) + '\n', 'utf8')
+	} catch {
+		// optional: web package.json may not exist in isolated builds
+	}
+
 	console.log(`Bumped desktop version: ${currentVersion} -> ${newVersion}`)
 }
 

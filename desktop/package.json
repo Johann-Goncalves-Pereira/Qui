@@ -1,7 +1,7 @@
 {
   "name": "qui-desktop",
   "productName": "Qui",
-  "version": "0.0.8",
+  "version": "0.0.10",
   "description": "Qui Desktop - Native qBittorrent WebUI with Electron",
   "main": "dist/main/index.js",
   "type": "module",
@@ -29,6 +29,15 @@
       "dist/**/*",
       "package.json",
       "!dist/builder*/**"
+    ],
+    "extraResources": [
+      {
+        "from": "release/qui-desktop-image-${arch}.tar.gz",
+        "to": "assets/qui-desktop-image-${arch}.tar.gz",
+        "filter": [
+          "*.tar.gz"
+        ]
+      }
     ],
     "protocols": [
       {

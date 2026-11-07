@@ -12,6 +12,8 @@ import {
 } from '../shared/constants.js'
 import { type AppReleaseInfo, AppReleaseInfoSchema } from '../shared/types.js'
 
+import { createPreUpdateBackup } from './backup.js'
+
 export function parseSemver(v: string): [number, number, number] {
 	const cleaned = v.trim().replace(/^v/i, '')
 	const parts = cleaned.split('.').map(p => Number.parseInt(p, 10))
@@ -148,15 +150,20 @@ export class AppReleaseUpdater {
 			: ''
 		const { response } = await dialog.showMessageBox(window, {
 			type: 'info',
-			title: `${APP_NAME} - New Version Available`,
-			message: `A new version of ${APP_NAME} is available: v${info.latestVersion}`,
-			detail: `Current version: v${this.currentVersion}.${notes}\n\nDownload the .dmg or .zip, then replace Qui.app manually. This build does not install updates silently.`,
+			title: `${APP_NAME} - Desktop Shell Update Available`,
+			message: `A new version of ${APP_NAME} (desktop-shell) is available: v${info.latestVersion}`,
+			detail: `Component: desktop-shell (macOS Native Shell)\nCurrent version: v${this.currentVersion}\nTarget version: v${info.latestVersion}${notes}\n\nReload / Restart Requirement:\n• Replacing Qui.app requires quitting and restarting the desktop application.\n\nData Safety & Backups:\n• Application settings and container configurations are safely preserved in Application Support and backed up before updates.\n• Data is only removed if you uninstall the application.`,
 			buttons: ['Download Update', 'Later'],
 			defaultId: 0,
 			cancelId: 1,
 		})
 
 		if (response === 0) {
+			try {
+				await createPreUpdateBackup('desktop-shell')
+			} catch {
+				// Non-fatal backup attempt
+			}
 			const targetUrl = info.downloadUrl || info.htmlUrl
 			await shell.openExternal(targetUrl)
 			return true
