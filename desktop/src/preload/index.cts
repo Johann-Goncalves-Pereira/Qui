@@ -49,6 +49,8 @@ export interface QuiDesktopBridge {
 	applyUpdate: (
 		version?: string,
 	) => Promise<{ success: boolean; error?: string }>
+	/** Subscribes to open-dialog events triggered by desktop main process */
+	onShowUpdateDialog: (callback: (info: AppReleaseInfo) => void) => () => void
 	/** Synchronize active theme tokens and dark/light preference to desktop shell for startup page caching */
 	syncTheme: (payload: ThemeSyncPayload) => Promise<void>
 	/** Gazelle companion Docker lifecycle controls */
@@ -97,6 +99,18 @@ const bridge: QuiDesktopBridge = {
 	promptUpdates: () => ipcRenderer.invoke('updater:prompt-updates'),
 	applyUpdate: (version?: string) =>
 		ipcRenderer.invoke('updater:apply-update', version),
+	onShowUpdateDialog: (callback: (info: AppReleaseInfo) => void) => {
+		const listener = (
+			_event: Electron.IpcRendererEvent,
+			info: AppReleaseInfo,
+		) => {
+			callback(info)
+		}
+		ipcRenderer.on('updater:show-dialog', listener)
+		return () => {
+			ipcRenderer.removeListener('updater:show-dialog', listener)
+		}
+	},
 	syncTheme: (payload: ThemeSyncPayload) =>
 		ipcRenderer.invoke('theme:sync', payload),
 	gazelle: {

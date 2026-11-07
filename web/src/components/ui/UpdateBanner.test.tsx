@@ -101,4 +101,31 @@ describe("UpdateBanner desktop suppression", () => {
     expect(await screen.findByText(/desktopUpdate\.title/)).toBeTruthy()
     expect(screen.getByText(/New features/)).toBeTruthy()
   })
+
+  it("opens DesktopUpdateDialog when onShowUpdateDialog listener triggers (BR-desktop-44)", async () => {
+    let dialogCallback: ((info: unknown) => void) | null = null
+    window.quiDesktop = {
+      getAppVersion: () => "0.0.19",
+      checkForUpdates: vi.fn().mockResolvedValue({
+        hasUpdate: true,
+        currentVersion: "0.0.19",
+        latestVersion: "0.0.20",
+        tagName: "v0.0.20",
+        name: "Qui v0.0.20",
+        body: "## What's Changed\n* Automated Homebrew upgrade",
+      }),
+      onShowUpdateDialog: vi.fn().mockImplementation((cb) => {
+        dialogCallback = cb
+        return () => {}
+      }),
+    }
+
+    renderComponent()
+    expect(await screen.findByText(/updateBanner\.desktopUpdateAvailable/)).toBeTruthy()
+
+    dialogCallback?.({ hasUpdate: true })
+
+    expect(await screen.findByText(/desktopUpdate\.title/)).toBeTruthy()
+    expect(screen.getByText(/Automated Homebrew upgrade/)).toBeTruthy()
+  })
 })

@@ -425,7 +425,8 @@ function registerIpcHandlers(): void {
 	})
 
 	ipcMain.on('app:get-version', event => {
-		event.returnValue = app.getVersion() || CURRENT_APP_VERSION
+		event.returnValue =
+			appUpdater.getCurrentVersion() || app.getVersion() || CURRENT_APP_VERSION
 	})
 }
 
@@ -557,7 +558,7 @@ async function promptDesktopUpdates(): Promise<boolean> {
 			await dialog.showMessageBox(mainWindow, {
 				type: 'info',
 				title: APP_NAME,
-				message: `Qui Desktop is up to date (v${CURRENT_APP_VERSION}).`,
+				message: `Qui Desktop is up to date (v${appUpdater.getCurrentVersion()}).`,
 				detail:
 					'All desktop layers (application shell, qui, and qbittorrent-nox) are running the latest versions.',
 			})
