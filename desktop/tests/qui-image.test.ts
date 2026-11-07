@@ -15,11 +15,9 @@ describe('resolveQuiImage (BR-desktop-17)', () => {
 		expect(resolveQuiImage({ isPackaged: false })).toBe(QUI_IMAGE_LOCAL)
 	})
 
-	it('defaults to fork GHCR image when packaged', () => {
+	it('defaults to upstream autobrr/qui image when packaged', () => {
 		expect(resolveQuiImage({ isPackaged: true })).toBe(QUI_IMAGE_RELEASE)
-		expect(QUI_IMAGE_RELEASE).toBe(
-			'ghcr.io/johann-goncalves-pereira/qui:latest',
-		)
+		expect(QUI_IMAGE_RELEASE).toBe('ghcr.io/autobrr/qui:latest')
 	})
 
 	it('lets QUI_DESKTOP_IMAGE override packaged and local defaults', () => {
