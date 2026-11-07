@@ -57,6 +57,16 @@
       "identity": "-"
     }
   },
+  "electronmon": {
+    "patterns": [
+      "!src/**",
+      "!**/*.d.ts",
+      "!**/*.d.cts",
+      "!**/*.map",
+      "!dist/assets/**",
+      "!dist/.tsbuildinfo"
+    ]
+  },
   "dependencies": {
     "effect": "^3.13.0"
   },
