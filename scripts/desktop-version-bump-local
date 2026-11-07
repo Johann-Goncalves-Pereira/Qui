@@ -47,9 +47,17 @@ OLD_VER="$(node -p "require('./desktop/package.json').version")"
 node desktop/scripts/bump-version.mjs
 NEW_VER="$(node -p "require('./desktop/package.json').version")"
 
+# Keep Homebrew cask version in lockstep with desktop package.json.
+if [ -f Casks/qui.rb ]; then
+  perl -pi -e "s/version \"\\d+\\.\\d+\\.\\d+\"/version \"${NEW_VER}\"/" Casks/qui.rb
+fi
+
 BRANCH="chore/desktop-bump-${NEW_VER}"
 git checkout -b "$BRANCH"
 git add desktop/package.json
+if [ -f Casks/qui.rb ]; then
+  git add Casks/qui.rb
+fi
 git commit -m "chore(desktop): bump version to ${NEW_VER} [skip ci]"
 
 git push -u origin HEAD
@@ -58,12 +66,13 @@ PR_URL="$(gh pr create --base "$BASE_BRANCH" --head "$BRANCH" \
   --title "Chore 🔧: Bump Desktop Version to ${NEW_VER}" \
   --body "$(cat <<EOF
 ## Summary
-- Patch bump \`desktop/package.json\` \`${OLD_VER}\` → \`${NEW_VER}\` (local gate; Actions usage blocked at \$0).
+- Patch bump \`desktop/package.json\` (and \`Casks/qui.rb\`) \`${OLD_VER}\` → \`${NEW_VER}\` (local gate; Actions usage blocked at \$0).
 - Follow-up to a squash-merged PR per \`docs/desktop/versioning.md\` / BR-desktop-28.
 
 ## Test plan
 - [x] \`node desktop/scripts/bump-version.mjs\` applied
 - [ ] Tag \`v${NEW_VER}\` exists on \`${BASE_BRANCH}\` after merge
+- [ ] GitHub Release \`Qui v${NEW_VER}\` is Latest (after publish step)
 
 ## ⚠️ Upstream Docker Alignment & Breaking Change Risk
 - **Target Architectural Layer:** Desktop Shell \`desktop/\`
@@ -92,5 +101,12 @@ else
   GIT_EDITOR=true git tag -a "v${NEW_VER}" -m "desktop ${NEW_VER}"
 fi
 git push origin "v${NEW_VER}"
+
+# Create/refresh GitHub Release as Latest (assets if desktop/release/ has them).
+if [ -x "$ROOT/scripts/desktop-publish-release-local" ]; then
+  "$ROOT/scripts/desktop-publish-release-local" || {
+    echo "desktop-version-bump-local: warning: publish release failed (tag is still pushed)" >&2
+  }
+fi
 
 echo "desktop-version-bump-local: ${OLD_VER} → ${NEW_VER} (tag v${NEW_VER} on ${BASE_BRANCH})"

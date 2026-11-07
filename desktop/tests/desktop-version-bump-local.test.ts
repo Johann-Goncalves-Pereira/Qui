@@ -24,6 +24,18 @@ describe('desktop-version-bump-local (BR-desktop-28)', () => {
 		expect(script).toContain('--squash')
 		expect(script).toMatch(/git tag/)
 		expect(script).toContain('[skip ci]')
+		expect(script).toContain('Casks/qui.rb')
+		expect(script).toContain('desktop-publish-release-local')
 		expect(script).not.toMatch(/workflow_dispatch|actions\/checkout/)
+	})
+
+	it('publishes GitHub Latest from desktop package version', () => {
+		const publish = readFileSync(
+			path.join(repoRoot, 'scripts/desktop-publish-release-local'),
+			'utf8',
+		)
+		expect(publish).toContain('gh release')
+		expect(publish).toContain('--latest')
+		expect(publish).toContain('package.json')
 	})
 })
