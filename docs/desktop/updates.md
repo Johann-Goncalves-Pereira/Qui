@@ -118,6 +118,29 @@ Maintainers: `make desktop-publish-qui-image` always writes that archive under
 `desktop/release/`; `make desktop-publish-release` uploads it with the `.dmg`.
 GHCR push remains preferred when `write:packages` is available.
 
+## Upstream Web Update Prompt Suppression
+
+Upstream web UI update banners and the `InstallUpdateButton` modal (which instruct users to pull upstream Docker images manually or announce upstream releases like `v1.35.0`) are automatically suppressed inside the Qui Desktop Electron shell (`BR-desktop-29`). Qui Desktop follows its own semantic versioning (`v0.0.x`) and manages container lifecycles internally. In standalone web browser mode (outside Electron), standard upstream update notices remain functional.
+
+## Desktop-Specific Component Update Dialog
+
+When updates are detected, Qui Desktop presents a native dialog specifically tailored to desktop components (`BR-desktop-30`):
+- **Component Types:**
+  - `desktop-shell`: Electron Desktop native application (`Qui.app`). Requires downloading the new application build, replacing the binary in `/Applications`, and restarting the app.
+  - `qui`: Qui Web & API Docker container. Container is pulled and restarted; the desktop window automatically reloads when ready.
+  - `qbittorrent-nox`: Companion BitTorrent client container. Container is pulled and restarted; active torrent connections briefly reconnect.
+- **Reload Impact:** Every prompt explicitly explains whether the update requires an application restart, a container restart, or an automated web view reload.
+
+## Automated Pre-Update Backups & Zero Data Loss Guarantee
+
+Container updates and app replacements never destroy user configurations (`BR-desktop-31`):
+1. **Pre-Update Snapshot:** Before pulling new images or replacing containers, Qui Desktop creates an automated snapshot under `~/Library/Application Support/Qui/backups/` (e.g. `backup-<timestamp>-<component>`).
+2. **Archived Artifacts:**
+   - Qui SQLite database (`qui.db`) and `.env` from `/config`
+   - qBittorrent settings (`qBittorrent.conf`) and torrent resume state (`BT_backup`)
+   - Active theme cache (`theme.json`) and safeStorage encrypted vaults
+3. **Data Durability:** User data is only ever removed if the user explicitly uninstalls the application (via Homebrew Cask `zap` or manually clearing `~/Library/Application Support/Qui`).
+
 ## Behaviour summary
 
 - Launch + tray compare semver to GitHub `releases/latest`.
@@ -125,8 +148,15 @@ GHCR push remains preferred when `write:packages` is available.
 - Packaged apps pull **fork** GHCR Qui; unpackaged/dev defaults to
   `qui-desktop:local`.
 - Unsigned builds may need Gatekeeper confirmation on each new binary.
+- Upstream web update banners and self-update buttons are suppressed in Electron.
+- Component update prompts declare exact target types and reload impacts.
+- Automatic snapshot backups precede all container and shell updates.
 
 ## Related spec
 
 - `BR-desktop-17` — packaged vs local Qui image default.
 - `BR-desktop-18` — unsigned release prompt with `.dmg` / `.zip` preference.
+- `BR-desktop-29` — upstream web update banner suppression in desktop shell.
+- `BR-desktop-30` — desktop-specific component update dialog and reload requirements.
+- `BR-desktop-31` — automated pre-update data backup and zero-data-loss protection.
+

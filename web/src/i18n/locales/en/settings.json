@@ -1082,6 +1082,8 @@
         "updateAvailable": "Update Available",
         "upToDate": "Up to Date",
         "upToDateDetail": "Running the latest version",
+        "managedByDesktop": "Managed by Desktop",
+        "managedByDesktopDetail": "Updates and container lifecycles are managed by Qui Desktop",
         "notCheckedYet": "Not checked yet",
         "lastChecked": "Last checked {{date}}"
       }
