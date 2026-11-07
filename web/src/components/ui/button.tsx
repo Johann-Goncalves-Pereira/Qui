@@ -52,11 +52,23 @@ const Button = React.forwardRef<
       loadingText?: React.ReactNode
     }
 >(({ className, variant, size, asChild = false, loading = false, loadingText, disabled, children, ...props }, ref) => {
-  const Comp = asChild ? Slot : "button"
   const isDisabled = disabled || loading
 
+  if (asChild) {
+    return (
+      <Slot
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </Slot>
+    )
+  }
+
   return (
-    <Comp
+    <button
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
@@ -65,7 +77,7 @@ const Button = React.forwardRef<
     >
       {loading && <RabbitSpinner size={size === "xs" || size === "sm" ? "xs" : "sm"} className="shrink-0" />}
       {loading && loadingText ? loadingText : children}
-    </Comp>
+    </button>
   )
 })
 Button.displayName = "Button"
