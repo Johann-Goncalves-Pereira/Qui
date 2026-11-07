@@ -83,11 +83,12 @@ git push
 [ ] git push             # pre-push re-runs the check
 [ ] gh pr merge N --squash --delete-branch
 [ ] checkout/pull develop (gcdp / BASE=develop)
+[ ] ./scripts/desktop-version-bump-local   # see $qui-fork-finish-pr (skip if bump PR)
 ```
 
 ## Related
 
 - Spec: `BR-desktop-21` in `docs/specs/catalog.md`
 - Rule: `.cursor/rules/510-local-upstream-sync.mdc`
-- Sibling: `$qui-fork-issue-crafting` for issue templates
+- Sibling: `$qui-fork-finish-pr` (SM + version bump), `$qui-fork-issue-crafting`
 - Scripts: `scripts/upstream-sync-check`, `scripts/install-local-hooks`, `.githooks/pre-push`
