@@ -46,6 +46,11 @@ import { registerApplicationMenu } from './menu.js'
 import { openWrappedQui, waitForQuiHttpReady } from './qui-ready.js'
 import { startupPageUrl } from './startup-page.js'
 import { computeStatsPollInterval } from './stats-polling.js'
+import {
+	readCachedTheme,
+	ThemeSyncPayloadSchema,
+	writeCachedTheme,
+} from './theme-cache.js'
 import { AppTray } from './tray.js'
 import { AppReleaseUpdater } from './updater.js'
 import {
@@ -146,10 +151,12 @@ if (initialMagnetUrl) {
 }
 
 function showStartupPage(message: string, processInfo?: string): string {
+	const cachedTheme = readCachedTheme(app.getPath('userData'))
 	return startupPageUrl(
 		message,
 		processInfo && processInfo.length > 0 ? processInfo : message,
 		nativeTheme.shouldUseDarkColors,
+		cachedTheme,
 	)
 }
 
@@ -372,6 +379,17 @@ function registerIpcHandlers(): void {
 			return null
 		}
 		return accountVault().read()
+	})
+
+	ipcMain.handle('theme:sync', async (_event, payload: unknown) => {
+		try {
+			const validated = Schema.decodeUnknownSync(ThemeSyncPayloadSchema)(
+				payload,
+			)
+			writeCachedTheme(app.getPath('userData'), validated)
+		} catch (error) {
+			console.warn('Failed to handle theme:sync IPC:', error)
+		}
 	})
 }
 

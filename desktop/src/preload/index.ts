@@ -48,6 +48,8 @@ export interface QuiDesktopBridge {
 		restart: () => Promise<DockerContainerStatus>
 		openWebUi: () => Promise<void>
 	}
+	/** Synchronize active web theme tokens to desktop shell for startup page. */
+	syncTheme: (theme: unknown) => Promise<void>
 }
 
 const bridge: QuiDesktopBridge = {
@@ -78,6 +80,7 @@ const bridge: QuiDesktopBridge = {
 		restart: () => ipcRenderer.invoke('docker:gazelle:restart'),
 		openWebUi: () => ipcRenderer.invoke('docker:gazelle:open-web'),
 	},
+	syncTheme: (theme: unknown) => ipcRenderer.invoke('theme:sync', theme),
 }
 
 contextBridge.exposeInMainWorld('quiDesktop', bridge)

@@ -84,7 +84,7 @@ Only refresh the container image (app already installed):
 | Build fails on `qui: syntax error` in the image | Ensure `.dockerignore` contains `qui`; remove a stale host `./qui` from the build context if you overrode ignore |
 | UI still old after refresh | Quit Qui fully, re-run the script, confirm `docker images qui-desktop:local` has a new Created time |
 | Port 7476 busy | `docker ps` and stop the old container; the script removes `qui` by name |
-| Want GHCR instead of local | Use a packaged build or `QUI_DESKTOP_IMAGE=ghcr.io/johann-goncalves-pereira/qui:latest` — see [updates.md](updates.md) |
+| Want GHCR instead of local | Use a packaged build or `QUI_DESKTOP_IMAGE=ghcr.io/autobrr/qui:latest` — see [updates.md](updates.md) |
 
 ## Related spec
 

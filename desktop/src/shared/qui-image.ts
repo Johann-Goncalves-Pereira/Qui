@@ -6,8 +6,8 @@
 /** Local image built from this repo for developers. */
 export const QUI_IMAGE_LOCAL = 'qui-desktop:local'
 
-/** Published fork image for downloadable / packaged builds. */
-export const QUI_IMAGE_RELEASE = 'ghcr.io/johann-goncalves-pereira/qui:latest'
+/** Canonical upstream image for downloadable / packaged builds. */
+export const QUI_IMAGE_RELEASE = 'ghcr.io/autobrr/qui:latest'
 
 export interface ResolveQuiImageOptions {
 	/** Electron `app.isPackaged`. */

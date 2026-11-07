@@ -54,7 +54,7 @@ on `Johann-Goncalves-Pereira/Qui`.
 
 Packaged builds default the Qui image to:
 
-`ghcr.io/johann-goncalves-pereira/qui:latest`
+`ghcr.io/autobrr/qui:latest`
 
 1. Tray → **Check for Docker Updates…**, or wait for the launch prompt when a
    remote digest differs from local.
@@ -66,7 +66,7 @@ Packaged builds default the Qui image to:
 Override the Qui image (advanced):
 
 ```bash
-QUI_DESKTOP_IMAGE=ghcr.io/johann-goncalves-pereira/qui:v1.2.3 open -a Qui
+QUI_DESKTOP_IMAGE=ghcr.io/autobrr/qui:v1.2.3 open -a Qui
 ```
 
 Or change ports / mounts from the status bar footer badges (Qui / qBittorrent
@@ -78,7 +78,7 @@ dialogs).
 2. `.github/workflows/desktop-release.yml` builds unsigned `.dmg` + `.zip` and
    attaches them to the GitHub Release.
 3. Existing Go/Docker release jobs (when used) publish
-   `ghcr.io/johann-goncalves-pereira/qui` for container updates.
+   `ghcr.io/autobrr/qui` for container updates.
 
 ## Behaviour summary
 
