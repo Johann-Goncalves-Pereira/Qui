@@ -16,7 +16,8 @@ if [ "${QUI_SKIP_DESKTOP_VERSION_BUMP:-}" = "1" ]; then
   exit 0
 fi
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
+DIRTY="$(git diff --name-only; git diff --cached --name-only)"
+if [ -n "$DIRTY" ] && [ "$DIRTY" != "scripts/desktop-version-bump-local" ]; then
   echo "desktop-version-bump-local: working tree dirty; commit or stash first" >&2
   exit 1
 fi
@@ -33,12 +34,22 @@ case "$BASE_BRANCH" in
     ;;
 esac
 
+SELF_TMP="$(mktemp -t bump-script.XXXXXX)"
+cp "$0" "$SELF_TMP"
+
 git fetch origin "$BASE_BRANCH"
-git checkout "$BASE_BRANCH"
-git pull origin "$BASE_BRANCH"
+if ! git checkout "$BASE_BRANCH" 2>/dev/null; then
+  echo "desktop-version-bump-local: $BASE_BRANCH is active in another worktree; working from origin/$BASE_BRANCH"
+  git checkout -f --detach "origin/$BASE_BRANCH"
+else
+  git pull origin "$BASE_BRANCH"
+fi
+
+cp "$SELF_TMP" "$0"
+rm -f "$SELF_TMP"
 
 # Avoid bumping a bump (local commit or squash PR title on tip).
-if git log -1 --pretty=%s | grep -qiE 'bump( desktop)? version|Bump Desktop Version'; then
+if git log -1 --pretty=%s "origin/$BASE_BRANCH" | grep -qiE 'bump( desktop)? version|Bump Desktop Version'; then
   echo "desktop-version-bump-local: tip is already a version bump; nothing to do"
   exit 0
 fi
@@ -60,6 +71,9 @@ if [ -f web/package.json ]; then
 fi
 if [ -f Casks/qui.rb ]; then
   git add Casks/qui.rb
+fi
+if [ -f scripts/desktop-version-bump-local ]; then
+  git add scripts/desktop-version-bump-local
 fi
 git commit -m "chore(desktop): bump version to ${NEW_VER} [skip ci]"
 
@@ -92,16 +106,19 @@ PR_NUM="$(gh pr view --json number -q .number)"
 gh pr merge "$PR_NUM" --squash --delete-branch
 
 git fetch origin "$BASE_BRANCH"
-git checkout "$BASE_BRANCH"
-git pull origin "$BASE_BRANCH"
-git branch -d "$BRANCH" 2>/dev/null || true
+if ! git checkout "$BASE_BRANCH" 2>/dev/null; then
+  git checkout --detach "origin/$BASE_BRANCH"
+else
+  git pull origin "$BASE_BRANCH"
+fi
+git branch -D "$BRANCH" 2>/dev/null || true
 
 # Tag the develop tip that contains the bump (after squash).
 # Force non-interactive lightweight tag (repo may default to annotated + $EDITOR).
 if git rev-parse "v${NEW_VER}" >/dev/null 2>&1; then
   echo "desktop-version-bump-local: tag v${NEW_VER} already exists locally"
 else
-  GIT_EDITOR=true git tag -a "v${NEW_VER}" -m "desktop ${NEW_VER}"
+  GIT_EDITOR=true git tag -a "v${NEW_VER}" "origin/${BASE_BRANCH}" -m "desktop ${NEW_VER}"
 fi
 git push origin "v${NEW_VER}"
 

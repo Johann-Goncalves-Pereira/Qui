@@ -714,4 +714,90 @@ describe('DockerManager', () => {
 			),
 		).toBe(true)
 	})
+
+	it('loads embedded archive directly from resourcesPath before network pull (BR-desktop-32)', async () => {
+		const mock = new MockDockerExecutor()
+		let quiStatusCalls = 0
+		let localInspectAfterLoad = false
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (
+				args[0] === 'inspect' &&
+				args.includes('--format') &&
+				args.includes(QUI_CONTAINER_NAME)
+			) {
+				quiStatusCalls++
+				if (quiStatusCalls === 1) {
+					throw new Error('No such container')
+				}
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			if (
+				args[0] === 'inspect' &&
+				args.includes('--format') &&
+				args.includes(QBIT_CONTAINER_NAME)
+			) {
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			if (
+				args[0] === 'image' &&
+				args[1] === 'inspect' &&
+				args[2] === 'ghcr.io/johann-goncalves-pereira/qui:0.0.9'
+			) {
+				throw new Error('No such image')
+			}
+			if (
+				args[0] === 'image' &&
+				args[1] === 'inspect' &&
+				args[2] === QUI_IMAGE_LOCAL
+			) {
+				if (!localInspectAfterLoad) {
+					throw new Error('No such image')
+				}
+				return { stdout: 'ok\n', stderr: '' }
+			}
+			if (args[0] === 'load') {
+				localInspectAfterLoad = true
+				return { stdout: 'Loaded image: qui-desktop:local\n', stderr: '' }
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const fileExists = (filePath: string) => {
+			return filePath.includes('qui-desktop-image-arm64.tar.gz')
+		}
+
+		const manager = new DockerManager(
+			mock,
+			undefined,
+			'ghcr.io/johann-goncalves-pereira/qui:0.0.9',
+			fileExists,
+			undefined,
+			undefined,
+			'arm64',
+			'/Applications/Qui.app/Contents/Resources',
+		)
+		await manager.ensureContainersRunning()
+
+		// Verify docker load was executed with embedded archive path
+		const loadCmd = mock.executedCommands.find(
+			c => c.command === 'docker' && c.args[0] === 'load',
+		)
+		expect(loadCmd).toBeDefined()
+		expect(loadCmd?.args[1]).toBe('-i')
+		expect(loadCmd?.args[2]).toContain(
+			'/Applications/Qui.app/Contents/Resources/assets/qui-desktop-image-arm64.tar.gz',
+		)
+
+		// Verify it was retagged to the versioned image
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'tag' &&
+					c.args[1] === QUI_IMAGE_LOCAL &&
+					c.args[2] === 'ghcr.io/johann-goncalves-pereira/qui:0.0.9',
+			),
+		).toBe(true)
+	})
 })

@@ -717,7 +717,15 @@ function ApplicationInfoPanel({ openUpdate, onUpdateOpened }: { openUpdate: bool
     currentSessionAuth = t("application.auth.unavailable")
   }
 
+  const isDesktop = typeof window !== "undefined" && window.quiDesktop !== undefined
+
   const updateStatus = useMemo(() => {
+    if (isDesktop) {
+      return {
+        label: t("application.build.statuses.managedByDesktop", { defaultValue: "Managed by Desktop" }),
+        detail: t("application.build.statuses.managedByDesktopDetail", { defaultValue: "Updates and container lifecycles are managed by Qui Desktop" }),
+      }
+    }
     if (!info) {
       return { label: t("application.build.statuses.unknown"), detail: t("application.build.statuses.unknownDetail") }
     }
@@ -734,11 +742,11 @@ function ApplicationInfoPanel({ openUpdate, onUpdateOpened }: { openUpdate: bool
       return { label: t("application.build.statuses.updateAvailable"), detail: latestVersionQuery.data.tag_name }
     }
     return { label: t("application.build.statuses.upToDate"), detail: t("application.build.statuses.upToDateDetail") }
-  }, [t, info, latestVersionQuery.data, latestVersionQuery.isFetching, latestVersionQuery.isLoading])
+  }, [t, info, isDesktop, latestVersionQuery.data, latestVersionQuery.isFetching, latestVersionQuery.isLoading])
 
   const updateCheckedAt = latestVersionQuery.dataUpdatedAt > 0 ? formatTimestamp(latestVersionQuery.dataUpdatedAt / 1000) : t("application.build.statuses.notCheckedYet")
 
-  const updateControl = latestVersionQuery.data && (
+  const updateControl = !isDesktop && latestVersionQuery.data && (
     <InstallUpdateButton selfUpdate={selfUpdate} release={latestVersionQuery.data} className="shrink-0" />
   )
 
@@ -753,7 +761,9 @@ function ApplicationInfoPanel({ openUpdate, onUpdateOpened }: { openUpdate: bool
     {
       label: t("application.build.updateStatus"),
       value: updateStatus.label,
-      secondary: [updateStatus.detail, t("application.build.statuses.lastChecked", { date: updateCheckedAt })].filter(Boolean).join(" • "),
+      secondary: isDesktop
+        ? updateStatus.detail
+        : [updateStatus.detail, t("application.build.statuses.lastChecked", { date: updateCheckedAt })].filter(Boolean).join(" • "),
       action: updateControl,
     },
   ] : []
