@@ -69,10 +69,11 @@ git push
 1. **Never** `git push origin develop` (or `main`). Open a PR; squash-merge only.
 2. **Never** disable or weaken local hooks to dodge the gate.
 3. **Never** require or poll GitHub Actions for this gate while usage is blocked.
-4. **Never** merge upstream into local `develop` and push it — sync on the feature branch, then PR.
+4. **Never** merge upstream into local `develop` and push it — sync on the feature branch, then PR. Base branch sync uses `scripts/upstream-sync-fork` (via PR with merge commit `--merge`).
 5. If checkout fails with “already used by worktree”, run commands in that worktree path (or `git -C <worktree> …`) — do not stay on `develop` and push there.
 6. GitHub ruleset **Protect develop** may still: restrict deletions, block force pushes, require PR + squash. It must **not** require Actions status checks (empty check list is correct).
 7. Fork-bug policy unchanged: only fix CI/lint failures caused by *this* fork work; ignore upstream-identical or pre-existing unrelated red checks when Actions eventually runs again.
+8. **Always sync upstream on finish-pr:** running `$finish-pr-workflow` must always sync `develop` with `autobrr/qui` `develop` (`make upstream-sync-fork`) so this fork is never left behind upstream.
 
 ## Agent checklist (copy)
 
@@ -83,12 +84,15 @@ git push
 [ ] git push             # pre-push re-runs the check
 [ ] gh pr merge N --squash --delete-branch
 [ ] checkout/pull develop (gcdp / BASE=develop)
+[ ] make upstream-sync-fork   # always sync fork with upstream autobrr/qui:develop
 [ ] ./scripts/desktop-version-bump-local   # see $qui-fork-finish-pr (skip if bump PR)
 ```
 
 ## Related
 
-- Spec: `BR-desktop-21` in `docs/specs/catalog.md`
+- Spec: `BR-desktop-21`, `BR-desktop-40` in `docs/specs/catalog.md`
 - Rule: `.cursor/rules/510-local-upstream-sync.mdc`
 - Sibling: `$qui-fork-finish-pr` (SM + version bump), `$qui-fork-issue-crafting`
-- Scripts: `scripts/upstream-sync-check`, `scripts/install-local-hooks`, `.githooks/pre-push`
+- Scripts: `scripts/upstream-sync-fork`, `scripts/upstream-sync-check`, `scripts/install-local-hooks`, `.githooks/pre-push`
+
+
