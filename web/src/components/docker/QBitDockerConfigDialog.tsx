@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { type QBitContainerConfig, useDockerServices } from "@/hooks/useDockerServices"
 import type { TFunction } from "i18next"
-import { Check, Copy, Info, Loader2, RotateCw } from "lucide-react"
+import { Check, Copy, Eye, EyeOff, Info, KeyRound, Loader2, RotateCw } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -58,11 +58,15 @@ export function QBitDockerConfigDialog({
     tz: "UTC",
     restartPolicy: "unless-stopped",
     image: "lscr.io/linuxserver/qbittorrent:latest",
+    username: "admin",
   })
 
   const [isSaving, setIsSaving] = useState(false)
   const [isRestarting, setIsRestarting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedUser, setCopiedUser] = useState(false)
+  const [copiedPass, setCopiedPass] = useState(false)
+  const [isPasswordRevealed, setIsPasswordRevealed] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -79,6 +83,48 @@ export function QBitDockerConfigDialog({
     const id = window.setTimeout(() => setCopied(false), 2000)
     return () => window.clearTimeout(id)
   }, [copied])
+
+  useEffect(() => {
+    if (!copiedUser) {
+      return
+    }
+    const id = window.setTimeout(() => setCopiedUser(false), 2000)
+    return () => window.clearTimeout(id)
+  }, [copiedUser])
+
+  useEffect(() => {
+    if (!copiedPass) {
+      return
+    }
+    const id = window.setTimeout(() => setCopiedPass(false), 2000)
+    return () => window.clearTimeout(id)
+  }, [copiedPass])
+
+  const handleCopyUser = async () => {
+    const user = config.username || "admin"
+    try {
+      await navigator.clipboard.writeText(user)
+      setCopiedUser(true)
+      toast.success(t("docker.toast.copiedUsername") || "Username copied to clipboard")
+    } catch (err) {
+      console.error("[QBitDockerConfigDialog] copy user failed:", err)
+      toast.error(t("docker.toast.copyCommandFailed"))
+    }
+  }
+
+  const handleCopyPass = async () => {
+    if (!config.password) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(config.password)
+      setCopiedPass(true)
+      toast.success(t("docker.toast.copiedPassword") || "Password copied to clipboard")
+    } catch (err) {
+      console.error("[QBitDockerConfigDialog] copy pass failed:", err)
+      toast.error(t("docker.toast.copyCommandFailed"))
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -232,6 +278,123 @@ export function QBitDockerConfigDialog({
                 {t("docker.fields.qbitImageHelp")}
               </p>
             </div>
+          </div>
+
+          {/* WebUI Credentials Section */}
+          <div className="space-y-3 rounded-lg border border-border/50 p-3 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                <KeyRound className="h-3.5 w-3.5 text-primary" />
+                <span>{t("docker.fields.webUiCredentials")}</span>
+              </div>
+              {config.isTemporaryPassword && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/15 text-amber-500 border border-amber-500/20">
+                  {t("docker.fields.temporarySessionPassword")}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="qbit-webui-user" className="text-xs">
+                    {t("docker.fields.webUiUsername")}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-foreground"
+                    onClick={() => void handleCopyUser()}
+                  >
+                    {copiedUser ? (
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                    {copiedUser ? t("docker.fields.copied") : t("docker.fields.copy")}
+                  </Button>
+                </div>
+                <Input
+                  id="qbit-webui-user"
+                  readOnly
+                  value={config.username || "admin"}
+                  className="h-8 text-xs font-mono bg-background/50 cursor-pointer"
+                  onClick={() => void handleCopyUser()}
+                  title={t("docker.fields.clickToCopy")}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="qbit-webui-pass" className="text-xs">
+                    {t("docker.fields.webUiPassword")}
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    {config.password && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-foreground"
+                        onClick={() => setIsPasswordRevealed((prev) => !prev)}
+                        title={isPasswordRevealed ? t("docker.fields.hide") : t("docker.fields.show")}
+                      >
+                        {isPasswordRevealed ? (
+                          <EyeOff className="h-3 w-3" />
+                        ) : (
+                          <Eye className="h-3 w-3" />
+                        )}
+                        <span>{isPasswordRevealed ? t("docker.fields.hide") : t("docker.fields.show")}</span>
+                      </Button>
+                    )}
+                    {config.password && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-foreground"
+                        onClick={() => void handleCopyPass()}
+                      >
+                        {copiedPass ? (
+                          <Check className="h-3 w-3 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                        {copiedPass ? t("docker.fields.copied") : t("docker.fields.copy")}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="qbit-webui-pass"
+                    readOnly
+                    type={isPasswordRevealed ? "text" : "password"}
+                    value={config.password || t("docker.fields.noPasswordDetected")}
+                    onClick={() => {
+                      if (config.password) {
+                        setIsPasswordRevealed((prev) => !prev)
+                      }
+                    }}
+                    className={`h-8 text-xs font-mono bg-background/50 cursor-pointer select-none transition-all duration-200 ${
+                      !isPasswordRevealed && config.password ? "blur-[3px] hover:blur-none" : ""
+                    }`}
+                    title={
+                      config.password
+                        ? (isPasswordRevealed ? t("docker.fields.hide") : t("docker.fields.show"))
+                        : t("docker.fields.noPasswordDetected")
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              {config.password
+                ? t("docker.fields.webUiCredentialsHelp")
+                : t("docker.fields.webUiCredentialsManualHelp")}
+            </p>
           </div>
 
           <div className="space-y-3 rounded-lg border border-border/50 p-3 bg-muted/20">
