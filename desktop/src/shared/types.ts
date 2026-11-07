@@ -95,3 +95,22 @@ export const QBitContainerConfigSchema = Schema.Struct({
 })
 
 export type QBitContainerConfig = typeof QBitContainerConfigSchema.Type
+
+export const ThemeSyncPayloadSchema = Schema.Struct({
+	id: Schema.String,
+	name: Schema.optional(Schema.String),
+	isDark: Schema.optional(Schema.Boolean),
+	cssVars: Schema.optional(
+		Schema.Struct({
+			light: Schema.optional(
+				Schema.Record({ key: Schema.String, value: Schema.String }),
+			),
+			dark: Schema.optional(
+				Schema.Record({ key: Schema.String, value: Schema.String }),
+			),
+		}),
+	),
+	rawCss: Schema.optional(Schema.String),
+})
+
+export type ThemeSyncPayload = typeof ThemeSyncPayloadSchema.Type

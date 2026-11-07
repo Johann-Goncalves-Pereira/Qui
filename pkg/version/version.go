@@ -67,6 +67,7 @@ type Checker struct {
 	Owner     string
 	Repo      string
 	UserAgent string
+	BaseURL   string
 
 	httpClient *http.Client
 }
@@ -84,7 +85,14 @@ func NewChecker(owner, repo, userAgent string) *Checker {
 }
 
 func (c *Checker) get(ctx context.Context) (*Release, error) {
-	url := fmt.Sprintf("https://api.autobrr.com/repos/%s/%s/releases/latest", c.Owner, c.Repo)
+	var url string
+	if c.BaseURL != "" {
+		url = fmt.Sprintf("%s/repos/%s/%s/releases/latest", strings.TrimRight(c.BaseURL, "/"), c.Owner, c.Repo)
+	} else if c.Owner == "autobrr" {
+		url = fmt.Sprintf("https://api.autobrr.com/repos/%s/%s/releases/latest", c.Owner, c.Repo)
+	} else {
+		url = fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", c.Owner, c.Repo)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -104,7 +112,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error getting releases for %s: %s", c.Repo, resp.Status)
+		return nil, fmt.Errorf("error getting releases for %s/%s: %s", c.Owner, c.Repo, resp.Status)
 	}
 
 	var release Release

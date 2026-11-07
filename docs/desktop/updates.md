@@ -141,6 +141,21 @@ Container updates and app replacements never destroy user configurations (`BR-de
    - Active theme cache (`theme.json`) and safeStorage encrypted vaults
 3. **Data Durability:** User data is only ever removed if the user explicitly uninstalls the application (via Homebrew Cask `zap` or manually clearing `~/Library/Application Support/Qui`).
 
+## Backend Release Source Routing to Fork (`BR-backend-03`)
+
+The backend release checking service (`pkg/version/version.go`, `internal/update/service.go`, `cmd/qui/main.go`) queries GitHub Releases API directly for fork repositories (`https://api.github.com/repos/Johann-Goncalves-Pereira/Qui/releases/latest`) instead of upstream `api.autobrr.com`. This ensures release detection accurately identifies fork semantic releases (`v0.0.x`) and eliminates upstream `v1.35.0` version leaks.
+
+## Desktop Multilayer IPC Bridge & Preload API (`BR-desktop-36`)
+
+The sandboxed Electron preload bridge (`window.quiDesktop`) exposes:
+- `window.quiDesktop.checkForUpdates()`: Resolves current and latest release metadata (`AppReleaseInfo`) from the fork release repository.
+- `window.quiDesktop.promptUpdates()`: Invokes the native multilayer update prompt, evaluating shell binaries, container images (`qui` and companion `qbittorrent-nox`), and executing automated pre-update backups before applying changes.
+
+## Web UI Multilayer Integration (`BR-web-13`)
+
+- **Settings Page:** Under "Application → Update Status", desktop-managed environments render a dedicated **[Check for Updates]** button triggering `window.quiDesktop.promptUpdates()`.
+- **Update Banner:** When a newer desktop release is available, `UpdateBanner.tsx` renders a desktop update notice and a **[Review & Update]** button calling `promptUpdates()`. Upstream self-update container modals are completely bypassed in desktop mode.
+
 ## Behaviour summary
 
 - Launch + tray compare semver to GitHub `releases/latest`.
@@ -151,6 +166,7 @@ Container updates and app replacements never destroy user configurations (`BR-de
 - Upstream web update banners and self-update buttons are suppressed in Electron.
 - Component update prompts declare exact target types and reload impacts.
 - Automatic snapshot backups precede all container and shell updates.
+- Settings page and UpdateBanner route update workflows to the desktop multilayer dialog.
 
 ## Related spec
 
@@ -159,4 +175,7 @@ Container updates and app replacements never destroy user configurations (`BR-de
 - `BR-desktop-29` — upstream web update banner suppression in desktop shell.
 - `BR-desktop-30` — desktop-specific component update dialog and reload requirements.
 - `BR-desktop-31` — automated pre-update data backup and zero-data-loss protection.
+- `BR-backend-03` — backend release source pointed to fork repo via direct GitHub API.
+- `BR-desktop-36` — preload bridge exposure of checkForUpdates and promptUpdates.
+- `BR-web-13` — Settings and UpdateBanner routing to desktop multilayer engine.
 

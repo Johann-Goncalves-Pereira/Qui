@@ -57,8 +57,10 @@ export function startupPageDocument(
 	prefersDark: boolean,
 	cachedTheme?: ThemeSyncPayload | null,
 ): string {
-	const defaultVars = prefersDark ? DEFAULT_DARK_VARS : DEFAULT_LIGHT_VARS
-	const themeVars = prefersDark
+	const effectiveDark =
+		cachedTheme?.isDark !== undefined ? cachedTheme.isDark : prefersDark
+	const defaultVars = effectiveDark ? DEFAULT_DARK_VARS : DEFAULT_LIGHT_VARS
+	const themeVars = effectiveDark
 		? cachedTheme?.cssVars?.dark
 		: cachedTheme?.cssVars?.light
 	const effectiveVars: Record<string, string> = {
@@ -68,14 +70,14 @@ export function startupPageDocument(
 
 	const background =
 		effectiveVars['--background'] ||
-		(prefersDark ? MINIMAL_DARK_BACKGROUND : MINIMAL_LIGHT_BACKGROUND)
+		(effectiveDark ? MINIMAL_DARK_BACKGROUND : MINIMAL_LIGHT_BACKGROUND)
 	const safeMessage = escapeHtml(message)
 	const safeProcess = escapeHtml(processInfo)
 	const rootVars = cssVarsToStyleBlock(effectiveVars)
 	const rawCss = cachedTheme?.rawCss
 		? `<style>${cachedTheme.rawCss}</style>`
 		: ''
-	const htmlClass = prefersDark ? ' class="dark"' : ''
+	const htmlClass = effectiveDark ? ' class="dark"' : ''
 
 	return `<!DOCTYPE html><html${htmlClass}><head><meta charset="utf-8"><style>
 :root{${rootVars}}

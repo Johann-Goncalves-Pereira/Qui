@@ -57,7 +57,7 @@ import { api } from "@/lib/api"
 
 import { withBasePath } from "@/lib/base-url"
 import { canRegisterProtocolHandler, getMagnetHandlerRegistrationGuidance, registerMagnetHandler } from "@/lib/protocol-handler"
-import { formatBytes, formatDuration } from "@/lib/utils"
+import { cn, formatBytes, formatDuration } from "@/lib/utils"
 import type { SettingsSearch } from "@/routes/_authenticated/settings"
 import type { Instance, TorznabSearchCacheStats, User } from "@/types"
 import { useForm } from "@tanstack/react-form"
@@ -746,7 +746,29 @@ function ApplicationInfoPanel({ openUpdate, onUpdateOpened }: { openUpdate: bool
 
   const updateCheckedAt = latestVersionQuery.dataUpdatedAt > 0 ? formatTimestamp(latestVersionQuery.dataUpdatedAt / 1000) : t("application.build.statuses.notCheckedYet")
 
-  const updateControl = !isDesktop && latestVersionQuery.data && (
+  const [checkingDesktopUpdate, setCheckingDesktopUpdate] = useState(false)
+
+  const handleDesktopUpdateCheck = async () => {
+    try {
+      setCheckingDesktopUpdate(true)
+      await window.quiDesktop?.promptUpdates?.()
+    } finally {
+      setCheckingDesktopUpdate(false)
+    }
+  }
+
+  const updateControl = isDesktop ? (
+    <Button
+      variant="outline"
+      size="sm"
+      className="shrink-0"
+      disabled={checkingDesktopUpdate}
+      onClick={handleDesktopUpdateCheck}
+    >
+      <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", checkingDesktopUpdate && "animate-spin")} />
+      {t("application.build.actions.checkForUpdates", { defaultValue: "Check for Updates" })}
+    </Button>
+  ) : latestVersionQuery.data && (
     <InstallUpdateButton selfUpdate={selfUpdate} release={latestVersionQuery.data} className="shrink-0" />
   )
 

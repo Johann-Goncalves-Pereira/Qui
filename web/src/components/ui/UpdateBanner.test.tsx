@@ -67,13 +67,36 @@ describe("UpdateBanner desktop suppression", () => {
     expect(screen.getByText("updateBanner.versionAvailable v1.35.0")).toBeTruthy()
   })
 
-  it("suppresses update banner completely when running in desktop shell (window.quiDesktop present)", async () => {
+  it("suppresses update banner completely when running in desktop shell (window.quiDesktop present) and no update available", async () => {
     window.quiDesktop = {
       getAppVersion: () => "0.0.7",
+      checkForUpdates: vi.fn().mockResolvedValue({ hasUpdate: false }),
     }
     const { container } = renderComponent()
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(container.firstChild).toBeNull()
     expect(screen.queryByText("updateBanner.updateAvailable")).toBeNull()
+  })
+
+  it("renders desktop update banner and triggers promptUpdates when desktop shell reports update", async () => {
+    const promptUpdates = vi.fn().mockResolvedValue(true)
+    window.quiDesktop = {
+      getAppVersion: () => "0.0.14",
+      checkForUpdates: vi.fn().mockResolvedValue({
+        hasUpdate: true,
+        currentVersion: "0.0.14",
+        latestVersion: "0.0.15",
+        tagName: "v0.0.15",
+      }),
+      promptUpdates,
+    }
+
+    renderComponent()
+    expect(await screen.findByText(/updateBanner\.desktopUpdateAvailable/)).toBeTruthy()
+    expect(screen.getByText(/updateBanner\.versionAvailable/)).toBeTruthy()
+
+    const updateBtn = screen.getByText(/updateBanner\.reviewAndUpdate/)
+    updateBtn.click()
+    expect(promptUpdates).toHaveBeenCalledTimes(1)
   })
 })

@@ -160,10 +160,14 @@ if (initialMagnetUrl) {
 
 function showStartupPage(message: string, processInfo?: string): string {
 	const cachedTheme = readCachedTheme(app.getPath('userData'))
+	const prefersDark =
+		cachedTheme?.isDark !== undefined
+			? cachedTheme.isDark
+			: nativeTheme.shouldUseDarkColors
 	return startupPageUrl(
 		message,
 		processInfo && processInfo.length > 0 ? processInfo : message,
-		nativeTheme.shouldUseDarkColors,
+		prefersDark,
 		cachedTheme,
 	)
 }
@@ -352,6 +356,10 @@ function registerIpcHandlers(): void {
 		return appUpdater.checkForUpdates()
 	})
 
+	ipcMain.handle('updater:prompt-updates', async () => {
+		return promptDesktopUpdates()
+	})
+
 	ipcMain.handle('window:set-material', async (_event, glass: unknown) => {
 		if (!mainWindow || typeof glass !== 'boolean') {
 			return
@@ -512,6 +520,36 @@ async function checkAndPromptDockerUpdates(options?: {
 		}
 	} catch {
 		// Non-blocking update check
+	}
+}
+
+async function promptDesktopUpdates(): Promise<boolean> {
+	if (!mainWindow) {
+		return false
+	}
+	try {
+		const info = await appUpdater.checkForUpdates()
+		const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
+		const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
+		const updates = updatesWorthPrompting([quiUpdate, qbitUpdate], {})
+
+		if (info.hasUpdate) {
+			await appUpdater.promptUpdateIfAvailable(mainWindow, info)
+		}
+		if (updates.length > 0) {
+			await checkAndPromptDockerUpdates({ force: true })
+		} else if (!info.hasUpdate) {
+			await dialog.showMessageBox(mainWindow, {
+				type: 'info',
+				title: APP_NAME,
+				message: `Qui Desktop is up to date (v${CURRENT_APP_VERSION}).`,
+				detail:
+					'All desktop layers (application shell, qui, and qbittorrent-nox) are running the latest versions.',
+			})
+		}
+		return true
+	} catch {
+		return false
 	}
 }
 

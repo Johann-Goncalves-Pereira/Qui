@@ -5,10 +5,12 @@
 
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
+	AppReleaseInfo,
 	BiometricAuthResult,
 	DockerContainerStatus,
 	QBitContainerConfig,
 	QuiContainerConfig,
+	ThemeSyncPayload,
 } from '../shared/types.js'
 
 export interface QuiDesktopBridge {
@@ -39,6 +41,12 @@ export interface QuiDesktopBridge {
 	restartContainer: (
 		name: string,
 	) => Promise<{ success: boolean; error?: string }>
+	/** Checks GitHub Releases for desktop shell updates */
+	checkForUpdates: () => Promise<AppReleaseInfo>
+	/** Triggers native desktop multilayer update dialog (shell and containers with pre-update backups) */
+	promptUpdates: () => Promise<boolean>
+	/** Synchronize active theme tokens and dark/light preference to desktop shell for startup page caching */
+	syncTheme: (payload: ThemeSyncPayload) => Promise<void>
 	/** Gazelle companion Docker lifecycle controls */
 	gazelle: {
 		getStatus: () => Promise<DockerContainerStatus>
@@ -80,6 +88,10 @@ const bridge: QuiDesktopBridge = {
 		ipcRenderer.invoke('docker:save-qbit-config', config),
 	restartContainer: (name: string) =>
 		ipcRenderer.invoke('docker:restart-container', name),
+	checkForUpdates: () => ipcRenderer.invoke('updater:check-app-update'),
+	promptUpdates: () => ipcRenderer.invoke('updater:prompt-updates'),
+	syncTheme: (payload: ThemeSyncPayload) =>
+		ipcRenderer.invoke('theme:sync', payload),
 	gazelle: {
 		getStatus: () => ipcRenderer.invoke('docker:gazelle:status'),
 		start: () => ipcRenderer.invoke('docker:gazelle:start'),
