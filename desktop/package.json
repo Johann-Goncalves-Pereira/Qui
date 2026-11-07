@@ -1,7 +1,7 @@
 {
   "name": "qui-desktop",
   "productName": "Qui",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Qui Desktop - Native qBittorrent WebUI with Electron",
   "main": "dist/main/index.js",
   "type": "module",
