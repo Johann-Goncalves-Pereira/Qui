@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Build this fork’s Qui Docker image and push lowercase GHCR tags ($0 Actions).
+# Downloadable Qui Desktop pulls ghcr.io/johann-goncalves-pereira/qui:latest.
+#
+# Requires GHCR write access:
+#   gh auth refresh -h github.com -s write:packages,read:packages,repo,workflow
+#   gh auth token | docker login ghcr.io -u "$(gh api user -q .login)" --password-stdin
+#
+# Cross-compiles the Linux `qui` binary on the host first so the Docker Go stage
+# is skipped (avoids OOM kills). Temporarily allows `qui` in the build context.
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "desktop-publish-qui-image: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+IMAGE_BASE="${QUI_FORK_IMAGE_BASE:-ghcr.io/johann-goncalves-pereira/qui}"
+IMAGE_BASE="$(printf '%s' "$IMAGE_BASE" | tr '[:upper:]' '[:lower:]')"
+VER="$(node -p "require('./desktop/package.json').version")"
+GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+LATEST_TAG="${IMAGE_BASE}:latest"
+VER_TAG="${IMAGE_BASE}:${VER}"
+LOCAL_TAG="${QUI_IMAGE_LOCAL_TAG:-qui-desktop:local}"
+DOCKERFILE="${QUI_DOCKERFILE:-distrib/docker/Dockerfile}"
+ARCH="${QUI_IMAGE_ARCH:-arm64}"
+
+cleanup() {
+  rm -f qui
+  if [ -f .dockerignore.publish-bak ]; then
+    mv .dockerignore.publish-bak .dockerignore
+  fi
+}
+trap cleanup EXIT
+
+echo "desktop-publish-qui-image: ensuring frontend dist…"
+if [ ! -f web/dist/index.html ]; then
+  make frontend
+fi
+
+echo "desktop-publish-qui-image: cross-compile linux/${ARCH} qui on host…"
+GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
+  -ldflags "-s -w -X github.com/autobrr/qui/internal/buildinfo.Version=${VER} -X github.com/autobrr/qui/internal/buildinfo.Commit=${GIT_COMMIT} -X github.com/autobrr/qui/internal/buildinfo.Date=${BUILD_DATE}" \
+  -o qui ./cmd/qui
+
+# Allow prebuilt Linux `qui` into the context (normally ignored to block macOS binaries).
+cp .dockerignore .dockerignore.publish-bak
+grep -v '^qui$' .dockerignore.publish-bak | grep -v '^qui\.exe$' > .dockerignore || true
+
+echo "desktop-publish-qui-image: docker build -t ${LATEST_TAG} -f ${DOCKERFILE}"
+docker build \
+  -t "$LATEST_TAG" \
+  -t "$VER_TAG" \
+  -t "$LOCAL_TAG" \
+  -f "$DOCKERFILE" \
+  --build-arg "VERSION=${VER}" \
+  --build-arg "GIT_COMMIT=${GIT_COMMIT}" \
+  --build-arg "BUILD_DATE=${BUILD_DATE}" \
+  --build-arg "TARGETOS=linux" \
+  --build-arg "TARGETARCH=${ARCH}" \
+  .
+
+if [ "${QUI_SKIP_IMAGE_PUSH:-}" = "1" ]; then
+  echo "desktop-publish-qui-image: skip push (QUI_SKIP_IMAGE_PUSH=1); tags: ${LATEST_TAG} ${VER_TAG} ${LOCAL_TAG}"
+  exit 0
+fi
+
+echo "desktop-publish-qui-image: pushing ${LATEST_TAG} and ${VER_TAG}"
+docker push "$LATEST_TAG"
+docker push "$VER_TAG"
+
+echo "desktop-publish-qui-image: published ${LATEST_TAG} (+ ${VER_TAG}); local alias ${LOCAL_TAG}"
