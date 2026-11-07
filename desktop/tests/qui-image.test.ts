@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest'
 import {
 	QUI_IMAGE_LOCAL,
 	QUI_IMAGE_RELEASE,
+	quiDesktopImageArchiveName,
+	quiDesktopImageArchiveUrl,
 	resolveQuiImage,
 } from '../src/shared/qui-image.js'
 
@@ -37,5 +39,19 @@ describe('resolveQuiImage (BR-desktop-17)', () => {
 				envImage: '  custom:tag  ',
 			}),
 		).toBe('custom:tag')
+	})
+
+	it('names the GitHub Releases docker-load archive by arch', () => {
+		expect(quiDesktopImageArchiveName('arm64')).toBe(
+			'qui-desktop-image-arm64.tar.gz',
+		)
+		expect(quiDesktopImageArchiveName('x64')).toBe(
+			'qui-desktop-image-amd64.tar.gz',
+		)
+		expect(
+			quiDesktopImageArchiveUrl('Johann-Goncalves-Pereira/Qui', 'arm64'),
+		).toBe(
+			'https://github.com/Johann-Goncalves-Pereira/Qui/releases/latest/download/qui-desktop-image-arm64.tar.gz',
+		)
 	})
 })

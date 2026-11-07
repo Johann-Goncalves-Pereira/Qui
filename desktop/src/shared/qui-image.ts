@@ -11,8 +11,18 @@ export const QUI_IMAGE_LOCAL = 'qui-desktop:local'
  * GHCR requires lowercase owner/name (mixed-case pushes fail).
  * Must NOT be upstream `ghcr.io/autobrr/qui` — that omits fork-only web UI.
  */
-export const QUI_IMAGE_RELEASE =
-	'ghcr.io/johann-goncalves-pereira/qui:latest'
+export const QUI_IMAGE_RELEASE = 'ghcr.io/johann-goncalves-pereira/qui:latest'
+
+/** GitHub Releases asset stem for `docker load` when GHCR is unavailable ($0). */
+export function quiDesktopImageArchiveName(arch: string): string {
+	const normalized = arch === 'arm64' ? 'arm64' : 'amd64'
+	return `qui-desktop-image-${normalized}.tar.gz`
+}
+
+/** Latest-release download URL for the fork Qui GUI image archive. */
+export function quiDesktopImageArchiveUrl(repo: string, arch: string): string {
+	return `https://github.com/${repo}/releases/latest/download/${quiDesktopImageArchiveName(arch)}`
+}
 
 export interface ResolveQuiImageOptions {
 	/** Electron `app.isPackaged`. */
