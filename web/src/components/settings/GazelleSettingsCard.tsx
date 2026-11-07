@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { useCrossSeedSettings, usePatchCrossSeedSettings } from "@/hooks/useCrossSeedSettings"
 import { changedSecret } from "@/lib/cross-seed-utils"
 import type { CrossSeedAutomationSettings } from "@/types"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { GazelleDockerControl } from "./GazelleDockerControl"
 
@@ -31,6 +31,12 @@ function GazelleCard({ settings }: { settings: CrossSeedAutomationSettings }) {
   const [gazelleEnabled, setGazelleEnabled] = useState(settings.gazelleEnabled)
   const [redactedApiKey, setRedactedApiKey] = useState(settings.redactedApiKey)
   const [orpheusApiKey, setOrpheusApiKey] = useState(settings.orpheusApiKey)
+
+  useEffect(() => {
+    setGazelleEnabled(settings.gazelleEnabled)
+    setRedactedApiKey(settings.redactedApiKey)
+    setOrpheusApiKey(settings.orpheusApiKey)
+  }, [settings.gazelleEnabled, settings.redactedApiKey, settings.orpheusApiKey])
 
   return (
     <Card>
@@ -98,6 +104,7 @@ function GazelleCard({ settings }: { settings: CrossSeedAutomationSettings }) {
         }, {
           // Take the placeholders back, so the next save does not check a saved key again.
           onSuccess: (data) => {
+            setGazelleEnabled(data.gazelleEnabled)
             setRedactedApiKey(data.redactedApiKey ?? "")
             setOrpheusApiKey(data.orpheusApiKey ?? "")
           },

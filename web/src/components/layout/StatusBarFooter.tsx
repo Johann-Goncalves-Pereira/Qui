@@ -18,7 +18,7 @@ import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
 import { getAppVersion } from "@/lib/build-info"
 import { cn } from "@/lib/utils"
 import { useMobileScroll } from "@/contexts/MobileScrollContext"
-import { Check, Code, Copyright, Globe, Layers, Server } from "lucide-react"
+import { Check, Code, Copyright, Globe, Layers, Radio, Server } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -96,6 +96,40 @@ export function StatusBarFooter() {
               })}
             </TooltipContent>
           </Tooltip>
+
+          {statuses.gazelle?.state === "running" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.quiDesktop?.gazelle?.openWebUi) {
+                      void window.quiDesktop.gazelle.openWebUi()
+                    } else {
+                      window.open("http://localhost:7001", "_blank")
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-1.5 py-0.5 rounded text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                >
+                  <Radio className="h-3 w-3 text-muted-foreground/70" />
+                  <span className="h-1.5 w-1.5 rounded-full flex-shrink-0 bg-emerald-500" />
+                  <span className="font-mono text-[11px] font-medium">
+                    {t("statusBar.serviceGazelleLabel", {
+                      port: statuses.gazelle.port || 7001,
+                      defaultValue: `gazelle:${statuses.gazelle.port || 7001}`,
+                    })}
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {t("statusBar.tooltipGazelle", {
+                  state: statuses.gazelle.state,
+                  port: statuses.gazelle.port || 7001,
+                  defaultValue: `Gazelle companion (${statuses.gazelle.state}) on port ${statuses.gazelle.port || 7001}. Click to open WebUI.`,
+                })}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* Right: Version, Copyright, Language, GitHub */}

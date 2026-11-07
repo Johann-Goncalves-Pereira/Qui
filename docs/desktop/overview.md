@@ -77,6 +77,8 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-13` in `docs/specs/catalog.md` — Docker update prompt does not repeat a dismissed digest.
 - `BR-desktop-14` in `docs/specs/catalog.md` — Docker configuration schemas and IPC inspection.
 - `BR-desktop-15` in `docs/specs/catalog.md` — Gazelle Docker companion container can be started, stopped, and queried via desktop bridge and settings UI.
+- `BR-desktop-38` in `docs/specs/catalog.md` — Gazelle companion compose stack enforces restart resilience (`restart: unless-stopped`) and headless preview crash mitigation, exposing `openWebUi` in sandboxed preload bridge.
+- `BR-web-14` in `docs/specs/catalog.md` — Status bar footer reactively displays Gazelle container indicator when companion is running and opens Gazelle WebUI on click.
 - `BR-desktop-16` in `docs/specs/catalog.md` — Qui container bind-mounts the shared downloads directory and resolves host gateway to communicate with bundled qbittorrent-nox.
 - `BR-desktop-17` in `docs/specs/catalog.md` — packaged GHCR vs local Qui image.
 - `BR-desktop-18` in `docs/specs/catalog.md` — unsigned release download prompt.

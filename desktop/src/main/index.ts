@@ -283,7 +283,8 @@ function registerIpcHandlers(): void {
 			DEFAULT_QBIT_PORT,
 			QBIT_IMAGE,
 		)
-		return { qui, qbit }
+		const gazelle = await dockerManager.getGazelleStatus()
+		return { qui, qbit, gazelle }
 	})
 
 	ipcMain.handle('docker:check-updates', async () => {

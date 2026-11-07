@@ -477,6 +477,59 @@ describe('DockerManager', () => {
 		).toBe(true)
 	})
 
+	it('writes restart: unless-stopped and mitigates Puppeteer preview crash (BR-desktop-38)', async () => {
+		const mock = new MockDockerExecutor()
+		let inspectCalls = 0
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (args[0] === 'inspect') {
+				inspectCalls++
+				if (inspectCalls === 1) {
+					throw new Error('No such container')
+				}
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const writtenFiles: Record<string, string> = {}
+		const fileStore: Record<string, string> = {
+			'/Users/ukvdavi/Library/Application Support/Qui/docker/gazelle/repo/docker-compose.yml':
+				'services:\n  web:\n    build: .\n',
+			'/Users/ukvdavi/Library/Application Support/Qui/docker/gazelle/repo/bin/build-stylesheet-gallery.mjs':
+				'puppeteer.launch().catch((err) => {\n    console.error(err);\n    process.exitCode = 1;\n});\n',
+		}
+
+		const manager = new DockerManager(
+			mock,
+			() => {},
+			QUI_IMAGE,
+			filePath => filePath in fileStore || filePath in writtenFiles,
+			(filePath, content) => {
+				writtenFiles[filePath] = content
+				fileStore[filePath] = content
+			},
+			undefined,
+			undefined,
+			undefined,
+			filePath => fileStore[filePath] ?? '',
+		)
+
+		await manager.startGazelle()
+
+		const overrideEntry = Object.entries(writtenFiles).find(([k]) =>
+			k.endsWith('docker-compose.override.yml'),
+		)
+		expect(overrideEntry).toBeDefined()
+		expect(overrideEntry?.[1]).toContain('restart: unless-stopped')
+
+		const galleryEntry = Object.entries(writtenFiles).find(([k]) =>
+			k.endsWith('build-stylesheet-gallery.mjs'),
+		)
+		expect(galleryEntry).toBeDefined()
+		expect(galleryEntry?.[1]).toContain('process.exitCode = 0')
+	})
+
 	it('falls back to docker-compose binary when docker compose command is missing (BR-desktop-15)', async () => {
 		const mock = new MockDockerExecutor()
 		let inspectCalls = 0
