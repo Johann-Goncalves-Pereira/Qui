@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# Local desktop version bump after a squash-merge (BR-desktop-28).
+# $0 Actions: opens a bump PR, squash-merges it, tags v<ver> on develop tip.
+# Skip when QUI_SKIP_DESKTOP_VERSION_BUMP=1 or when HEAD commit is already a bump.
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "desktop-version-bump-local: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+if [ "${QUI_SKIP_DESKTOP_VERSION_BUMP:-}" = "1" ]; then
+  echo "desktop-version-bump-local: skipped (QUI_SKIP_DESKTOP_VERSION_BUMP=1)"
+  exit 0
+fi
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "desktop-version-bump-local: working tree dirty; commit or stash first" >&2
+  exit 1
+fi
+
+BASE_BRANCH="${1:-}"
+if [ -z "$BASE_BRANCH" ]; then
+  BASE_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+fi
+case "$BASE_BRANCH" in
+  develop|main) ;;
+  *)
+    echo "desktop-version-bump-local: must run on develop/main (got ${BASE_BRANCH})" >&2
+    exit 1
+    ;;
+esac
+
+git fetch origin "$BASE_BRANCH"
+git checkout "$BASE_BRANCH"
+git pull origin "$BASE_BRANCH"
+
+# Avoid bumping a bump (local commit or squash PR title on tip).
+if git log -1 --pretty=%s | grep -qiE 'bump( desktop)? version|Bump Desktop Version'; then
+  echo "desktop-version-bump-local: tip is already a version bump; nothing to do"
+  exit 0
+fi
+
+OLD_VER="$(node -p "require('./desktop/package.json').version")"
+node desktop/scripts/bump-version.mjs
+NEW_VER="$(node -p "require('./desktop/package.json').version")"
+
+BRANCH="chore/desktop-bump-${NEW_VER}"
+git checkout -b "$BRANCH"
+git add desktop/package.json
+git commit -m "chore(desktop): bump version to ${NEW_VER} [skip ci]"
+
+git push -u origin HEAD
+
+PR_URL="$(gh pr create --base "$BASE_BRANCH" --head "$BRANCH" \
+  --title "Chore 🔧: Bump Desktop Version to ${NEW_VER}" \
+  --body "$(cat <<EOF
+## Summary
+- Patch bump \`desktop/package.json\` \`${OLD_VER}\` → \`${NEW_VER}\` (local gate; Actions usage blocked at \$0).
+- Follow-up to a squash-merged PR per \`docs/desktop/versioning.md\` / BR-desktop-28.
+
+## Test plan
+- [x] \`node desktop/scripts/bump-version.mjs\` applied
+- [ ] Tag \`v${NEW_VER}\` exists on \`${BASE_BRANCH}\` after merge
+
+## ⚠️ Upstream Docker Alignment & Breaking Change Risk
+- **Target Architectural Layer:** Desktop Shell \`desktop/\`
+- **Upstream Layout Coupling:** None
+- **Potential Breakage Vectors:** None
+- **Defensive Guardrails & Isolation:** Version metadata only
+- **Future Upstream Sync Impact:** None
+EOF
+)")"
+
+echo "desktop-version-bump-local: opened ${PR_URL}"
+
+PR_NUM="$(gh pr view --json number -q .number)"
+gh pr merge "$PR_NUM" --squash --delete-branch
+
+git fetch origin "$BASE_BRANCH"
+git checkout "$BASE_BRANCH"
+git pull origin "$BASE_BRANCH"
+git branch -d "$BRANCH" 2>/dev/null || true
+
+# Tag the develop tip that contains the bump (after squash).
+if git rev-parse "v${NEW_VER}" >/dev/null 2>&1; then
+  echo "desktop-version-bump-local: tag v${NEW_VER} already exists locally"
+else
+  git tag "v${NEW_VER}"
+fi
+git push origin "v${NEW_VER}"
+
+echo "desktop-version-bump-local: ${OLD_VER} → ${NEW_VER} (tag v${NEW_VER} on ${BASE_BRANCH})"

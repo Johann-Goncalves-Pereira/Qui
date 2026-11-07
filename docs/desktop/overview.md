@@ -12,7 +12,7 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 | --- | --- |
 | Install or update via Homebrew Cask / package managers | [package-managers.md](package-managers.md) |
 | Install or update the downloadable macOS app | [updates.md](updates.md) |
-| Understand desktop semantic versioning & PR pipeline | [versioning.md](versioning.md) |
+| Understand desktop semantic versioning & PR pipeline | [versioning.md](versioning.md) — after SM run `make desktop-version-bump` ($0 Actions) |
 | Day-to-day develop UI with hot reload | [dev-mode.md](dev-mode.md) |
 | Rebuild the local Docker image + clear Electron cache after pulling code | [refresh-script.md](refresh-script.md) |
 | Open a PR on this fork without fighting upstream (local sync gate) | [upstream-sync.md](upstream-sync.md) — run `./scripts/install-local-hooks` once |

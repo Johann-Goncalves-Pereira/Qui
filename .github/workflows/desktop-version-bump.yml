@@ -1,14 +1,11 @@
 name: Desktop Version Bump
 
-# Automatically increments desktop patch version in desktop/package.json
-# and creates a tag on every merged pull request into develop or main.
+# Canonical bump while Actions budget is $0:
+#   ./scripts/desktop-version-bump-local  (see docs/desktop/versioning.md)
+# Keep this workflow as manual-only so it cannot double-bump if Actions returns.
 
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - develop
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -16,7 +13,6 @@ permissions:
 jobs:
   bump:
     name: Bump desktop patch version
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -48,5 +44,5 @@ jobs:
           git add desktop/package.json
           git commit -m "chore(desktop): bump version to ${{ steps.bump.outputs.new_ver }} [skip ci]"
           git tag "v${{ steps.bump.outputs.new_ver }}"
-          git push origin HEAD:${{ github.base_ref }}
+          git push origin HEAD:${{ github.ref_name }}
           git push origin "v${{ steps.bump.outputs.new_ver }}"
