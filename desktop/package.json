@@ -1,7 +1,7 @@
 {
   "name": "qui-desktop",
   "productName": "Qui",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Qui Desktop - Native qBittorrent WebUI with Electron",
   "main": "dist/main/index.js",
   "type": "module",
@@ -10,6 +10,7 @@
     "lint": "biome check src tests && eslint src tests",
     "format": "biome check --write src tests",
     "test": "vitest run",
+    "version:bump": "node scripts/bump-version.mjs",
     "start": "pnpm build && electron dist/main/index.js",
     "dev": "tsc -w",
     "dev:app": "pnpm build && concurrently -k \"tsc -w --preserveWatchOutput\" \"QUI_DESKTOP_DEV=1 electronmon dist/main/index.js\"",

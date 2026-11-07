@@ -8,7 +8,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Reads the desktop package version. Falls back to `1.0.0` if the file is
+ * Reads the desktop package version. Falls back to `0.0.0` if the file is
  * missing (tests may pass an explicit path or string).
  */
 export function readAppVersion(
@@ -18,9 +18,9 @@ export function readAppVersion(
 		const raw = readFileSync(packageJsonPath, 'utf8')
 		const parsed = JSON.parse(raw) as { version?: unknown }
 		const version = String(parsed.version ?? '').trim()
-		return version || '1.0.0'
+		return version || '0.0.0'
 	} catch {
-		return '1.0.0'
+		return '0.0.0'
 	}
 }
 

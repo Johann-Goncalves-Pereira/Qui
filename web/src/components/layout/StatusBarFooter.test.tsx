@@ -16,7 +16,7 @@ vi.mock("@/contexts/MobileScrollContext", () => ({
 }))
 
 vi.mock("@/lib/build-info", () => ({
-  getAppVersion: () => "desktop-local",
+  getAppVersion: () => "0.0.0",
 }))
 
 function renderWithProviders() {
@@ -27,7 +27,7 @@ function renderWithProviders() {
   )
 }
 
-describe("StatusBarFooter component (BR-web-03)", () => {
+describe("StatusBarFooter component (BR-web-03, BR-web-07)", () => {
   beforeEach(async () => {
     await initI18n()
     await changeLanguage("en")
@@ -46,12 +46,13 @@ describe("StatusBarFooter component (BR-web-03)", () => {
     vi.clearAllMocks()
   })
 
-  it("renders container indicator buttons with ports and relocated version metadata", () => {
+  it("renders container indicator buttons with ports and relocated bare version metadata", () => {
     renderWithProviders()
 
     expect(screen.getByText("qui:7476")).toBeDefined()
     expect(screen.getByText("qbittorrent:8080")).toBeDefined()
-    expect(screen.getByText("Version desktop-local")).toBeDefined()
+    expect(screen.getByText("0.0.0")).toBeDefined()
+    expect(screen.queryByText(/Version/)).toBeNull()
     expect(screen.getByText(/autobrr/)).toBeDefined()
   })
 

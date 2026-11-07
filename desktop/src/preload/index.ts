@@ -4,6 +4,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron'
+import { CURRENT_APP_VERSION } from '../shared/constants.js'
 import type {
 	BiometricAuthResult,
 	DockerContainerStatus,
@@ -12,6 +13,8 @@ import type {
 } from '../shared/types.js'
 
 export interface QuiDesktopBridge {
+	/** Packaged desktop semantic version (e.g. 0.0.0, 0.0.1). */
+	getAppVersion: () => string
 	/** macOS Touch ID / fingerprint after web sign-in or registration (no password storage). */
 	requestTouchId: (reason?: string) => Promise<BiometricAuthResult>
 	/** Glass switch. Vibrancy turns on for any theme while this is true. */
@@ -48,6 +51,7 @@ export interface QuiDesktopBridge {
 }
 
 const bridge: QuiDesktopBridge = {
+	getAppVersion: () => CURRENT_APP_VERSION,
 	requestTouchId: (reason?: string) =>
 		ipcRenderer.invoke('auth:biometrics', reason),
 	setWindowMaterial: (glass: boolean) =>

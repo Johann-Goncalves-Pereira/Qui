@@ -1,0 +1,52 @@
+name: Desktop Version Bump
+
+# Automatically increments desktop patch version in desktop/package.json
+# and creates a tag on every merged pull request into develop or main.
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Bump desktop patch version
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24.15.0'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          OLD_VER=$(node -p "require('./desktop/package.json').version")
+          node desktop/scripts/bump-version.mjs
+          NEW_VER=$(node -p "require('./desktop/package.json').version")
+          echo "old_ver=$OLD_VER" >> "$GITHUB_OUTPUT"
+          echo "new_ver=$NEW_VER" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push tag
+        run: |
+          git add desktop/package.json
+          git commit -m "chore(desktop): bump version to ${{ steps.bump.outputs.new_ver }} [skip ci]"
+          git tag "v${{ steps.bump.outputs.new_ver }}"
+          git push origin HEAD:${{ github.base_ref }}
+          git push origin "v${{ steps.bump.outputs.new_ver }}"

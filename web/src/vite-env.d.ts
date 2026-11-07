@@ -11,6 +11,7 @@ declare global {
     __QUI_VERSION__?: string
     /** Injected by the Qui Electron shell preload (optional). */
     quiDesktop?: {
+      getAppVersion?: () => string
       requestTouchId?: (reason?: string) => Promise<{ success: boolean; error?: string }>
       setWindowMaterial?: (glass: boolean) => Promise<void>
       setSidebarChrome?: (visible: boolean) => Promise<void>
