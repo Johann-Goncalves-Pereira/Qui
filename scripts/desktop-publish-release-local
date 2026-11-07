@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Publish (or refresh) a GitHub Release for the current desktop version ($0 Actions).
+# Expects tag v<ver> already on origin. Uploads dmg/zip from desktop/release/ when present.
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "desktop-publish-release-local: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+VER="$(node -p "require('./desktop/package.json').version")"
+TAG="v${VER}"
+TITLE="Qui v${VER}"
+
+if ! git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
+  echo "desktop-publish-release-local: origin missing tag ${TAG}; run desktop-version-bump-local first" >&2
+  exit 1
+fi
+
+ASSETS=()
+shopt -s nullglob
+for f in desktop/release/Qui-"${VER}"-*.dmg desktop/release/Qui-"${VER}"-*-mac.zip; do
+  ASSETS+=("$f")
+done
+shopt -u nullglob
+
+NOTES="$(cat <<EOF
+Qui Desktop **${TAG}** (matches \`desktop/package.json\`).
+
+Unsigned macOS build. If Gatekeeper blocks launch:
+\`\`\`bash
+xattr -cr /Applications/Qui.app
+\`\`\`
+
+Built/published locally while GitHub Actions usage is blocked (\$0 budget).
+EOF
+)"
+
+if gh release view "$TAG" >/dev/null 2>&1; then
+  echo "desktop-publish-release-local: release ${TAG} exists; ensuring Latest + assets"
+  gh release edit "$TAG" --title "$TITLE" --latest
+  if [ "${#ASSETS[@]}" -gt 0 ]; then
+    gh release upload "$TAG" "${ASSETS[@]}" --clobber
+  fi
+else
+  echo "desktop-publish-release-local: creating ${TAG} as Latest"
+  if [ "${#ASSETS[@]}" -gt 0 ]; then
+    gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --latest "${ASSETS[@]}"
+  else
+    gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --latest
+    echo "desktop-publish-release-local: no desktop/release assets for ${VER}; release notes only" >&2
+  fi
+fi
+
+echo "desktop-publish-release-local: ${TITLE} → https://github.com/Johann-Goncalves-Pereira/Qui/releases/tag/${TAG}"

@@ -27,7 +27,7 @@ INTERNAL_WEB_DIR = internal/web
 # Go build flags
 LDFLAGS = -ldflags "-X github.com/autobrr/qui/internal/buildinfo.Version=$(VERSION) -X github.com/autobrr/qui/internal/buildinfo.Commit=$(GIT_COMMIT) -X github.com/autobrr/qui/internal/buildinfo.Date=$(BUILD_DATE)"
 
-.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh desktop-version-bump upstream-sync install-hooks clean test test-postgres test-frontend help themes-fetch themes-clean lint lint-full lint-ratchet lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
+.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh desktop-version-bump desktop-publish-release upstream-sync install-hooks clean test test-postgres test-frontend help themes-fetch themes-clean lint lint-full lint-ratchet lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
 
 # Default target
 all: build
@@ -92,6 +92,10 @@ upstream-sync:
 # After squash-merge: bump desktop patch via PR + tag (no Actions; $0 spend).
 desktop-version-bump:
 	./scripts/desktop-version-bump-local
+
+# Publish/refresh GitHub Release Latest for current desktop/package.json version.
+desktop-publish-release:
+	./scripts/desktop-publish-release-local
 
 # Install committed .githooks (blocks develop push; runs upstream-sync on push).
 install-hooks:
@@ -353,6 +357,7 @@ help:
 	@echo "  make desktop-refresh - Rebuild qui-desktop:local and clear Electron caches"
 	@echo "  make upstream-sync  - Dry-merge autobrr/qui develop (local PR gate)"
 	@echo "  make desktop-version-bump - After SM: bump desktop version via PR + tag (\$0 Actions)"
+	@echo "  make desktop-publish-release - Publish GitHub Latest for current desktop version"
 	@echo "  make install-hooks  - Enable .githooks (block develop push + upstream-sync)"
 	@echo ""
 	@echo "Testing:"

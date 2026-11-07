@@ -31,6 +31,10 @@ describe('Homebrew Cask specification (BR-desktop-24)', () => {
 		expect(caskContent).toContain(`app "${pkg.productName}.app"`)
 	})
 
+	it('keeps cask version equal to desktop package.json (BR-desktop-28)', () => {
+		expect(caskContent).toContain(`version "${pkg.version}"`)
+	})
+
 	it('includes comprehensive zap paths targeting desktop storage and bundle identifier', () => {
 		const appId = pkg.build.appId // com.autobrr.qui.desktop
 		expect(caskContent).toContain('zap trash: [')
