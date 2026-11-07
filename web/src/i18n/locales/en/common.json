@@ -32,8 +32,10 @@
   "statusBar": {
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
+    "serviceGazelleLabel": "gazelle:{{port}}",
     "tooltipQui": "Qui container ({{state}}) on port {{port}}. Click to configure Docker settings.",
     "tooltipQbit": "qBittorrent-nox container ({{state}}) on port {{port}}. Click to configure Docker settings.",
+    "tooltipGazelle": "Gazelle companion ({{state}}) on port {{port}}. Click to open WebUI.",
     "copyright": "{{year}} autobrr"
   },
   "docker": {

@@ -47,6 +47,7 @@ export function useDockerServices() {
   const [statuses, setStatuses] = useState<{
     qui: DockerContainerStatus
     qbit: DockerContainerStatus
+    gazelle?: DockerContainerStatus | null
   }>(() => {
     return {
       qui: {
@@ -63,6 +64,7 @@ export function useDockerServices() {
         image: "lscr.io/linuxserver/qbittorrent:latest",
         port: DEFAULT_QBIT_PORT,
       },
+      gazelle: null,
     }
   })
 
@@ -76,7 +78,19 @@ export function useDockerServices() {
       setIsLoading(true)
       const res = await window.quiDesktop.getDockerStatus()
       if (res?.qui && res?.qbit) {
-        setStatuses(res)
+        let gazelleStatus: DockerContainerStatus | null = (res as { gazelle?: DockerContainerStatus }).gazelle ?? null
+        if (!gazelleStatus && window.quiDesktop?.gazelle?.getStatus) {
+          try {
+            gazelleStatus = await window.quiDesktop.gazelle.getStatus()
+          } catch {
+            // best-effort
+          }
+        }
+        setStatuses({
+          qui: res.qui,
+          qbit: res.qbit,
+          gazelle: gazelleStatus,
+        })
       }
     } catch (err) {
       console.error("[useDockerServices] getDockerStatus failed:", err)
