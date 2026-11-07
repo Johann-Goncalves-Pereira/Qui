@@ -29,6 +29,10 @@ interface InstallUpdateButtonProps {
 }
 
 export function InstallUpdateButton({ selfUpdate, release, className }: InstallUpdateButtonProps) {
+  if (typeof window !== "undefined" && window.quiDesktop !== undefined) {
+    return null
+  }
+
   const { t } = useTranslation("settings")
   const {
     selfUpdateAvailable, selfUpdateUnavailableReason, supportChecking, supportCheckFailed, retrySupportCheck,

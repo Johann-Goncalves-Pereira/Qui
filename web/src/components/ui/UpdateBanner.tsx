@@ -15,6 +15,10 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export function UpdateBanner() {
+  if (typeof window !== "undefined" && window.quiDesktop !== undefined) {
+    return null
+  }
+
   const { t } = useTranslation("common")
   const [dismissed, setDismissed] = useState(false)
   const selfUpdate = useSelfUpdate()

@@ -349,4 +349,14 @@ describe("Install update", () => {
     await screen.findByText("application.restart.overlay.restartingTitle")
     expect(await navigateTo("/settings")).toBe("/dashboard")
   })
+
+  it("suppresses InstallUpdateButton entirely when running in desktop shell (BR-desktop-29)", async () => {
+    window.quiDesktop = {
+      getAppVersion: () => "0.0.7",
+    }
+    const { container } = renderBanner()
+    // In desktop mode, UpdateBanner and InstallUpdateButton return null
+    expect(container.firstChild).toBeNull()
+    expect(screen.queryByText("application.update.button")).toBeNull()
+  })
 })
