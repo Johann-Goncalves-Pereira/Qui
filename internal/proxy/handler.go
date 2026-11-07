@@ -481,7 +481,7 @@ func (h *Handler) prepareProxyContext(r *http.Request) (*proxyContext, error) {
 		return nil, qbittorrent.ErrInstanceDisabled
 	}
 
-	instanceURL, err := url.Parse(instance.Host)
+	instanceURL, err := url.Parse(qbittorrent.ResolveDockerHost(instance.Host))
 	if err != nil {
 		logger.Error().Err(err).Str("host", instance.Host).Msg("Failed to parse instance host for proxy request")
 		return nil, err

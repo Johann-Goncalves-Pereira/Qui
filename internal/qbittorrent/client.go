@@ -118,6 +118,7 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 	// reach go-qbt request URLs, whose error strings get logged verbatim all
 	// over qui. They move to basic auth, which is what URL userinfo means.
 	instanceHost, hostUser, hostPass := splitHostUserinfo(instanceHost)
+	instanceHost = ResolveDockerHost(instanceHost)
 
 	cfg := qbt.Config{
 		Host:          instanceHost,
