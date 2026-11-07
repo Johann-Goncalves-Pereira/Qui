@@ -37,6 +37,25 @@ compatible with upstream changes:
 - **Resilience**: The layout structure avoids hardcoded structural assumptions
   that would break if upstream Qui updates its navigation or header hierarchy.
 
+## React 19 View Transitions & Non-Invasive Injection Architecture
+
+To deliver fluid page and action transitions across the Qui desktop and web experience
+without modifying original upstream component trees (`web/src/pages/`):
+
+- **Router Page Transitions**: `web/src/router.tsx` sets `defaultViewTransition: true`.
+  In `web/src/layouts/AppLayout.tsx`, the main `<Outlet />` is wrapped in a React 19
+  `<ViewTransitionBoundary name="page-main-content">` so every route switch cross-fades
+  seamlessly using hardware-accelerated View Transition pseudo-elements.
+- **Action Transitions in UI Primitives**: Radix UI primitives (`TabsContent`, `TabsTrigger`,
+  `DialogContent`, `SheetContent`) wrap active surfaces in `<ViewTransitionBoundary>` and
+  schedule action triggers in `React.startTransition`. Every upstream page consuming these
+  primitives automatically inherits smooth view transitions with zero upstream code edits.
+- **Action Transition Provider**: `web/src/App.tsx` mounts `<ActionTransitionProvider>`
+  which exposes `useActionTransition` and `withActionTransition` utilities for coordinating
+  transitions.
+- **Accessibility**: `@media (prefers-reduced-motion: reduce)` in `web/src/index.css` disables
+  all transition animations when reduced motion is preferred.
+
 ## Related specs
 
 - `BR-web-01` in `docs/specs/catalog.md` — desktop biometric gate session flag.
@@ -44,4 +63,6 @@ compatible with upstream changes:
 - `BR-web-03` in `docs/specs/catalog.md` — status bar footer with streamlined borderless service indicators (`icon dot docker:port`) and relocated chrome.
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs (Qui and qBittorrent).
 - `BR-web-05` in `docs/specs/catalog.md` — calibrated glassmorphism sidebar translucency.
+- `BR-web-07` in `docs/specs/catalog.md` — declarative React 19 `<ViewTransition>` and router view transitions across pages and action boundaries.
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
+
