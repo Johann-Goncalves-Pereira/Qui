@@ -21,7 +21,7 @@ fi
 
 ASSETS=()
 shopt -s nullglob
-for f in desktop/release/Qui-"${VER}"-*.dmg desktop/release/Qui-"${VER}"-*-mac.zip; do
+for f in desktop/release/Qui-"${VER}"-*.dmg desktop/release/Qui-"${VER}"-*-mac.zip desktop/release/qui-desktop-image-*.tar.gz; do
   ASSETS+=("$f")
 done
 shopt -u nullglob
@@ -33,6 +33,11 @@ Unsigned macOS build. If Gatekeeper blocks launch:
 \`\`\`bash
 xattr -cr /Applications/Qui.app
 \`\`\`
+
+The Qui **GUI** ships as this fork’s Docker image (not \`ghcr.io/autobrr/qui\`).
+Packaged apps pull \`ghcr.io/johann-goncalves-pereira/qui:latest\` when GHCR is
+public, otherwise they \`docker load\` the \`qui-desktop-image-*.tar.gz\` asset
+from this release.
 
 Built/published locally while GitHub Actions usage is blocked (\$0 budget).
 EOF

@@ -4,8 +4,8 @@
  */
 
 import { execFile } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { Schema } from 'effect'
@@ -16,11 +16,14 @@ import {
 	GAZELLE_CONTAINER_NAME,
 	GAZELLE_IMAGE,
 	GAZELLE_REPO_URL,
+	GITHUB_REPO,
 	QBIT_CONTAINER_NAME,
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
 	QUI_IMAGE,
+	QUI_IMAGE_LOCAL,
 } from '../shared/constants.js'
+import { quiDesktopImageArchiveUrl } from '../shared/qui-image.js'
 import {
 	type DockerContainerStatus,
 	DockerContainerStatusSchema,
@@ -125,6 +128,16 @@ export class CliDockerExecutor implements DockerExecutor {
 const INSPECT_ALIGN_FORMAT =
 	'{{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}}'
 
+export type BinaryFetcher = (url: string) => Promise<Uint8Array>
+
+async function defaultBinaryFetch(url: string): Promise<Uint8Array> {
+	const response = await fetch(url)
+	if (!response.ok) {
+		throw new Error(`HTTP ${response.status} fetching ${url}`)
+	}
+	return new Uint8Array(await response.arrayBuffer())
+}
+
 export class DockerManager {
 	constructor(
 		private readonly executor: DockerExecutor = new CliDockerExecutor(),
@@ -139,6 +152,8 @@ export class DockerManager {
 		) => {
 			writeFileSync(filePath, content, 'utf8')
 		},
+		private readonly fetchBinary: BinaryFetcher = defaultBinaryFetch,
+		private readonly processArch: string = process.arch,
 	) {}
 
 	/**
@@ -464,11 +479,75 @@ export class DockerManager {
 		}
 	}
 
+	/**
+	 * Ensure `image` exists locally. Prefer inspect → pull; if pull fails
+	 * (e.g. fork GHCR not published yet / $0 Actions), retag `qui-desktop:local`
+	 * when that alias is present, else `docker load` the GitHub Releases archive
+	 * so packaged apps still get this fork’s GUI (never upstream autobrr).
+	 */
 	private async pullIfMissing(image: string): Promise<void> {
 		try {
 			await this.executor.exec('docker', ['image', 'inspect', image])
+			return
 		} catch {
+			// missing locally
+		}
+
+		try {
 			await this.executor.exec('docker', ['pull', image])
+			return
+		} catch (pullError) {
+			if (image === QUI_IMAGE_LOCAL) {
+				throw pullError
+			}
+			try {
+				await this.executor.exec('docker', [
+					'image',
+					'inspect',
+					QUI_IMAGE_LOCAL,
+				])
+				await this.executor.exec('docker', ['tag', QUI_IMAGE_LOCAL, image])
+				return
+			} catch {
+				// fall through to Releases archive
+			}
+			try {
+				await this.loadForkImageFromGithubRelease(image)
+				return
+			} catch {
+				throw pullError
+			}
+		}
+	}
+
+	private async loadForkImageFromGithubRelease(
+		desiredImage: string,
+	): Promise<void> {
+		const url = quiDesktopImageArchiveUrl(GITHUB_REPO, this.processArch)
+		const bytes = await this.fetchBinary(url)
+		const archivePath = path.join(
+			tmpdir(),
+			`qui-desktop-image-${Date.now()}.tar.gz`,
+		)
+		writeFileSync(archivePath, bytes)
+		try {
+			await this.executor.exec('docker', ['load', '-i', archivePath], {
+				timeout: 600_000,
+			})
+			await this.executor.exec('docker', ['image', 'inspect', QUI_IMAGE_LOCAL])
+			if (desiredImage !== QUI_IMAGE_LOCAL) {
+				await this.executor.exec('docker', [
+					'tag',
+					QUI_IMAGE_LOCAL,
+					desiredImage,
+				])
+			}
+		} finally {
+			try {
+				unlinkSync(archivePath)
+			} catch {
+				// temp cleanup best-effort
+			}
 		}
 	}
 

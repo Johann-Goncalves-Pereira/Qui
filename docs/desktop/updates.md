@@ -105,6 +105,19 @@ dialogs).
 Never point packaged desktop defaults at `ghcr.io/autobrr/qui` — that omits
 every fork-only web feature.
 
+If the fork GHCR tag is not pullable yet (package not published / token lacks
+`write:packages`), the desktop shell still gets this fork’s GUI by:
+
+1. **Retagging** `qui-desktop:local` when that alias exists (from
+   `./scripts/desktop-refresh` or `make desktop-publish-qui-image`), or
+2. **Downloading** `qui-desktop-image-<arch>.tar.gz` from GitHub Releases
+   (`/releases/latest/download/…`) and running `docker load`, then tagging it
+   as the packaged name.
+
+Maintainers: `make desktop-publish-qui-image` always writes that archive under
+`desktop/release/`; `make desktop-publish-release` uploads it with the `.dmg`.
+GHCR push remains preferred when `write:packages` is available.
+
 ## Behaviour summary
 
 - Launch + tray compare semver to GitHub `releases/latest`.

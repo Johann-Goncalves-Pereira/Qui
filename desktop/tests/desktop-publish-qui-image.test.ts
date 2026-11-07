@@ -24,6 +24,8 @@ describe('desktop-publish-qui-image (BR-desktop-17)', () => {
 		expect(script).toContain('docker push')
 		expect(script).toContain('write:packages')
 		expect(script).toContain('johann-goncalves-pereira/qui:latest')
+		expect(script).toContain('qui-desktop-image-')
+		expect(script).toContain('docker save')
 		// Must not push the upstream package as the release image.
 		expect(script).not.toMatch(/docker push.*autobrr\/qui/)
 	})

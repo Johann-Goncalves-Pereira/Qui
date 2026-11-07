@@ -18,8 +18,11 @@ import {
 	DEFAULT_QUI_PORT,
 	GAZELLE_CONTAINER_NAME,
 	GAZELLE_IMAGE,
+	QBIT_CONTAINER_NAME,
 	QUI_CONTAINER_NAME,
 	QUI_IMAGE,
+	QUI_IMAGE_LOCAL,
+	QUI_IMAGE_RELEASE,
 } from '../src/shared/constants.js'
 
 class MockDockerExecutor implements DockerExecutor {
@@ -570,5 +573,145 @@ describe('DockerManager', () => {
 		await expect(manager.startGazelle()).rejects.toThrow(
 			'Failed to provision Gazelle companion: network unreachable',
 		)
+	})
+
+	it('retags qui-desktop:local when fork GHCR pull fails (BR-desktop-17)', async () => {
+		const mock = new MockDockerExecutor()
+		let quiStatusCalls = 0
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (
+				args[0] === 'inspect' &&
+				args.includes('--format') &&
+				args.includes(QUI_CONTAINER_NAME)
+			) {
+				quiStatusCalls++
+				if (quiStatusCalls === 1) {
+					throw new Error('No such container')
+				}
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			if (
+				args[0] === 'inspect' &&
+				args.includes('--format') &&
+				args.includes(QBIT_CONTAINER_NAME)
+			) {
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			if (
+				args[0] === 'image' &&
+				args[1] === 'inspect' &&
+				args[2] === QUI_IMAGE_RELEASE
+			) {
+				throw new Error('No such image')
+			}
+			if (args[0] === 'pull' && args[1] === QUI_IMAGE_RELEASE) {
+				throw new Error('permission_denied')
+			}
+			if (
+				args[0] === 'image' &&
+				args[1] === 'inspect' &&
+				args[2] === QUI_IMAGE_LOCAL
+			) {
+				return { stdout: 'ok\n', stderr: '' }
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const manager = new DockerManager(mock, undefined, QUI_IMAGE_RELEASE)
+		await manager.ensureContainersRunning()
+
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'tag' &&
+					c.args[1] === QUI_IMAGE_LOCAL &&
+					c.args[2] === QUI_IMAGE_RELEASE,
+			),
+		).toBe(true)
+	})
+
+	it('loads fork image from GitHub Releases when GHCR and local tag are missing (BR-desktop-17)', async () => {
+		const mock = new MockDockerExecutor()
+		let quiStatusCalls = 0
+		let localInspectAfterLoad = false
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (
+				args[0] === 'inspect' &&
+				args.includes('--format') &&
+				args.includes(QUI_CONTAINER_NAME)
+			) {
+				quiStatusCalls++
+				if (quiStatusCalls === 1) {
+					throw new Error('No such container')
+				}
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			if (
+				args[0] === 'inspect' &&
+				args.includes('--format') &&
+				args.includes(QBIT_CONTAINER_NAME)
+			) {
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			if (
+				args[0] === 'image' &&
+				args[1] === 'inspect' &&
+				args[2] === QUI_IMAGE_RELEASE
+			) {
+				throw new Error('No such image')
+			}
+			if (args[0] === 'pull' && args[1] === QUI_IMAGE_RELEASE) {
+				throw new Error('permission_denied')
+			}
+			if (
+				args[0] === 'image' &&
+				args[1] === 'inspect' &&
+				args[2] === QUI_IMAGE_LOCAL
+			) {
+				if (!localInspectAfterLoad) {
+					throw new Error('No such image')
+				}
+				return { stdout: 'ok\n', stderr: '' }
+			}
+			if (args[0] === 'load') {
+				localInspectAfterLoad = true
+				return { stdout: 'Loaded image: qui-desktop:local\n', stderr: '' }
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const fetchBinary = async (url: string) => {
+			expect(url).toContain('qui-desktop-image-arm64.tar.gz')
+			return new Uint8Array([1, 2, 3])
+		}
+
+		const manager = new DockerManager(
+			mock,
+			undefined,
+			QUI_IMAGE_RELEASE,
+			undefined,
+			undefined,
+			fetchBinary,
+			'arm64',
+		)
+		await manager.ensureContainersRunning()
+
+		expect(
+			mock.executedCommands.some(
+				c => c.command === 'docker' && c.args[0] === 'load',
+			),
+		).toBe(true)
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'tag' &&
+					c.args[1] === QUI_IMAGE_LOCAL &&
+					c.args[2] === QUI_IMAGE_RELEASE,
+			),
+		).toBe(true)
 	})
 })

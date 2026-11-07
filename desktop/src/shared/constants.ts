@@ -7,6 +7,8 @@ import { readAppVersion } from './app-version.js'
 import {
 	QUI_IMAGE_LOCAL,
 	QUI_IMAGE_RELEASE,
+	quiDesktopImageArchiveName,
+	quiDesktopImageArchiveUrl,
 	resolveQuiImage,
 } from './qui-image.js'
 import {
@@ -23,6 +25,8 @@ export {
 	DEFAULT_VITE_ORIGIN,
 	QUI_IMAGE_LOCAL,
 	QUI_IMAGE_RELEASE,
+	quiDesktopImageArchiveName,
+	quiDesktopImageArchiveUrl,
 	quiWebLoginUrl,
 	resolveQuiImage,
 	resolveQuiWebOrigin,
