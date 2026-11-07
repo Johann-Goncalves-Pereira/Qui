@@ -4,7 +4,6 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron'
-import { CURRENT_APP_VERSION } from '../shared/constants.js'
 import type {
 	BiometricAuthResult,
 	DockerContainerStatus,
@@ -53,7 +52,16 @@ export interface QuiDesktopBridge {
 }
 
 const bridge: QuiDesktopBridge = {
-	getAppVersion: () => CURRENT_APP_VERSION,
+	getAppVersion: () => {
+		try {
+			const version = ipcRenderer.sendSync('app:get-version')
+			return typeof version === 'string' && version.trim() !== ''
+				? version.trim()
+				: '0.0.0'
+		} catch {
+			return '0.0.0'
+		}
+	},
 	requestTouchId: (reason?: string) =>
 		ipcRenderer.invoke('auth:biometrics', reason),
 	setWindowMaterial: (glass: boolean) =>
