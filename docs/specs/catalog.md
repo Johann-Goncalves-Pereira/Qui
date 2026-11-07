@@ -74,5 +74,8 @@ behavior exists.
 | `BR-backend-03` | Release checker queries GitHub API directly for fork repositories (`Johann-Goncalves-Pereira/Qui`), pointing backend update detection to fork releases instead of upstream autobrr/qui API 400 errors or version leakage | docs/desktop/updates.md | backend/update | pkg/version/version_test.go, internal/update/service_test.go | `asserted-unit` |
 | `BR-desktop-36` | Preload bridge exposes `checkForUpdates` and `promptUpdates` on `window.quiDesktop`, connecting Electron desktop multilayer update dialog (`checkAndPromptDockerUpdates`, `appUpdater`) to renderer processes with automated pre-update backups | docs/desktop/updates.md | desktop/updater | tests/updater.test.ts | `asserted-unit` |
 | `BR-web-13` | Desktop-managed settings and update banner route update discovery and triggers directly through `window.quiDesktop.promptUpdates()`, suppressing upstream Docker modal instructions and providing seamless multi-component update control | docs/desktop/updates.md | web/updater | src/components/ui/UpdateBanner.test.tsx | `asserted-unit` |
+| `BR-desktop-37` | Gazelle companion compose stack enforces restart resilience (`restart: unless-stopped`) and headless preview crash mitigation, exposing `openWebUi` in sandboxed preload bridge | docs/desktop/overview.md | desktop/docker | tests/docker.test.ts | `asserted-unit` |
+| `BR-web-14` | Status bar footer reactively displays Gazelle container indicator when companion is running and opens Gazelle WebUI on click | docs/web/electron-desktop.md | web/layout | web/src/components/layout/StatusBarFooter.test.tsx | `asserted-unit` |
+
 
 

@@ -87,6 +87,8 @@ To elevate loading states across the application without modifying upstream page
 - `BR-web-10` in `docs/specs/catalog.md` — sidebar header h-12 brand row with 'qui' text omitted and logo pushed to the right.
 - `BR-web-11` in `docs/specs/catalog.md` — articulated vector rabbit loading engine with adaptive motion modes, token-driven theme synchronization, and non-invasive injection.
 - `BR-web-12` in `docs/specs/catalog.md` — Radix UI Slot child isolation in Button UI primitive preserving single-element slot contracts.
+- `BR-web-14` in `docs/specs/catalog.md` — status bar footer reactively displays Gazelle container indicator when companion is running and opens Gazelle WebUI on click.
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
+
 
 
