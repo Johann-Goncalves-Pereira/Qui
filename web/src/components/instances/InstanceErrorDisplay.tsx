@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tooltip"
 import { formatErrorMessage } from "@/lib/format-error-message"
 import type { InstanceResponse } from "@/types"
-import { AlertCircle, ChevronDown, Edit, XCircle } from "lucide-react"
+import { AlertCircle, ChevronDown, Edit, KeyRound, XCircle } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
@@ -26,13 +26,76 @@ interface InstanceErrorDisplayProps {
   onEdit?: () => void
   showEditButton?: boolean
   compact?: boolean
+  extraErrorMessage?: string
 }
 
-export function InstanceErrorDisplay({ instance, onEdit, showEditButton = false, compact = false }: InstanceErrorDisplayProps) {
+export function isQBitAuthError(errorMessage?: string, errorType?: string): boolean {
+  if (!errorMessage && !errorType) return false
+  const text = `${errorType ?? ""} ${errorMessage ?? ""}`.toLowerCase()
+  return (
+    text.includes("qbit re-login") ||
+    text.includes("authentication") ||
+    text.includes("401") ||
+    text.includes("403") ||
+    text.includes("could not get webapi version") ||
+    text.includes("password required")
+  )
+}
+
+export function InstanceErrorDisplay({
+  instance,
+  onEdit,
+  showEditButton = false,
+  compact = false,
+  extraErrorMessage,
+}: InstanceErrorDisplayProps) {
   const { t } = useTranslation("instances")
   const [isDecryptionOpen, setIsDecryptionOpen] = useState(compact)
   const [isRecentErrorsOpen, setIsRecentErrorsOpen] = useState(compact)
   const { formatTimestamp } = useDateTimeFormatters()
+
+  const hasAuthError =
+    !instance.connected &&
+    (instance.hasDecryptionError ||
+      isQBitAuthError(extraErrorMessage) ||
+      Boolean(
+        instance.recentErrors?.some((e) =>
+          isQBitAuthError(e.errorMessage, e.errorType)
+        )
+      ))
+
+  const authGuidanceCard = hasAuthError ? (
+    <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
+      <div className="flex items-center gap-2 font-medium text-amber-400">
+        <KeyRound className="h-4 w-4 flex-shrink-0" />
+        <span>{t("errorDisplay.authGuideTitle")}</span>
+      </div>
+      <p className="mt-1.5 text-xs text-amber-200/90 leading-relaxed">
+        {t("errorDisplay.authGuideDescription")}
+      </p>
+      <div className="mt-2 space-y-1.5 text-xs text-amber-200/80">
+        <div className="flex items-start gap-1.5">
+          <span className="font-semibold text-amber-400">1.</span>
+          <span>{t("errorDisplay.authGuideStep1")}</span>
+        </div>
+        <div className="flex items-start gap-1.5">
+          <span className="font-semibold text-amber-400">2.</span>
+          <span>{t("errorDisplay.authGuideStep2")}</span>
+        </div>
+      </div>
+      {showEditButton && onEdit && (
+        <Button
+          onClick={onEdit}
+          size="sm"
+          variant="outline"
+          className="mt-2.5 h-7 px-3 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
+        >
+          <Edit className="mr-1.5 h-3 w-3" />
+          {t("errorDisplay.configureCredentials")}
+        </Button>
+      )}
+    </div>
+  ) : null
 
   // Compact mode shows expandable error cards
   if (compact) {
@@ -114,6 +177,7 @@ export function InstanceErrorDisplay({ instance, onEdit, showEditButton = false,
             </div>
           </Collapsible>
         )}
+        {authGuidanceCard}
       </>
     )
   }
@@ -184,6 +248,7 @@ export function InstanceErrorDisplay({ instance, onEdit, showEditButton = false,
           </div>
         </div>
       )}
+      {authGuidanceCard}
     </>
   )
 }
