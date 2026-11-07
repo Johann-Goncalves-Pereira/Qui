@@ -488,5 +488,14 @@ html[data-glass="on"] .bg-muted {
       animation: none !important;
     }
   }
+
+  /* Articulated Rabbit Loading Engine & Theme Synchronization (BR-web-09) */
+  .rabbit-theme-fill {
+    fill: oklch(from var(--primary) l c h / 0.18);
+  }
+  .rabbit-theme-stroke {
+    stroke: var(--primary);
+  }
 }
+
 

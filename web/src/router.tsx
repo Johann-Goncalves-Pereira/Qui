@@ -6,6 +6,7 @@
 import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 import { getBaseUrl } from "./lib/base-url"
+import { LoadingOverlay } from "./components/ui/LoadingOverlay"
 
 // Get the base path from the injected global variable
 // Remove trailing slash for TanStack Router
@@ -16,10 +17,12 @@ export const router = createRouter({
   basepath,
   defaultPreload: "intent",
   defaultViewTransition: true,
+  defaultPendingComponent: () => <LoadingOverlay mode="sprint" message="Loading..." />,
   context: {
     auth: undefined!,
   },
 })
+
 
 declare module "@tanstack/react-router" {
   interface Register {

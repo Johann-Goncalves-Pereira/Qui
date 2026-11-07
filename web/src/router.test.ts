@@ -14,4 +14,9 @@ describe("Router configuration (BR-web-08)", () => {
   it("configures defaultPreload to intent", () => {
     expect(router.options.defaultPreload).toBe("intent")
   })
+
+  it("configures defaultPendingComponent with branded LoadingOverlay (BR-web-09)", () => {
+    expect(router.options.defaultPendingComponent).toBeTruthy()
+  })
 })
+
