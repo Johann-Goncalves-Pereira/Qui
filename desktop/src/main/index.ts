@@ -157,10 +157,14 @@ if (initialMagnetUrl) {
 
 function showStartupPage(message: string, processInfo?: string): string {
 	const cachedTheme = readCachedTheme(app.getPath('userData'))
+	const prefersDark =
+		cachedTheme?.isDark !== undefined
+			? cachedTheme.isDark
+			: nativeTheme.shouldUseDarkColors
 	return startupPageUrl(
 		message,
 		processInfo && processInfo.length > 0 ? processInfo : message,
-		nativeTheme.shouldUseDarkColors,
+		prefersDark,
 		cachedTheme,
 	)
 }
