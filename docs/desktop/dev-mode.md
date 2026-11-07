@@ -91,3 +91,5 @@ In production builds (`QUI_DESKTOP_DEV` unset or `0`), the **Developer** menu an
 
 - `BR-desktop-19` — origin selection for production vs desktop dev.
 - `BR-desktop-23` — Qui application menu and hot-reload Developer menu.
+- `BR-desktop-37` — electronmon development runner patterns and module discovery synchronization.
+

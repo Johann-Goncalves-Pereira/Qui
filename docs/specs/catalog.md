@@ -71,5 +71,6 @@ behavior exists.
 | `BR-desktop-34` | Content-addressed SHA-pair caching, lightweight ref probing, and delta release asset validation accelerate local desktop version bumps and packaging under 3 seconds while failing closed on upstream conflicts | docs/desktop/versioning.md | desktop/version | tests/desktop-version-bump-local.test.ts, tests/upstream-sync.test.ts | `asserted-unit` |
 | `BR-web-12` | Button UI primitive isolates Radix Slot delegation when asChild is true, preventing multiple React element child / Slottable exceptions while preserving loading spinner and disabled state contracts | docs/web/electron-desktop.md | web/ui | web/src/components/ui/button.test.tsx | `asserted-unit` |
 | `BR-desktop-35` | Electron sandboxed preload script compiles to CommonJS (.cts -> .cjs) so window.quiDesktop exposes without syntax errors in ES module desktop packages | docs/desktop/overview.md | desktop/preload | tests/window.test.ts | `asserted-unit` |
+| `BR-desktop-37` | Desktop development runner configures electronmon patterns and startup compilation synchronization, preventing duplicate emits, spurious renderer reload floods, and SIGSEGV fatal crashes during hot-reload development | docs/desktop/dev-mode.md | desktop/dev | tests/electronmon.test.ts | `asserted-unit` |
 
 
