@@ -41,6 +41,26 @@ What that starts:
 The window loads `http://localhost:5173` (login at `/login`). Vite proxies
 `/api` to `http://localhost:7476`.
 
+## Electronmon runner stability (BR-desktop-37)
+
+`desktop/package.json` is `"type": "module"`, so electronmon's CommonJS
+`require` hook never sees ESM main imports. Without extra wiring, every
+`tsc -w` emit under `dist/` is treated as a renderer change and floods
+`webContents.reloadIgnoringCache()` during boot — which historically ended in
+a fatal `SIGSEGV` when `reset` raced those reloads.
+
+Mitigations shipped for this runner:
+
+1. **Watch patterns** — `electronmon.patterns` ignores `src/**`, `**/*.d.ts`,
+   `**/*.d.cts`, `**/*.map`, `dist/assets/**`, and `dist/.tsbuildinfo`.
+2. **Incremental `tsc`** — `desktop/tsconfig.json` sets `incremental` with
+   `tsBuildInfoFile: "dist/.tsbuildinfo"` so `tsc -w` after `pnpm build` does
+   not re-emit the whole tree on startup.
+3. **Main-module discovery** — `registerElectronmonMainModules()` walks
+   compiled `.js` / `.cjs` under `dist/` (skipping `assets/`) and sends
+   `{ type: 'discover', file }` over electronmon's IPC so later main/preload
+   edits restart the process instead of reloading the renderer.
+
 ## Environment overrides
 
 | Variable | Effect |
