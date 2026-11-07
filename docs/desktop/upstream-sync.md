@@ -97,19 +97,40 @@ Keep a lightweight ruleset on `develop` if you want:
 Remove **Require status checks** (or disable that ruleset rule) so agents can
 squash-merge after the **local** upstream-sync gate passes.
 
+## Fork upstream synchronization on finish-PR (BR-desktop-42)
+
+On this repository, running `$finish-pr-workflow` (or manual finish-pr / SM) **must always synchronize the fork** with `autobrr/qui` `develop`.
+
+Dry-merging on the feature branch (`upstream-sync-check`) only proves mergeability. When upstream commits land independently, `Johann-Goncalves-Pereira/Qui:develop` drifts behind upstream (e.g. "2 commits behind autobrr/qui:develop").
+
+To eliminate this divergence:
+1. `scripts/upstream-sync-fork` probes commit distance between `origin/develop` and `autobrr/qui:develop`.
+2. When behind by $\ge 1$ commits:
+   - Validates that merge-tree has zero conflicts.
+   - Creates a sync branch `sync/upstream-develop` (or dedicated sync branch).
+   - Merges upstream tip into the sync branch using a true merge commit.
+   - Pushes and opens a sync PR into `develop`.
+   - Merges the PR with `gh pr merge --merge --delete-branch` (using `--merge`, not `--squash`, so GitHub's upstream commit ancestry is recorded and the "behind upstream" counter resets to 0).
+   - Pulls updated `origin/develop`.
+3. This is integrated directly into `$qui-fork-finish-pr`, `scripts/desktop-version-bump-local`, and `make upstream-sync-fork`.
+
 ## Behaviour summary
 
-- Trigger: local `pre-push` hook and/or `make upstream-sync`.
+- Trigger: local `pre-push` hook and/or `make upstream-sync` (dry-merge check on feature branch).
+- Finish-PR sync: `make upstream-sync-fork` / `scripts/upstream-sync-fork` (enforces 0 commits behind).
 - Upstream: `autobrr/qui` @ `develop`.
-- Fail closed on merge conflicts; success does not change your working tree.
+- Fail closed on merge conflicts; success keeps fork in parity with upstream.
 - No GitHub Actions workflow for this gate (avoids metered Actions usage).
 
 ## Agent skill
 
-Agents: follow `.cursor/skills/qui-fork-local-upstream-sync/SKILL.md` (also
-linked from `AGENTS.md`). Invoke with `$qui-fork-local-upstream-sync` when
-pushing or squash-merging on this fork.
+Agents: follow `.cursor/skills/qui-fork-local-upstream-sync/SKILL.md` and `.cursor/skills/qui-fork-finish-pr/SKILL.md` (also
+linked from `AGENTS.md`). On this fork, finish-PR workflows must always invoke or verify upstream fork synchronization.
 
 ## Related spec
 
 - `BR-desktop-21` — local upstream-sync fails closed on conflicts.
+- `BR-desktop-42` — fork finish-PR workflow enforces upstream synchronization via `upstream-sync-fork`.
+
+
+

@@ -42,4 +42,35 @@ describe('local upstream-sync gate (BR-desktop-21)', () => {
 		expect(script).toContain('git ls-remote')
 		expect(script).toContain('QUI_SKIP_SYNC_CACHE')
 	})
+
+	it('enforces upstream fork synchronization script and finish-pr rules (BR-desktop-42)', () => {
+		const syncForkScript = readFileSync(
+			path.join(repoRoot, 'scripts/upstream-sync-fork'),
+			'utf8',
+		)
+		expect(syncForkScript).toContain('autobrr/qui')
+		expect(syncForkScript).toContain('merge-tree')
+		expect(syncForkScript).toContain('rev-list')
+		expect(syncForkScript).toContain('--merge')
+		expect(syncForkScript).toContain('gh pr merge')
+
+		const ruleContent = readFileSync(
+			path.join(repoRoot, '.cursor/rules/510-local-upstream-sync.mdc'),
+			'utf8',
+		)
+		expect(ruleContent).toContain('upstream-sync-fork')
+		expect(ruleContent).toMatch(/always sync/i)
+
+		const skillContent = readFileSync(
+			path.join(repoRoot, '.cursor/skills/qui-fork-finish-pr/SKILL.md'),
+			'utf8',
+		)
+		expect(skillContent).toContain('upstream-sync-fork')
+
+		const bumpScript = readFileSync(
+			path.join(repoRoot, 'scripts/desktop-version-bump-local'),
+			'utf8',
+		)
+		expect(bumpScript).toContain('upstream-sync-fork')
+	})
 })

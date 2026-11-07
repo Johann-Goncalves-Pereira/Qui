@@ -1,15 +1,25 @@
-# Local upstream-sync gate
+# Local upstream-sync gate & fork synchronization
 
 This fork does **not** use GitHub Actions for the upstream merge probe (Actions
 usage is budget-blocked at $0). The gate is local.
 
-## Before push or squash-merge
+## Rule: Always sync upstream on finish-pr (BR-desktop-42)
 
-1. Ensure hooks are installed once per clone: `make install-hooks`
-2. On the **feature branch** (never push `develop` directly): `make upstream-sync`
-3. On conflicts: merge/rebase `autobrr/qui` `develop` into the feature branch, fix, re-run
-4. Then push / `gh pr merge --squash`
-5. After SM on this fork: follow `$qui-fork-finish-pr` → `make desktop-version-bump`
+On this repository (`Johann-Goncalves-Pereira/Qui`), **$finish-pr-workflow must always sync the fork with upstream (`autobrr/qui:develop`)**. Never leave this repository's base branch out-of-date or behind upstream.
+
+1. **Before push or squash-merge (Feature branch):**
+   - Ensure hooks are installed once per clone: `make install-hooks`
+   - On the **feature branch** (never push `develop` directly): `make upstream-sync`
+   - On conflicts: merge/rebase `autobrr/qui` `develop` into the feature branch, fix, re-run
+   - Then push / `gh pr merge --squash`
+2. **On finish-pr / after SM on this fork:**
+   - Follow `$qui-fork-finish-pr`.
+   - **Always synchronize fork with upstream:** run `make upstream-sync-fork` (or `./scripts/upstream-sync-fork`).
+   - Sync uses a merge commit (`--merge`) via PR to preserve upstream commit ancestry and clear the behind-upstream counter.
+   - Then proceed to `make desktop-version-bump`.
 
 Do not require or wait for a GitHub status check named `Merge autobrr/qui develop`.
-See `docs/desktop/upstream-sync.md` (`BR-desktop-21`) and `docs/desktop/versioning.md` (`BR-desktop-28`).
+See `docs/desktop/upstream-sync.md` (`BR-desktop-21`, `BR-desktop-42`) and `docs/desktop/versioning.md` (`BR-desktop-28`).
+
+
+
