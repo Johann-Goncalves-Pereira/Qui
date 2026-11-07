@@ -27,13 +27,20 @@ function AppLayoutContent() {
   const { isFooterVisible } = useMobileScroll()
 
   useEffect(() => {
-    const setSidebarChrome = window.quiDesktop?.setSidebarChrome
-    if (!setSidebarChrome) {
-      return
+    const applyChrome = () => {
+      const setSidebarChrome = window.quiDesktop?.setSidebarChrome
+      if (setSidebarChrome) {
+        void setSidebarChrome(!sidebarCollapsed)
+      }
     }
-    void setSidebarChrome(!sidebarCollapsed)
+    applyChrome()
+    const timer = setTimeout(applyChrome, 100)
     return () => {
-      void setSidebarChrome(false)
+      clearTimeout(timer)
+      const setSidebarChrome = window.quiDesktop?.setSidebarChrome
+      if (setSidebarChrome) {
+        void setSidebarChrome(false)
+      }
     }
   }, [sidebarCollapsed])
 
