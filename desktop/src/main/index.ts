@@ -18,6 +18,7 @@ import {
 } from 'electron'
 import {
 	APP_NAME,
+	CURRENT_APP_VERSION,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
 	GAZELLE_WEB_ORIGIN,
@@ -108,6 +109,7 @@ const quiWebLogin = quiWebLoginUrl(quiWebOrigin)
 const quiImage = resolveQuiImage({
 	isPackaged: app.isPackaged,
 	envImage: process.env.QUI_DESKTOP_IMAGE,
+	version: CURRENT_APP_VERSION,
 })
 
 const dockerManager = new DockerManager(undefined, undefined, quiImage)
