@@ -31,6 +31,7 @@ declare global {
       getDockerStatus?: () => Promise<{
         qui: { name: string; state: string; status: string; image: string; port: number }
         qbit: { name: string; state: string; status: string; image: string; port: number }
+        gazelle?: { name: string; state: string; status: string; image: string; port: number }
       }>
       getQuiConfig?: () => Promise<{
         port: number
