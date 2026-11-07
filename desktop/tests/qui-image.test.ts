@@ -41,7 +41,16 @@ describe('resolveQuiImage (BR-desktop-17)', () => {
 		).toBe('custom:tag')
 	})
 
-	it('names the GitHub Releases docker-load archive by arch', () => {
+	it('resolves to version-pinned image tag when version is provided (BR-desktop-32)', () => {
+		expect(resolveQuiImage({ isPackaged: true, version: '0.0.9' })).toBe(
+			'ghcr.io/johann-goncalves-pereira/qui:0.0.9',
+		)
+		expect(resolveQuiImage({ isPackaged: true, version: 'v0.0.9' })).toBe(
+			'ghcr.io/johann-goncalves-pereira/qui:0.0.9',
+		)
+	})
+
+	it('names the embedded archive relative path inside Contents/Resources (BR-desktop-32)', () => {
 		expect(quiDesktopImageArchiveName('arm64')).toBe(
 			'qui-desktop-image-arm64.tar.gz',
 		)
