@@ -1009,7 +1009,22 @@
     "enableToConfigure": "啟用後進行配置",
     "redDescription": "用於 redacted.sh 查詢。貼上以替換，清空以移除。",
     "opsDescription": "用於 orpheus.network 查詢。貼上以替換，清空以移除。",
-    "save": "儲存"
+    "save": "儲存",
+    "companionTitle": "Gazelle Docker 伴侶",
+    "checking": "正在檢查…",
+    "running": "執行中（7001 埠）",
+    "stopped": "已停止",
+    "notInstalled": "未安裝",
+    "openWebUiTitle": "開啟 Gazelle WebUI",
+    "openWebUi": "開啟 WebUI",
+    "restartContainerTitle": "重新啟動 Gazelle 容器",
+    "restart": "重新啟動",
+    "stopContainerTitle": "停止 Gazelle 容器",
+    "stop": "停止",
+    "start": "啟動 Gazelle",
+    "installAndRun": "安裝並執行 Gazelle",
+    "companionDescription": "在桌面資料目錄中保留持久狀態，並在 7001 埠部署本地 OPSnet/Gazelle 追蹤器棧。",
+    "initialInstallNotice": "正在複製 OPSnet/Gazelle 倉庫並構建 Docker Compose 容器，首次安裝可能需要幾分鐘。"
   },
   "searchCache": {
     "title": "搜尋快取",

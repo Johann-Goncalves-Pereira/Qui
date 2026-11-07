@@ -319,6 +319,9 @@ jobs:
       matrix:
         platform: ${{ fromJSON(needs.docker-matrix.outputs.platforms) }}
     steps:
+      - name: Lowercase registry image
+        run: echo "REGISTRY_IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
       - name: Checkout
         uses: actions/checkout@v7.0.1
 
@@ -419,6 +422,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [docker, test, goreleaserbuild]
     steps:
+      - name: Lowercase registry image
+        run: echo "REGISTRY_IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
       - name: Download image digests
         uses: actions/download-artifact@v8
         with:

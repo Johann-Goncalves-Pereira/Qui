@@ -7,6 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
 	DOCKER_BINARY_NOT_FOUND,
+	type DockerExecOptions,
 	type DockerExecutor,
 	DockerManager,
 	dockerBinaryCandidates,
@@ -22,14 +23,19 @@ import {
 } from '../src/shared/constants.js'
 
 class MockDockerExecutor implements DockerExecutor {
-	public executedCommands: Array<{ command: string; args: string[] }> = []
+	public executedCommands: Array<{
+		command: string
+		args: string[]
+		options?: DockerExecOptions
+	}> = []
 	public responses: Record<string, { stdout: string; stderr: string }> = {}
 
 	async exec(
 		command: string,
 		args: string[],
+		options?: DockerExecOptions,
 	): Promise<{ stdout: string; stderr: string }> {
-		this.executedCommands.push({ command, args })
+		this.executedCommands.push({ command, args, options })
 		const key = `${command} ${args.join(' ')}`
 		if (this.responses[key]) {
 			return this.responses[key]
@@ -419,23 +425,90 @@ describe('DockerManager', () => {
 		expect(status.image).toBe(GAZELLE_IMAGE)
 	})
 
-	it('starts Gazelle container when stopped or not found (BR-desktop-15)', async () => {
+	it('starts Gazelle container by cloning repo and provisioning compose stack (BR-desktop-15)', async () => {
 		const mock = new MockDockerExecutor()
-		mock.responses[
-			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
-		] = {
-			stdout: 'running|true\n',
-			stderr: '',
+		let inspectCalls = 0
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (args[0] === 'inspect') {
+				inspectCalls++
+				if (inspectCalls === 1) {
+					// Initially not found
+					throw new Error('No such container')
+				}
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			return { stdout: '', stderr: '' }
 		}
 
-		const manager = new DockerManager(mock, () => {})
+		const writtenFiles: Record<string, string> = {}
+		const manager = new DockerManager(
+			mock,
+			() => {},
+			QUI_IMAGE,
+			() => false, // repo not yet cloned
+			(filePath, content) => {
+				writtenFiles[filePath] = content
+			},
+		)
 		const status = await manager.startGazelle()
 
 		expect(status.state).toBe('running')
-		expect(mock.executedCommands.some(c => c.args[0] === 'inspect')).toBe(true)
+		expect(
+			mock.executedCommands.some(
+				c => c.command === 'git' && c.args[0] === 'clone',
+			),
+		).toBe(true)
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'compose' &&
+					c.args[1] === 'up',
+			),
+		).toBe(true)
+		expect(
+			Object.keys(writtenFiles).some(k =>
+				k.endsWith('docker-compose.override.yml'),
+			),
+		).toBe(true)
 	})
 
-	it('stops and restarts Gazelle container cleanly (BR-desktop-15)', async () => {
+	it('falls back to docker-compose binary when docker compose command is missing (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		let inspectCalls = 0
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (args[0] === 'inspect') {
+				inspectCalls++
+				if (inspectCalls === 1) {
+					throw new Error('No such container')
+				}
+				return { stdout: 'running|true\n', stderr: '' }
+			}
+			if (command === 'docker' && args[0] === 'compose') {
+				throw new Error('docker: unknown command: docker compose')
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const manager = new DockerManager(
+			mock,
+			() => {},
+			QUI_IMAGE,
+			() => true, // compose file already exists
+			() => {},
+		)
+		const status = await manager.startGazelle()
+		expect(status.state).toBe('running')
+		expect(
+			mock.executedCommands.some(
+				c => c.command === 'docker-compose' && c.args[0] === 'up',
+			),
+		).toBe(true)
+	})
+
+	it('stops and restarts Gazelle compose stack cleanly (BR-desktop-15)', async () => {
 		const mock = new MockDockerExecutor()
 		mock.responses[
 			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
@@ -444,13 +517,58 @@ describe('DockerManager', () => {
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock, () => {})
+		const manager = new DockerManager(
+			mock,
+			() => {},
+			QUI_IMAGE,
+			() => true, // compose file exists
+			() => {},
+		)
 		const stopStatus = await manager.stopGazelle()
 		expect(stopStatus.state).toBe('stopped')
-		expect(mock.executedCommands.some(c => c.args[0] === 'stop')).toBe(true)
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'compose' &&
+					c.args[1] === 'stop',
+			),
+		).toBe(true)
 
 		const restartStatus = await manager.restartGazelle()
 		expect(restartStatus.state).toBe('stopped')
-		expect(mock.executedCommands.some(c => c.args[0] === 'restart')).toBe(true)
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'compose' &&
+					c.args[1] === 'restart',
+			),
+		).toBe(true)
+	})
+
+	it('wraps Gazelle provisioning errors with helpful diagnostics (BR-desktop-15)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.exec = async (command, args) => {
+			if (args[0] === 'inspect') {
+				throw new Error('No such container')
+			}
+			if (command === 'git') {
+				throw new Error('network unreachable')
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const manager = new DockerManager(
+			mock,
+			() => {},
+			QUI_IMAGE,
+			() => false,
+			() => {},
+		)
+
+		await expect(manager.startGazelle()).rejects.toThrow(
+			'Failed to provision Gazelle companion: network unreachable',
+		)
 	})
 })

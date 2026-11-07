@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Alle Instanzen sind deaktiviert",
     "noInstancesConfigured": "Keine Instanzen konfiguriert",
     "logout": "Abmelden",
-    "version": "Version {{version}}",
     "language": "Sprache",
     "viewOnGitHub": "Auf GitHub ansehen",
     "rssRunning": "Cross-Seed-RSS läuft",
@@ -242,7 +241,8 @@
     "switchedToMode": "Zu Modus {{mode}} gewechselt",
     "switchedToTheme": "Zu Design {{theme}} gewechselt",
     "switchedToThemeVariation": "Zu Design {{theme}} ({{variation}}) gewechselt",
-    "premiumThemeError": "Dieses Design erfordert eine Lizenz. Öffne Einstellungen → Designs, um eine Lizenz zu aktivieren."
+    "premiumThemeError": "Dieses Design erfordert eine Lizenz. Öffne Einstellungen → Designs, um eine Lizenz zu aktivieren.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Update verfügbar",

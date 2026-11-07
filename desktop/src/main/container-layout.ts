@@ -26,6 +26,7 @@ export interface DockerDataDirs {
 	downloads: string
 	gazelleConfig: string
 	gazelleData: string
+	gazelleRepo: string
 }
 
 /** Host directories that survive `docker rm`. Qui keeps its account database here. */
@@ -42,6 +43,7 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 		downloads: path.join(root, 'downloads'),
 		gazelleConfig: path.join(root, 'gazelle', 'config'),
 		gazelleData: path.join(root, 'gazelle', 'data'),
+		gazelleRepo: path.join(root, 'gazelle', 'repo'),
 	}
 }
 

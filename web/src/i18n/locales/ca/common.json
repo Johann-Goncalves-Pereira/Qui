@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Totes les instàncies estan desactivades",
     "noInstancesConfigured": "No hi ha cap instància configurada",
     "logout": "Tanca la sessió",
-    "version": "Versió {{version}}",
     "language": "Idioma",
     "viewOnGitHub": "Mostra-ho a GitHub",
     "rssRunning": "RSS de cross-seed en execució",
@@ -242,7 +241,8 @@
     "switchedToMode": "S'ha canviat al mode {{mode}}",
     "switchedToTheme": "S'ha canviat al tema {{theme}}",
     "switchedToThemeVariation": "S'ha canviat al tema {{theme}} ({{variation}})",
-    "premiumThemeError": "Aquest tema necessita una llicència. Obre Configuració → Temes per activar-ne una."
+    "premiumThemeError": "Aquest tema necessita una llicència. Obre Configuració → Temes per activar-ne una.",
+    "premium": "Prèmium"
   },
   "updateBanner": {
     "updateAvailable": "Actualització disponible",

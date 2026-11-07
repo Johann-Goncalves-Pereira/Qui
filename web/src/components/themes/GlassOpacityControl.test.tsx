@@ -5,6 +5,7 @@
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import "@/i18n"
 
 import { GlassOpacityControl } from "@/components/themes/GlassOpacityControl"
 import { GLASS_DEFAULT_PERCENT, GLASS_SOLID_PERCENT } from "@/lib/glass"
