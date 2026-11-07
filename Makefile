@@ -75,11 +75,9 @@ backend: themes-fetch
 	@echo "Building backend..."
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/qui
 
-# Electron shell against Vite (expects make dev / API on :7476 and Vite on :5173).
+# Electron shell against Vite with all dependencies orchestrated in hot-reload mode.
 desktop-dev:
-	@echo "Starting Qui Desktop in hot-reload mode (QUI_DESKTOP_DEV=1)…"
-	@echo "Ensure make dev (or air + pnpm --dir web dev) is already running."
-	cd desktop && pnpm install && QUI_DESKTOP_DEV=1 pnpm run dev:app
+	./desktop-dev.sh
 
 # Rebuild qui-desktop:local, recreate container, clear Electron caches.
 desktop-refresh:

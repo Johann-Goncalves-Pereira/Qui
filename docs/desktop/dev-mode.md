@@ -14,7 +14,22 @@ Electron via `electronmon`.
   `air` / `make dev`). Companion containers are skipped so they do not bind
   `:7476`.
 
-## How to run
+## How to run (One Command)
+
+Run the unified hot-reload runner from the repository root:
+
+```bash
+./desktop-dev.sh
+# or: make desktop-dev
+```
+
+This single command automatically:
+1. Verifies/starts the backend API on `:7476` (Docker container or local Go server).
+2. Launches the Vite development server on `:5173` with React Fast Refresh / HMR.
+3. Compiles and launches Electron in dev mode with `tsc -w` and `electronmon` watching main/preload scripts.
+4. Cleanly terminates all child processes when you press `Ctrl+C`.
+
+### Manual / Split-Terminal Run (Alternative)
 
 **Terminal 1 — web + Go API (Vite on `:5173`, API on `:7476`):**
 
@@ -23,13 +38,10 @@ make dev
 # equivalent: air in one process + pnpm --dir web dev
 ```
 
-Wait until Vite reports its local URL and the backend is listening on `7476`.
-
 **Terminal 2 — Electron shell:**
 
 ```bash
-make desktop-dev
-# or: cd desktop && pnpm install && QUI_DESKTOP_DEV=1 pnpm run dev:app
+cd desktop && pnpm install && QUI_DESKTOP_DEV=1 pnpm run dev:app
 ```
 
 What that starts:
