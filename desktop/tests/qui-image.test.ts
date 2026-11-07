@@ -26,6 +26,21 @@ describe('resolveQuiImage (BR-desktop-17)', () => {
 		expect(QUI_IMAGE_RELEASE).not.toContain('autobrr/qui')
 	})
 
+	it('pins fork GHCR image to desktop version when provided', () => {
+		expect(
+			resolveQuiImage({
+				isPackaged: true,
+				version: '0.0.8',
+			}),
+		).toBe('ghcr.io/johann-goncalves-pereira/qui:0.0.8')
+		expect(
+			resolveQuiImage({
+				isPackaged: true,
+				version: 'v0.0.8',
+			}),
+		).toBe('ghcr.io/johann-goncalves-pereira/qui:0.0.8')
+	})
+
 	it('lets QUI_DESKTOP_IMAGE override packaged and local defaults', () => {
 		expect(
 			resolveQuiImage({
