@@ -56,6 +56,13 @@ RUN case "${TARGETARCH}" in \
 # Build the application
 # If binary is not pre-built, compile it
 RUN if [ ! -f "qui" ]; then \
+      if [ -z "$(ls -A internal/themes/assets/premium/*.css 2>/dev/null)" ]; then \
+        apk add --no-cache git && \
+        git clone --quiet --depth=1 --branch main --filter=blob:none --sparse https://github.com/autobrr/qui-community-themes.git .themes-temp && \
+        git -C .themes-temp sparse-checkout set --cone themes && \
+        cp .themes-temp/themes/[!_]*.css .themes-temp/LICENSE internal/themes/assets/premium/ && \
+        rm -rf .themes-temp; \
+      fi; \
       CGO_ENABLED=0 go build \
       -ldflags "-s -w -X github.com/autobrr/qui/internal/buildinfo.Version=${VERSION} -X github.com/autobrr/qui/internal/buildinfo.Commit=${GIT_COMMIT} -X github.com/autobrr/qui/internal/buildinfo.Date=${BUILD_DATE}" \
       -o qui ./cmd/qui; \

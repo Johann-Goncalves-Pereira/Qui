@@ -33,6 +33,9 @@ fi
 echo "==> make frontend"
 make frontend
 
+echo "==> make themes-fetch"
+make themes-fetch
+
 DESKTOP_PKG_VER="$(node -p "require('./desktop/package.json').version" 2>/dev/null || true)"
 VERSION="${DESKTOP_PKG_VER:-$(git describe --tags --always --dirty 2>/dev/null || echo 0.0.0)}"
 GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"

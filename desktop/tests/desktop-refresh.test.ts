@@ -33,5 +33,6 @@ describe('desktop refresh script (BR-desktop-20)', () => {
 		expect(script).toContain('--install-app')
 		expect(script).toContain('--open')
 		expect(script).toContain('docker build')
+		expect(script).toContain('make themes-fetch')
 	})
 })
