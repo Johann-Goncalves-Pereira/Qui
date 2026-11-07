@@ -54,6 +54,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - **Account**: Registration and sign-in save the username and password with Electron `safeStorage`. The next sign-in on the login page asks for Touch ID and submits that saved account. A browser session does not see the vault.
 - **Sidebar (Electron only)**: The word “qui” is omitted and the logo sits on the right of the sidebar header. The traffic lights are vertically centered with that logo while the sidebar is open. Version metadata and utility buttons are relocated to the bottom status bar footer.
 - **Status bar footer & Docker configuration**: A dedicated footer sits below `<main>`, displaying live status badges and mapped ports for `qui` (7476) and `qbittorrent-nox` (8080) alongside relocated version metadata, copyright, language picker, and GitHub links. Clicking each service opens a modal with official Docker parameters (ports, bind mounts, PUID/PGID, UMASK, log level, and restart policies) that allows users to edit and apply configurations.
+- **Checkout window (frameless modal)**: When opening DodoPayments checkout flows (support sponsorships or theme license acquisition), the auxiliary window spawns without native operating system window chrome (`frame: false`). A dedicated close ('✕') button is injected into the window preload, positioned according to host platform standards (top-left on macOS, top-right on Windows and Linux), alongside a top draggable region. When checkout redirects back to Qui with success parameters, the main window is navigated and focused, and the checkout window automatically dismisses.
 
 ## Related pages
 
@@ -96,4 +97,5 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs with official parameters.
 - `BR-web-06` in `docs/specs/catalog.md` — Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access.
 - `BR-web-07` in `docs/specs/catalog.md` — bare version display in status bar footer.
+- `BR-desktop-39` in `docs/specs/catalog.md` — frameless checkout window with platform-positioned close button.
 

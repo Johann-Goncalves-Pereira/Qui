@@ -77,6 +77,4 @@ behavior exists.
 | `BR-desktop-37` | Desktop development runner configures electronmon patterns and startup compilation synchronization, preventing duplicate emits, spurious renderer reload floods, and SIGSEGV fatal crashes during hot-reload development | docs/desktop/dev-mode.md | desktop/dev | tests/electronmon.test.ts | `asserted-unit` |
 | `BR-desktop-38` | Gazelle companion compose stack enforces restart resilience (`restart: unless-stopped`) and headless preview crash mitigation, exposing `openWebUi` in sandboxed preload bridge | docs/desktop/overview.md | desktop/docker | tests/docker.test.ts | `asserted-unit` |
 | `BR-web-14` | Status bar footer reactively displays Gazelle container indicator when companion is running and opens Gazelle WebUI on click | docs/web/electron-desktop.md | web/layout | web/src/components/layout/StatusBarFooter.test.tsx | `asserted-unit` |
-
-
-
+| `BR-desktop-39` | Checkout window removes native OS system bar and renders a single dedicated close ('✕') button positioned according to platform conventions (top-left on macOS, top-right on Windows/Linux) with top drag area | docs/desktop/overview.md | desktop/window | tests/checkout-window.test.ts | `asserted-unit` |
