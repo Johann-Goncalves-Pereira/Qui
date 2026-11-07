@@ -63,5 +63,6 @@ behavior exists.
 | `BR-web-07` | Status bar footer displays only the bare version number without a `Version` prefix or `desktop-local` fallback text | docs/desktop/versioning.md | web/layout | web/src/components/layout/StatusBarFooter.test.tsx | `asserted-unit` |
 | `BR-web-08` | Declarative React 19 `<ViewTransition>` and router view transitions seamlessly animate page navigations and action boundaries without mutating upstream component trees | docs/web/electron-desktop.md | web/transitions | web/src/components/transitions/ViewTransition.test.tsx, web/src/router.test.ts | `asserted-unit` |
 | `BR-backend-01` | Built-in SHA-256 cryptographic hash verification unlocks premium license tier for pre-authorized offline keys without external network calls or plaintext secrets | docs/backend/licensing.md | backend/licensing | internal/services/license/license_service_hash_test.go | `asserted-unit` |
+| `BR-desktop-32` | Packaged Qui Desktop embeds the version-pinned Docker image archive in `Contents/Resources/assets/` (`extraResources`), allowing instant offline zero-network first run and automatic container recreation matching the desktop version | docs/desktop/packaging.md | desktop/docker | tests/qui-image.test.ts, tests/docker.test.ts | `asserted-unit` |
 
 

@@ -5,10 +5,13 @@
 
 import { readAppVersion } from './app-version.js'
 import {
+	getVersionedQuiImage,
+	QUI_FORK_IMAGE_REPO,
 	QUI_IMAGE_LOCAL,
 	QUI_IMAGE_RELEASE,
 	quiDesktopImageArchiveName,
 	quiDesktopImageArchiveUrl,
+	quiEmbeddedImageArchiveRelativePath,
 	resolveQuiImage,
 } from './qui-image.js'
 import {
@@ -23,10 +26,13 @@ export const DEFAULT_QUI_PORT = 7476
 
 export {
 	DEFAULT_VITE_ORIGIN,
+	getVersionedQuiImage,
+	QUI_FORK_IMAGE_REPO,
 	QUI_IMAGE_LOCAL,
 	QUI_IMAGE_RELEASE,
 	quiDesktopImageArchiveName,
 	quiDesktopImageArchiveUrl,
+	quiEmbeddedImageArchiveRelativePath,
 	quiWebLoginUrl,
 	resolveQuiImage,
 	resolveQuiWebOrigin,

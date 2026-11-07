@@ -37,21 +37,46 @@ export function quiDesktopImageArchiveUrl(
 	return `https://github.com/${repo}/releases/latest/download/${name}`
 }
 
+/** Base GHCR repository path for the fork image. */
+export const QUI_FORK_IMAGE_REPO = 'ghcr.io/johann-goncalves-pereira/qui'
+
+/**
+ * Version-pinned container image tag (e.g. `ghcr.io/johann-goncalves-pereira/qui:0.0.9`).
+ * Pinning directly prevents Docker from reusing stale ':latest' images across releases.
+ */
+export function getVersionedQuiImage(version?: string): string {
+	const ver = version?.trim().replace(/^v/i, '')
+	if (ver && ver.length > 0) {
+		return `${QUI_FORK_IMAGE_REPO}:${ver}`
+	}
+	return QUI_IMAGE_RELEASE
+}
+
+/** Local asset bundle filename inside Contents/Resources/assets/ */
+export function quiEmbeddedImageArchiveRelativePath(arch: string): string {
+	return `assets/${quiDesktopImageArchiveName(arch)}`
+}
+
 export interface ResolveQuiImageOptions {
 	/** Electron `app.isPackaged`. */
 	isPackaged: boolean
 	/** `QUI_DESKTOP_IMAGE` override. */
 	envImage?: string
+	/** Packaged app version. */
+	version?: string
 }
 
 /**
- * Packaged apps pull this fork’s GHCR image. Unpackaged (dev) builds use the
- * local tag unless `QUI_DESKTOP_IMAGE` is set.
+ * Packaged apps pull or load this fork’s versioned image. Unpackaged (dev) builds
+ * use the local tag unless `QUI_DESKTOP_IMAGE` is set.
  */
 export function resolveQuiImage(options: ResolveQuiImageOptions): string {
 	const override = options.envImage?.trim()
 	if (override) {
 		return override
 	}
-	return options.isPackaged ? QUI_IMAGE_RELEASE : QUI_IMAGE_LOCAL
+	if (!options.isPackaged) {
+		return QUI_IMAGE_LOCAL
+	}
+	return getVersionedQuiImage(options.version)
 }
