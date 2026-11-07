@@ -162,4 +162,17 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		expect(info.downloadUrl).toBe('https://example.com/Qui.dmg')
 		expect(info.hasUpdate).toBe(true)
 	})
+
+	it('exposes checkForUpdates and promptUpdates on desktop preload bridge (BR-desktop-36)', async () => {
+		const fs = await import('node:fs')
+		const path = await import('node:path')
+		const cjsPath = path.resolve(__dirname, '../dist/preload/index.cjs')
+
+		expect(fs.existsSync(cjsPath)).toBe(true)
+		const content = fs.readFileSync(cjsPath, 'utf8')
+		expect(content).toContain('checkForUpdates')
+		expect(content).toContain('updater:check-app-update')
+		expect(content).toContain('promptUpdates')
+		expect(content).toContain('updater:prompt-updates')
+	})
 })
