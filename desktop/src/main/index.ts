@@ -361,6 +361,19 @@ function registerIpcHandlers(): void {
 		return promptDesktopUpdates()
 	})
 
+	ipcMain.handle('updater:apply-update', async (_event, version?: unknown) => {
+		const targetVer =
+			typeof version === 'string' && version.trim()
+				? version.trim().replace(/^v/i, '')
+				: undefined
+		return appUpdater.applyUpdate(
+			mainWindow,
+			dockerManager,
+			() => loadQuiWebUi(),
+			targetVer,
+		)
+	})
+
 	ipcMain.handle('window:set-material', async (_event, glass: unknown) => {
 		if (!mainWindow || typeof glass !== 'boolean') {
 			return

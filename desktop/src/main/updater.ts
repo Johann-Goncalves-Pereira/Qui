@@ -9,6 +9,8 @@ import {
 	APP_NAME,
 	CURRENT_APP_VERSION,
 	GITHUB_REPO,
+	getVersionedQuiImage,
+	QUI_CONTAINER_NAME,
 } from '../shared/constants.js'
 import { type AppReleaseInfo, AppReleaseInfoSchema } from '../shared/types.js'
 
@@ -170,5 +172,46 @@ export class AppReleaseUpdater {
 		}
 
 		return false
+	}
+
+	/**
+	 * Automatically applies a desktop update without external browser navigation.
+	 * Performs pre-update backup, pulls or loads the target version container image,
+	 * recreates the Qui container, and reloads the web UI.
+	 */
+	async applyUpdate(
+		_window: BrowserWindow | null,
+		dockerManager: {
+			updateAndRestartContainer: (
+				name: string,
+				image: string,
+			) => Promise<unknown>
+		},
+		loadWebUi: () => Promise<void> | void,
+		targetVersion?: string,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const info = await this.checkForUpdates()
+			const versionToApply = targetVersion || info.latestVersion
+			const targetImage = getVersionedQuiImage(versionToApply)
+
+			try {
+				await createPreUpdateBackup('desktop-update')
+			} catch {
+				// Non-fatal backup failure
+			}
+
+			await dockerManager.updateAndRestartContainer(
+				QUI_CONTAINER_NAME,
+				targetImage,
+			)
+
+			await loadWebUi()
+
+			return { success: true }
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err)
+			return { success: false, error: message }
+		}
 	}
 }
