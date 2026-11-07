@@ -10,12 +10,15 @@ Qui Desktop follows a linear semantic versioning scheme (`MAJOR.MINOR.PATCH`).
 2. **Increment on merge:** Every finished (squash-merged) feature/fix PR into
    `develop` or `main` increments the patch version (`0.0.1`, `0.0.2`, …).
 3. **Bridge Exposure:** The desktop Electron preload bridge exposes
-   `window.quiDesktop.getAppVersion()`, which reads the packaged desktop
-   application version.
-4. **Bare Display:** In the web UI status bar footer, the version is the bare
-   semver string (e.g. `0.0.2`) without a `"Version "` prefix or `"desktop-local"`.
-5. **Standalone Browser Fallback:** Without the Electron preload bridge, the web
-   app falls back to `0.0.0` or upstream `window.__QUI_VERSION__`.
+   `window.quiDesktop.getAppVersion()`, which queries the main process via
+   synchronous IPC (`app:get-version`) so the sandboxed renderer requires no
+   Node.js filesystem access.
+4. **Bare Display:** In the web UI status bar footer and mobile navigation, the
+   version is the bare semver string (e.g. `0.0.8`) without a `"Version "` prefix,
+   `"v"` prefix, or `"desktop-local"`.
+5. **Standalone Browser Fallback:** Without the Electron preload bridge (or if
+   the bridge reports initial fallback `0.0.0`), the web app falls back to
+   upstream `window.__QUI_VERSION__` (with any `v` prefix stripped), or `0.0.0`.
 
 ## $0 spend: local bump (canonical)
 

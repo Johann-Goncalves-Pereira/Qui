@@ -53,9 +53,9 @@ on `Johann-Goncalves-Pereira/Qui`.
 ## Update Docker images (Qui / qBittorrent)
 
 Packaged (downloadable) builds default the Qui **web/API** image to **this
-fork’s** GHCR package (lowercase owner/name — GHCR rejects mixed case):
+fork’s** GHCR package pinned to the application version (falling back to `latest`):
 
-`ghcr.io/johann-goncalves-pereira/qui:latest`
+`ghcr.io/johann-goncalves-pereira/qui:<version>`
 
 That image is built from **this** repository, so StatusBarFooter, Glassmorphism
 controls, Gazelle companion UI, and other desktop fork patches ship with the
