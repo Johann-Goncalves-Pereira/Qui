@@ -242,7 +242,8 @@
     "switchedToMode": "Passé en mode {{mode}}",
     "switchedToTheme": "Passé au thème {{theme}}",
     "switchedToThemeVariation": "Passé au thème {{theme}} ({{variation}})",
-    "premiumThemeError": "Ce thème nécessite une licence. Ouvrez Paramètres → Thèmes pour activer une licence."
+    "premiumThemeError": "Ce thème nécessite une licence. Ouvrez Paramètres → Thèmes pour activer une licence.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Mise à jour disponible",

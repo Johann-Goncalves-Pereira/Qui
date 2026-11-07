@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ExternalLink, Loader2, Play, RotateCw, Server, Square } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 interface DockerContainerStatus {
   name: string
@@ -27,6 +28,7 @@ export function GazelleDockerControl() {
 }
 
 function GazelleDockerControlInner() {
+  const { t } = useTranslation("settings")
   const [status, setStatus] = useState<DockerContainerStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionPending, setActionPending] = useState(false)
@@ -109,23 +111,23 @@ function GazelleDockerControlInner() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Server className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Gazelle Docker Companion</span>
+          <span className="text-sm font-medium">{t("gazelle.companionTitle")}</span>
           {loading ? (
             <Badge variant="outline" className="text-xs">
               <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              Checking...
+              {t("gazelle.checking")}
             </Badge>
           ) : isRunning ? (
             <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs">
-              Running (:7001)
+              {t("gazelle.running")}
             </Badge>
           ) : isStopped ? (
             <Badge variant="secondary" className="text-xs">
-              Stopped
+              {t("gazelle.stopped")}
             </Badge>
           ) : (
             <Badge variant="outline" className="text-xs">
-              Not Installed
+              {t("gazelle.notInstalled")}
             </Badge>
           )}
         </div>
@@ -138,10 +140,10 @@ function GazelleDockerControlInner() {
                 variant="outline"
                 size="sm"
                 onClick={handleOpenWeb}
-                title="Open Gazelle WebUI (http://localhost:7001)"
+                title={t("gazelle.openWebUiTitle")}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Open WebUI
+                {t("gazelle.openWebUi")}
               </Button>
               <Button
                 type="button"
@@ -149,10 +151,10 @@ function GazelleDockerControlInner() {
                 size="sm"
                 disabled={actionPending}
                 onClick={handleRestart}
-                title="Restart Gazelle container"
+                title={t("gazelle.restartContainerTitle")}
               >
                 <RotateCw className={`h-3.5 w-3.5 ${actionPending ? "animate-spin" : ""}`} />
-                Restart
+                {t("gazelle.restart")}
               </Button>
               <Button
                 type="button"
@@ -160,10 +162,10 @@ function GazelleDockerControlInner() {
                 size="sm"
                 disabled={actionPending}
                 onClick={handleStop}
-                title="Stop Gazelle container"
+                title={t("gazelle.stopContainerTitle")}
               >
                 <Square className="h-3.5 w-3.5" />
-                Stop
+                {t("gazelle.stop")}
               </Button>
             </>
           )}
@@ -181,19 +183,19 @@ function GazelleDockerControlInner() {
               ) : (
                 <Play className="h-3.5 w-3.5 mr-1" />
               )}
-              {isStopped ? "Start Gazelle" : "Install & Run Gazelle"}
+              {isStopped ? t("gazelle.start") : t("gazelle.installAndRun")}
             </Button>
           )}
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Deploy a local OPSnet/Gazelle tracker stack mapped to port 7001 with persistent state in the desktop data directory.
+        {t("gazelle.companionDescription")}
       </p>
 
       {actionPending && isNotFound && (
         <p className="text-xs text-muted-foreground italic">
-          Cloning OPSnet/Gazelle repository and building Docker Compose containers... this may take several minutes on initial install.
+          {t("gazelle.initialInstallNotice")}
         </p>
       )}
 

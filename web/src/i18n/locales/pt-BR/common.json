@@ -242,7 +242,8 @@
     "switchedToMode": "Alterado para o modo {{mode}}",
     "switchedToTheme": "Alterado para o tema {{theme}}",
     "switchedToThemeVariation": "Alterado para o tema {{theme}} ({{variation}})",
-    "premiumThemeError": "Este tema precisa de uma licença. Abra Configurações → Temas para ativar uma licença."
+    "premiumThemeError": "Este tema precisa de uma licença. Abra Configurações → Temas para ativar uma licença.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Atualização Disponível",

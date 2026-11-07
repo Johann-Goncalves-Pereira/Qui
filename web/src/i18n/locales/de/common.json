@@ -242,7 +242,8 @@
     "switchedToMode": "Zu Modus {{mode}} gewechselt",
     "switchedToTheme": "Zu Design {{theme}} gewechselt",
     "switchedToThemeVariation": "Zu Design {{theme}} ({{variation}}) gewechselt",
-    "premiumThemeError": "Dieses Design erfordert eine Lizenz. Öffne Einstellungen → Designs, um eine Lizenz zu aktivieren."
+    "premiumThemeError": "Dieses Design erfordert eine Lizenz. Öffne Einstellungen → Designs, um eine Lizenz zu aktivieren.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Update verfügbar",

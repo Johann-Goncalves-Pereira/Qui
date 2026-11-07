@@ -242,7 +242,8 @@
     "switchedToMode": "Přepnuto na {{mode}} režim",
     "switchedToTheme": "Přepnuto na {{theme}} vzhled",
     "switchedToThemeVariation": "Přepnuto na {{theme}} vzhled ({{variation}})",
-    "premiumThemeError": "Tento vzhled vyžaduje licenci. Otevřete Nastavení → Motivy pro aktivaci licence."
+    "premiumThemeError": "Tento vzhled vyžaduje licenci. Otevřete Nastavení → Motivy pro aktivaci licence.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Aktualizace dostupná",

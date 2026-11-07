@@ -50,7 +50,7 @@ export function findLegacyPluralKeys(localesRoot = defaultLocalesRoot) {
 }
 
 /** ESM main check; realpath avoids `/var` vs `/private/var` mismatch on macOS. */
-let runAsMain = false
+let runAsMain
 try {
 	runAsMain =
 		process.argv[1] != null &&

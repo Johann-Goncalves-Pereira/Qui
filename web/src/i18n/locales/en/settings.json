@@ -1012,7 +1012,22 @@
     "enableToConfigure": "Enable to configure",
     "redDescription": "Used for redacted.sh lookups. Paste to replace; clear to remove.",
     "opsDescription": "Used for orpheus.network lookups. Paste to replace; clear to remove.",
-    "save": "Save"
+    "save": "Save",
+    "companionTitle": "Gazelle Docker Companion",
+    "checking": "Checking...",
+    "running": "Running (:7001)",
+    "stopped": "Stopped",
+    "notInstalled": "Not Installed",
+    "openWebUiTitle": "Open Gazelle WebUI (http://localhost:7001)",
+    "openWebUi": "Open WebUI",
+    "restartContainerTitle": "Restart Gazelle container",
+    "restart": "Restart",
+    "stopContainerTitle": "Stop Gazelle container",
+    "stop": "Stop",
+    "start": "Start Gazelle",
+    "installAndRun": "Install & Run Gazelle",
+    "companionDescription": "Deploy a local OPSnet/Gazelle tracker stack mapped to port 7001 with persistent state in the desktop data directory.",
+    "initialInstallNotice": "Cloning OPSnet/Gazelle repository and building Docker Compose containers... this may take several minutes on initial install."
   },
   "searchCache": {
     "title": "Search Cache",

@@ -242,7 +242,8 @@
     "switchedToMode": "S'ha canviat al mode {{mode}}",
     "switchedToTheme": "S'ha canviat al tema {{theme}}",
     "switchedToThemeVariation": "S'ha canviat al tema {{theme}} ({{variation}})",
-    "premiumThemeError": "Aquest tema necessita una llicència. Obre Configuració → Temes per activar-ne una."
+    "premiumThemeError": "Aquest tema necessita una llicència. Obre Configuració → Temes per activar-ne una.",
+    "premium": "Prèmium"
   },
   "updateBanner": {
     "updateAvailable": "Actualització disponible",

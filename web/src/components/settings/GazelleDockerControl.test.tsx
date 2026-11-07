@@ -5,6 +5,7 @@
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import "@/i18n"
 import { GazelleDockerControl } from "./GazelleDockerControl"
 
 describe("GazelleDockerControl (BR-desktop-15)", () => {

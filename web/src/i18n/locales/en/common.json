@@ -242,7 +242,8 @@
     "switchedToMode": "Switched to {{mode}} mode",
     "switchedToTheme": "Switched to {{theme}} theme",
     "switchedToThemeVariation": "Switched to {{theme}} theme ({{variation}})",
-    "premiumThemeError": "This theme needs a license. Open Settings → Themes to activate one."
+    "premiumThemeError": "This theme needs a license. Open Settings → Themes to activate one.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Update Available",
