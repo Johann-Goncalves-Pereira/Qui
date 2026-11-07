@@ -163,7 +163,7 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		expect(info.hasUpdate).toBe(true)
 	})
 
-	it('exposes checkForUpdates, promptUpdates, and applyUpdate on desktop preload bridge (BR-desktop-36, BR-desktop-40)', async () => {
+	it('exposes checkForUpdates, promptUpdates, and applyUpdate on desktop preload bridge (BR-desktop-36, BR-desktop-41)', async () => {
 		const fs = await import('node:fs')
 		const path = await import('node:path')
 		const cjsPath = path.resolve(__dirname, '../dist/preload/index.cjs')
@@ -178,7 +178,7 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		expect(content).toContain('updater:apply-update')
 	})
 
-	it('applyUpdate performs automated container synchronization and UI reload without external browser navigation (BR-desktop-40)', async () => {
+	it('applyUpdate performs automated container synchronization and UI reload without external browser navigation (BR-desktop-41)', async () => {
 		const mockFetcher: ReleaseFetcher = {
 			fetchLatest: async () => ({
 				tag_name: 'v0.0.17',

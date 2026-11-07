@@ -1083,7 +1083,12 @@
         "upToDate": "Aktuell",
         "upToDateDetail": "Neueste Version läuft",
         "notCheckedYet": "Noch nicht geprüft",
-        "lastChecked": "Zuletzt geprüft {{date}}"
+        "lastChecked": "Zuletzt geprüft {{date}}",
+        "managedByDesktop": "Vom Desktop verwaltet",
+        "managedByDesktopDetail": "Updates und Container-Lebenszyklen werden von Qui Desktop verwaltet"
+      },
+      "actions": {
+        "checkForUpdates": "Nach Updates suchen"
       }
     },
     "restart": {

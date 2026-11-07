@@ -766,7 +766,7 @@ function ApplicationInfoPanel({ openUpdate, onUpdateOpened }: { openUpdate: bool
       onClick={handleDesktopUpdateCheck}
     >
       <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", checkingDesktopUpdate && "animate-spin")} />
-      {t("application.build.actions.checkForUpdates", { defaultValue: "Check for Updates" })}
+      {t("application.build.actions.checkForUpdates")}
     </Button>
   ) : latestVersionQuery.data && (
     <InstallUpdateButton selfUpdate={selfUpdate} release={latestVersionQuery.data} className="shrink-0" />

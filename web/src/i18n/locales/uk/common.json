@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Контейнер Qui ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Docker.",
     "tooltipQbit": "Контейнер qBittorrent-nox ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Docker.",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Companion Gazelle ({{state}}) на порту {{port}}. Натисніть, щоб відкрити WebUI."
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "Доступне оновлення",
     "versionAvailable": "Версія {{version}} тепер доступна",
-    "dismiss": "Закрити"
+    "dismiss": "Закрити",
+    "desktopUpdateAvailable": "Доступне оновлення Qui Desktop",
+    "reviewAndUpdate": "Переглянути й оновити"
   },
   "pwaUpdate": {
     "reload": "Перезавантажити",
@@ -350,5 +354,21 @@
   },
   "labels": {
     "path": "Шлях"
+  },
+  "desktopUpdate": {
+    "title": "Доступне оновлення Qui Desktop",
+    "subtitle": "Версія {{version}} готова до завантаження та встановлення. Поточна версія: {{current}}.",
+    "whatsNew": "Що нового в {{version}}",
+    "noChangelog": "Покращення продуктивності, виправлення помилок і обслуговування.",
+    "dataSafetyTitle": "Безпека даних і резервні копії перед оновленням",
+    "backupNotice": "Перед оновленням архівується знімок резервної копії.",
+    "storageNotice": "Налаштування бази даних, дані торентів і сховища зберігаються.",
+    "inProgress": "Завантаження оновлення та оновлення контейнера Qui... Інтерфейс автоматично перезавантажиться.",
+    "applied": "Оновлення успішно застосовано! Вебінтерфейс оновлюється...",
+    "failed": "Не вдалося застосувати оновлення.",
+    "later": "Пізніше",
+    "updating": "Оновлення...",
+    "done": "Готово",
+    "downloadAndUpdate": "Завантажити й оновити"
   }
 }

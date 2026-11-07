@@ -13,7 +13,7 @@ const repoRoot = path.resolve(
 	'../..',
 )
 
-describe('desktop-publish-release-local (BR-desktop-39)', () => {
+describe('desktop-publish-release-local (BR-desktop-40)', () => {
 	it("generates release notes containing ## What's Changed parsed from git history", () => {
 		const script = readFileSync(
 			path.join(repoRoot, 'scripts/desktop-publish-release-local'),

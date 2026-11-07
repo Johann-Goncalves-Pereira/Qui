@@ -1083,7 +1083,12 @@
         "upToDate": "À jour",
         "upToDateDetail": "Utilise la dernière version",
         "notCheckedYet": "Pas encore vérifié",
-        "lastChecked": "Dernière vérification {{date}}"
+        "lastChecked": "Dernière vérification {{date}}",
+        "managedByDesktop": "Géré par le Desktop",
+        "managedByDesktopDetail": "Les mises à jour et le cycle de vie des conteneurs sont gérés par Qui Desktop"
+      },
+      "actions": {
+        "checkForUpdates": "Rechercher des mises à jour"
       }
     },
     "restart": {

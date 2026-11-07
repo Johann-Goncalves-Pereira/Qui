@@ -154,9 +154,9 @@ The sandboxed Electron preload bridge (`window.quiDesktop`) exposes:
 ## Web UI Multilayer Integration (`BR-web-13`)
 
 - **Settings Page:** Under "Application → Update Status", desktop-managed environments render a dedicated **[Check for Updates]** button triggering `window.quiDesktop.promptUpdates()`.
-- **Update Banner:** When a newer desktop release is available, `UpdateBanner.tsx` renders a desktop update notice and a **[Review & Update]** button calling `promptUpdates()`. Upstream self-update container modals are completely bypassed in desktop mode.
+- **Update Banner:** When a newer desktop release is available, `UpdateBanner.tsx` renders a desktop update notice and a **[Review & Update]** button that opens the in-app `DesktopUpdateDialog` (`BR-web-15`). Upstream self-update container modals are completely bypassed in desktop mode.
 
-## Automated Release Changelog Generation (`BR-desktop-39`)
+## Automated Release Changelog Generation (`BR-desktop-40`)
 
 Releases created via `scripts/desktop-publish-release-local` automatically parse commits and merged pull requests since the previous release tag (`git describe --tags --abbrev=0 "${TAG}^"`). The resulting `## What's Changed` section is written directly into the GitHub Release body, ensuring every new version explicitly describes bug fixes, features, and chores.
 
@@ -169,7 +169,7 @@ Instead of dropping an OS alert sheet (`dialog.showMessageBox`), clicking "Revie
 - Data safety and pre-update snapshot backup guarantees
 - Actions: **Later** and **Download & Update**
 
-## Automated In-App Download & Container Synchronization (`BR-desktop-40`)
+## Automated In-App Download & Container Synchronization (`BR-desktop-41`)
 
 When the user initiates **Download & Update**, the application never redirects externally to the GitHub release page. Instead:
 1. `window.quiDesktop.applyUpdate()` initiates the update sequence in-app.
@@ -197,7 +197,7 @@ When the user initiates **Download & Update**, the application never redirects e
 - `BR-backend-03` — backend release source pointed to fork repo via direct GitHub API.
 - `BR-desktop-36` — preload bridge exposure of checkForUpdates and promptUpdates.
 - `BR-web-13` — Settings and UpdateBanner routing to desktop multilayer engine.
-- `BR-desktop-39` — automated release changelog generation on version bump.
-- `BR-desktop-40` — automated in-app download and container update via applyUpdate.
+- `BR-desktop-40` — automated release changelog generation on version bump.
+- `BR-desktop-41` — automated in-app download and container update via applyUpdate.
 - `BR-web-15` — in-app DesktopUpdateDialog with changelog replacing OS alert sheet.
 

@@ -112,7 +112,8 @@ export class AppReleaseUpdater {
 				downloadUrl: downloadUrl || undefined,
 				publishedAt: String(data.published_at ?? new Date().toISOString()),
 			})
-		} catch {
+		} catch (err) {
+			console.warn('AppReleaseUpdater.checkForUpdates failed:', err)
 			return Schema.decodeUnknownSync(AppReleaseInfoSchema)({
 				hasUpdate: false,
 				currentVersion: this.currentVersion,
@@ -163,8 +164,8 @@ export class AppReleaseUpdater {
 		if (response === 0) {
 			try {
 				await createPreUpdateBackup('desktop-shell')
-			} catch {
-				// Non-fatal backup attempt
+			} catch (err) {
+				console.warn('Pre-update backup failed (desktop-shell):', err)
 			}
 			const targetUrl = info.downloadUrl || info.htmlUrl
 			await shell.openExternal(targetUrl)
@@ -197,8 +198,8 @@ export class AppReleaseUpdater {
 
 			try {
 				await createPreUpdateBackup('desktop-update')
-			} catch {
-				// Non-fatal backup failure
+			} catch (err) {
+				console.warn('Pre-update backup failed (desktop-update):', err)
 			}
 
 			await dockerManager.updateAndRestartContainer(

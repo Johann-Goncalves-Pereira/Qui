@@ -1080,7 +1080,12 @@
         "upToDate": "已是最新",
         "upToDateDetail": "正在執行最新版本",
         "notCheckedYet": "尚未檢查",
-        "lastChecked": "上次檢查 {{date}}"
+        "lastChecked": "上次檢查 {{date}}",
+        "managedByDesktop": "由 Desktop 管理",
+        "managedByDesktopDetail": "更新與容器生命週期由 Qui Desktop 管理"
+      },
+      "actions": {
+        "checkForUpdates": "檢查更新"
       }
     },
     "restart": {

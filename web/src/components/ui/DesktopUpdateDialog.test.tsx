@@ -9,7 +9,8 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { DesktopUpdateDialog } from "@/components/ui/DesktopUpdateDialog"
 
 const i18n = vi.hoisted(() => ({
-  t: (key: string, options?: Record<string, unknown>) => [key, ...Object.values(options ?? {})].join(" "),
+  t: (key: string, options?: Record<string, unknown>) =>
+    [key, ...Object.values(options ?? {})].join(" "),
 }))
 vi.mock("react-i18next", () => ({ useTranslation: () => i18n }))
 
@@ -35,11 +36,11 @@ describe("DesktopUpdateDialog (BR-web-15)", () => {
       />
     )
 
-    expect(screen.getByText(/Qui Desktop Update Available/i)).toBeTruthy()
+    expect(screen.getByText(/desktopUpdate\.title/)).toBeTruthy()
     expect(screen.getAllByText(/v0\.0\.16/i).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(/Fix: Gazelle Companion Lifecycle/i)).toBeTruthy()
-    expect(screen.getByText(/Pre-update backup snapshot/i)).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Download & Update/i })).toBeTruthy()
+    expect(screen.getByText(/desktopUpdate\.backupNotice/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: /desktopUpdate\.downloadAndUpdate/ })).toBeTruthy()
   })
 
   it("calls window.quiDesktop.applyUpdate when user confirms update", async () => {
@@ -63,10 +64,10 @@ describe("DesktopUpdateDialog (BR-web-15)", () => {
       />
     )
 
-    const updateBtn = screen.getByRole("button", { name: /Download & Update/i })
+    const updateBtn = screen.getByRole("button", { name: /desktopUpdate\.downloadAndUpdate/ })
     updateBtn.click()
 
     expect(applyUpdate).toHaveBeenCalledWith("0.0.16")
-    expect(await screen.findByText(/Updating Qui container/i)).toBeTruthy()
+    expect(await screen.findByText(/desktopUpdate\.inProgress/)).toBeTruthy()
   })
 })

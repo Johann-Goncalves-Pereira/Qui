@@ -1086,7 +1086,12 @@
         "upToDate": "Aktuální",
         "upToDateDetail": "Spouští se nejnovější verze",
         "notCheckedYet": "Neprovedený test pouze",
-        "lastChecked": "Poslední kontrola {{date}}"
+        "lastChecked": "Poslední kontrola {{date}}",
+        "managedByDesktop": "Spravováno Desktopem",
+        "managedByDesktopDetail": "Aktualizace a životní cykly kontejnerů spravuje Qui Desktop"
+      },
+      "actions": {
+        "checkForUpdates": "Zkontrolovat aktualizace"
       }
     },
     "restart": {

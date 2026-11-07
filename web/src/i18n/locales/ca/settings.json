@@ -1083,7 +1083,12 @@
         "upToDate": "Al dia",
         "upToDateDetail": "S'està executant l'última versió",
         "notCheckedYet": "Encara no s'ha comprovat",
-        "lastChecked": "Última comprovació: {{date}}"
+        "lastChecked": "Última comprovació: {{date}}",
+        "managedByDesktop": "Gestionat pel Desktop",
+        "managedByDesktopDetail": "Les actualitzacions i els cicles de vida dels contenidors els gestiona Qui Desktop"
+      },
+      "actions": {
+        "checkForUpdates": "Comprova actualitzacions"
       }
     },
     "restart": {

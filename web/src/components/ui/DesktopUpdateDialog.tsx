@@ -55,7 +55,7 @@ export function DesktopUpdateDialog({
       setError(null)
       const res = await window.quiDesktop.applyUpdate(updateInfo.latestVersion)
       if (!res.success) {
-        setError(res.error || t("desktopUpdate.failed", { defaultValue: "Failed to apply update." }))
+        setError(res.error || t("desktopUpdate.failed"))
         setUpdating(false)
         return
       }
@@ -80,13 +80,12 @@ export function DesktopUpdateDialog({
             </div>
             <div>
               <DialogTitle className="text-base font-semibold">
-                {t("desktopUpdate.title", { defaultValue: "Qui Desktop Update Available" })}
+                {t("desktopUpdate.title")}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
                 {t("desktopUpdate.subtitle", {
                   version: versionTag,
                   current: `v${updateInfo.currentVersion}`,
-                  defaultValue: `Version ${versionTag} is ready to download and install. Current version is v${updateInfo.currentVersion}.`,
                 })}
               </DialogDescription>
             </div>
@@ -94,73 +93,50 @@ export function DesktopUpdateDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Release Notes / Changelog */}
           <div className="space-y-1.5">
             <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {t("desktopUpdate.whatsNew", { defaultValue: `What's New in ${versionTag}` })}
+              {t("desktopUpdate.whatsNew", { version: versionTag })}
             </h4>
             <div className="max-h-56 overflow-y-auto rounded-md border bg-muted/40 p-3 text-xs leading-relaxed text-foreground whitespace-pre-wrap font-sans">
               {updateInfo.body && updateInfo.body.trim().length > 0 ? (
                 updateInfo.body
               ) : (
                 <span className="text-muted-foreground italic">
-                  {t("desktopUpdate.noChangelog", {
-                    defaultValue: "Performance improvements, bug fixes, and maintenance updates.",
-                  })}
+                  {t("desktopUpdate.noChangelog")}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Data Safety & Backup Guarantees */}
           <div className="rounded-md border border-blue-500/20 bg-blue-500/5 p-3 text-xs text-blue-700 dark:text-blue-300">
             <div className="flex items-start gap-2">
               <ShieldCheck className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
               <div className="space-y-1">
                 <p className="font-medium">
-                  {t("desktopUpdate.dataSafetyTitle", { defaultValue: "Data Safety & Pre-Update Backups" })}
+                  {t("desktopUpdate.dataSafetyTitle")}
                 </p>
                 <ul className="list-disc pl-4 space-y-0.5 text-xs text-muted-foreground">
-                  <li>
-                    {t("desktopUpdate.backupNotice", {
-                      defaultValue: "Pre-update backup snapshot is archived before updating.",
-                    })}
-                  </li>
-                  <li>
-                    {t("desktopUpdate.storageNotice", {
-                      defaultValue: "All database settings, torrent data, and vaults are safely preserved.",
-                    })}
-                  </li>
+                  <li>{t("desktopUpdate.backupNotice")}</li>
+                  <li>{t("desktopUpdate.storageNotice")}</li>
                 </ul>
               </div>
             </div>
           </div>
 
-          {/* Updating / In-Progress State */}
           {updating && (
             <div className="flex items-center gap-2.5 rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
               <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-              <p>
-                {t("desktopUpdate.inProgress", {
-                  defaultValue: "Downloading update and updating Qui container... Interface will automatically reload momentarily.",
-                })}
-              </p>
+              <p>{t("desktopUpdate.inProgress")}</p>
             </div>
           )}
 
-          {/* Success State */}
           {success && (
             <div className="flex items-center gap-2 rounded-md border border-green-500/20 bg-green-500/10 p-3 text-xs text-green-800 dark:text-green-200">
               <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
-              <p>
-                {t("desktopUpdate.applied", {
-                  defaultValue: "Update applied successfully! Web interface is refreshing...",
-                })}
-              </p>
+              <p>{t("desktopUpdate.applied")}</p>
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -177,7 +153,7 @@ export function DesktopUpdateDialog({
             disabled={updating}
             onClick={() => onOpenChange(false)}
           >
-            {t("desktopUpdate.later", { defaultValue: "Later" })}
+            {t("desktopUpdate.later")}
           </Button>
 
           <Button
@@ -190,17 +166,17 @@ export function DesktopUpdateDialog({
             {updating ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {t("desktopUpdate.updating", { defaultValue: "Updating..." })}
+                {t("desktopUpdate.updating")}
               </>
             ) : success ? (
               <>
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                {t("desktopUpdate.done", { defaultValue: "Done" })}
+                {t("desktopUpdate.done")}
               </>
             ) : (
               <>
                 <Download className="h-3.5 w-3.5" />
-                {t("desktopUpdate.downloadAndUpdate", { defaultValue: "Download & Update" })}
+                {t("desktopUpdate.downloadAndUpdate")}
               </>
             )}
           </Button>

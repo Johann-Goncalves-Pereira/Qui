@@ -65,12 +65,11 @@ export function UpdateBanner() {
             <Download className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                {t("updateBanner.desktopUpdateAvailable", { defaultValue: "Qui Desktop Update Available" })}
+                {t("updateBanner.desktopUpdateAvailable")}
               </p>
               <p className="text-xs text-green-700 dark:text-green-300 mt-1">
                 {t("updateBanner.versionAvailable", {
                   version: desktopUpdate.tagName || `v${desktopUpdate.latestVersion}`,
-                  defaultValue: `Version ${desktopUpdate.tagName || `v${desktopUpdate.latestVersion}`} is now available`,
                 })}
               </p>
               <div className="mt-2">
@@ -83,7 +82,7 @@ export function UpdateBanner() {
                   }}
                 >
                   <Download className="mr-1.5 h-3 w-3" />
-                  {t("updateBanner.reviewAndUpdate", { defaultValue: "Review & Update" })}
+                  {t("updateBanner.reviewAndUpdate")}
                 </Button>
               </div>
             </div>

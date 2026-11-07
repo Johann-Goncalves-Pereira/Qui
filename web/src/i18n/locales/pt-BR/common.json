@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Contêiner Qui ({{state}}) na porta {{port}}. Clique para configurar o Docker.",
     "tooltipQbit": "Contêiner qBittorrent-nox ({{state}}) na porta {{port}}. Clique para configurar o Docker.",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Companheiro Gazelle ({{state}}) na porta {{port}}. Clique para abrir a WebUI."
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "Atualização Disponível",
     "versionAvailable": "A versão {{version}} já está disponível",
-    "dismiss": "Dispensar"
+    "dismiss": "Dispensar",
+    "desktopUpdateAvailable": "Atualização do Qui Desktop disponível",
+    "reviewAndUpdate": "Revisar e atualizar"
   },
   "pwaUpdate": {
     "reload": "Recarregar",
@@ -336,5 +340,21 @@
   },
   "labels": {
     "path": "Caminho"
+  },
+  "desktopUpdate": {
+    "title": "Atualização do Qui Desktop disponível",
+    "subtitle": "A versão {{version}} está pronta para baixar e instalar. A versão atual é {{current}}.",
+    "whatsNew": "Novidades em {{version}}",
+    "noChangelog": "Melhorias de desempenho, correções de bugs e manutenção.",
+    "dataSafetyTitle": "Segurança dos dados e backups pré-atualização",
+    "backupNotice": "Um snapshot de backup pré-atualização é arquivado antes de atualizar.",
+    "storageNotice": "Configurações do banco, dados de torrents e vaults são preservados com segurança.",
+    "inProgress": "Baixando a atualização e atualizando o container Qui... A interface será recarregada automaticamente em breve.",
+    "applied": "Atualização aplicada com sucesso! A interface web está atualizando...",
+    "failed": "Falha ao aplicar a atualização.",
+    "later": "Depois",
+    "updating": "Atualizando...",
+    "done": "Concluído",
+    "downloadAndUpdate": "Baixar e atualizar"
   }
 }
