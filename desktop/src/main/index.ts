@@ -42,8 +42,10 @@ import {
 	MagnetManager,
 	registerMagnetProtocolHandler,
 } from './magnet.js'
+import { registerApplicationMenu } from './menu.js'
 import { openWrappedQui, waitForQuiHttpReady } from './qui-ready.js'
 import { startupPageUrl } from './startup-page.js'
+import { computeStatsPollInterval } from './stats-polling.js'
 import { AppTray } from './tray.js'
 import { AppReleaseUpdater } from './updater.js'
 import {
@@ -59,8 +61,36 @@ const DismissedDigestsSchema = Schema.Record({
 
 let mainWindow: BrowserWindow | null = null
 let tray: AppTray | null = null
-let statsInterval: NodeJS.Timeout | null = null
 let isQuitting = false
+let statsTimeout: NodeJS.Timeout | null = null
+
+function scheduleNextStatsPoll(): void {
+	if (isQuitting) {
+		return
+	}
+	if (statsTimeout) {
+		clearTimeout(statsTimeout)
+		statsTimeout = null
+	}
+	const delay = computeStatsPollInterval(
+		mainWindow
+			? {
+					destroyed: mainWindow.isDestroyed(),
+					visible: mainWindow.isVisible(),
+					minimized: mainWindow.isMinimized(),
+				}
+			: null,
+	)
+
+	statsTimeout = setTimeout(async () => {
+		try {
+			const stats = await apiClient.getTransferStats()
+			if (tray) tray.updateStats(stats)
+		} finally {
+			scheduleNextStatsPoll()
+		}
+	}, delay)
+}
 
 const desktopDev = process.env.QUI_DESKTOP_DEV === '1'
 const quiWebOrigin = resolveQuiWebOrigin({
@@ -200,11 +230,14 @@ async function loadQuiWebUi(): Promise<void> {
 			if (pendingAddUrl && mainWindow) {
 				void mainWindow.loadURL(pendingAddUrl)
 			}
-			await checkAndPromptDockerUpdates()
-			const appRelease = await appUpdater.checkForUpdates()
-			if (appRelease.hasUpdate && mainWindow) {
-				await appUpdater.promptUpdateIfAvailable(mainWindow, appRelease)
-			}
+			// Non-blocking background check for Docker & app updates
+			void (async () => {
+				await checkAndPromptDockerUpdates()
+				const appRelease = await appUpdater.checkForUpdates()
+				if (appRelease.hasUpdate && mainWindow) {
+					await appUpdater.promptUpdateIfAvailable(mainWindow, appRelease)
+				}
+			})()
 		}
 	})()
 	return openingQui
@@ -440,6 +473,68 @@ async function bootstrapApp(): Promise<void> {
 	registerIpcHandlers()
 	mainWindow = createMainWindow()
 
+	registerApplicationMenu({
+		desktopDev,
+		quiWebOrigin,
+		getMainWindow: () => mainWindow,
+		callbacks: {
+			onAddTorrent: () => {
+				if (mainWindow) {
+					if (mainWindow.isMinimized()) mainWindow.restore()
+					mainWindow.show()
+					mainWindow.focus()
+					if (magnetManager.isQuiReady()) {
+						void mainWindow.loadURL(`${quiWebOrigin}/add`)
+					}
+				}
+			},
+			onPauseAll: async () => {
+				await apiClient.pauseAll()
+			},
+			onResumeAll: async () => {
+				await apiClient.resumeAll()
+			},
+			onOpenDownloadsFolder: () => {
+				const dirs = dockerDataDirs(homedir(), process.platform)
+				void shell.openPath(dirs.downloads)
+			},
+			onOpenQuiConfigFolder: () => {
+				const dirs = dockerDataDirs(homedir(), process.platform)
+				void shell.openPath(dirs.quiConfig)
+			},
+			onOpenQbitConfigFolder: () => {
+				const dirs = dockerDataDirs(homedir(), process.platform)
+				void shell.openPath(dirs.qbitConfig)
+			},
+			onCheckAppUpdates: async () => {
+				const info = await appUpdater.checkForUpdates()
+				await appUpdater.promptUpdateIfAvailable(mainWindow, info)
+			},
+			onCheckDockerUpdates: async () => {
+				await checkAndPromptDockerUpdates({ force: true })
+			},
+			onNavigateSettings: () => {
+				if (mainWindow) {
+					if (mainWindow.isMinimized()) mainWindow.restore()
+					mainWindow.show()
+					mainWindow.focus()
+					void mainWindow.loadURL(`${quiWebOrigin}/settings`)
+				}
+			},
+			onNavigateTorrents: () => {
+				if (mainWindow) {
+					if (mainWindow.isMinimized()) mainWindow.restore()
+					mainWindow.show()
+					mainWindow.focus()
+					void mainWindow.loadURL(`${quiWebOrigin}/torrents`)
+				}
+			},
+			onReloadQui: () => {
+				void loadQuiWebUi()
+			},
+		},
+	})
+
 	tray = new AppTray(mainWindow, {
 		onShowApp: () => {
 			if (mainWindow) {
@@ -481,24 +576,28 @@ async function bootstrapApp(): Promise<void> {
 
 	void loadQuiWebUi()
 
-	statsInterval = setInterval(async () => {
-		const stats = await apiClient.getTransferStats()
-		if (tray) tray.updateStats(stats)
-	}, 2000)
+	scheduleNextStatsPoll()
+
+	mainWindow.on('show', () => scheduleNextStatsPoll())
+	mainWindow.on('focus', () => scheduleNextStatsPoll())
+	mainWindow.on('hide', () => scheduleNextStatsPoll())
+	mainWindow.on('minimize', () => scheduleNextStatsPoll())
+	mainWindow.on('restore', () => scheduleNextStatsPoll())
 
 	mainWindow.on('close', event => {
 		if (!isQuitting) {
 			event.preventDefault()
 			mainWindow?.hide()
+			scheduleNextStatsPoll()
 		}
 	})
 }
 
 app.on('before-quit', () => {
 	isQuitting = true
-	if (statsInterval) {
-		clearInterval(statsInterval)
-		statsInterval = null
+	if (statsTimeout) {
+		clearTimeout(statsTimeout)
+		statsTimeout = null
 	}
 	if (tray) {
 		tray.destroy()

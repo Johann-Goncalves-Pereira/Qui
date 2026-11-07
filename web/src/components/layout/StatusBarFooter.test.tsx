@@ -16,7 +16,7 @@ vi.mock("@/contexts/MobileScrollContext", () => ({
 }))
 
 vi.mock("@/lib/build-info", () => ({
-  getAppVersion: () => "desktop-local",
+  getAppVersion: () => "0.0.0",
 }))
 
 function renderWithProviders() {
@@ -27,7 +27,7 @@ function renderWithProviders() {
   )
 }
 
-describe("StatusBarFooter component (BR-web-03)", () => {
+describe("StatusBarFooter component (BR-web-03, BR-web-07)", () => {
   beforeEach(async () => {
     await initI18n()
     await changeLanguage("en")
@@ -46,12 +46,13 @@ describe("StatusBarFooter component (BR-web-03)", () => {
     vi.clearAllMocks()
   })
 
-  it("renders container indicator buttons with ports and relocated version metadata", () => {
+  it("renders container indicator buttons with ports and relocated bare version metadata", () => {
     renderWithProviders()
 
     expect(screen.getByText("qui:7476")).toBeDefined()
     expect(screen.getByText("qbittorrent:8080")).toBeDefined()
-    expect(screen.getByText("Version desktop-local")).toBeDefined()
+    expect(screen.getByText("0.0.0")).toBeDefined()
+    expect(screen.queryByText(/Version/)).toBeNull()
     expect(screen.getByText(/autobrr/)).toBeDefined()
   })
 
@@ -79,5 +80,17 @@ describe("StatusBarFooter component (BR-web-03)", () => {
     })
 
     expect(screen.getByText("qBittorrent-nox Container Configuration")).toBeDefined()
+  })
+
+  it("renders streamlined icon-dot-port indicators without green box borders (BR-web-03)", () => {
+    renderWithProviders()
+
+    const quiBtn = screen.getByText("qui:7476").closest("button")
+    const qbitBtn = screen.getByText("qbittorrent:8080").closest("button")
+
+    expect(quiBtn?.className).not.toContain("border-emerald-500")
+    expect(quiBtn?.className).not.toContain("bg-emerald-500/5")
+    expect(qbitBtn?.className).not.toContain("border-emerald-500")
+    expect(qbitBtn?.className).not.toContain("bg-emerald-500/5")
   })
 })
