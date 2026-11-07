@@ -7,6 +7,7 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 import { motion } from "motion/react"
 import * as React from "react"
 
+import { ViewTransitionBoundary } from "@/components/transitions/ViewTransitionBoundary"
 import { cn } from "@/lib/utils"
 
 function Tabs({
@@ -102,14 +103,26 @@ function TabsTrigger({
 
 function TabsContent({
   className,
+  children,
+  value,
+  transitionName,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+}: React.ComponentProps<typeof TabsPrimitive.Content> & {
+  transitionName?: string
+}) {
+  const resolvedName = transitionName ?? (value != null ? `tab-panel-${value}` : undefined)
+
   return (
-    <TabsPrimitive.Content
-      data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
-      {...props}
-    />
+    <ViewTransitionBoundary name={resolvedName}>
+      <TabsPrimitive.Content
+        data-slot="tabs-content"
+        className={cn("flex-1 outline-none", className)}
+        value={value}
+        {...props}
+      >
+        {children}
+      </TabsPrimitive.Content>
+    </ViewTransitionBoundary>
   )
 }
 

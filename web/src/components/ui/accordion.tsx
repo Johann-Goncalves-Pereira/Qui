@@ -7,6 +7,7 @@ import * as React from "react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { ChevronDownIcon } from "lucide-react"
 
+import { ViewTransitionBoundary } from "@/components/transitions/ViewTransitionBoundary"
 import { cn } from "@/lib/utils"
 
 function Accordion({
@@ -53,16 +54,22 @@ function AccordionTrigger({
 function AccordionContent({
   className,
   children,
+  transitionName,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Content>) {
+}: React.ComponentProps<typeof AccordionPrimitive.Content> & {
+  transitionName?: string
+}) {
+  // Omit a shared static name so multiple open items do not collide.
   return (
-    <AccordionPrimitive.Content
-      data-slot="accordion-content"
-      className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm"
-      {...props}
-    >
-      <div className={cn("pt-0 pb-4", className)}>{children}</div>
-    </AccordionPrimitive.Content>
+    <ViewTransitionBoundary name={transitionName}>
+      <AccordionPrimitive.Content
+        data-slot="accordion-content"
+        className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm"
+        {...props}
+      >
+        <div className={cn("pt-0 pb-4", className)}>{children}</div>
+      </AccordionPrimitive.Content>
+    </ViewTransitionBoundary>
   )
 }
 

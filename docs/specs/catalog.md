@@ -56,4 +56,4 @@ behavior exists.
 | `BR-web-05` | In Glassmorphism mode, sidebar and filter panel backgrounds use a lighter, calibrated translucency mix to prevent excessive darkness over macOS HUD vibrancy | docs/web/electron-desktop.md | web/glass | web/src/lib/glass.test.ts | `asserted-unit` |
 | `BR-web-06` | Desktop environment auto-provisions or offers default companion qBittorrent instance with local filesystem access | docs/desktop/overview.md | web/instances | web/src/lib/desktop-companion-instance.test.ts, web/src/hooks/useInstances.test.tsx | `asserted-unit` |
 | `BR-web-07` | Status bar footer displays only the bare version number without a `Version` prefix or `desktop-local` fallback text | docs/desktop/versioning.md | web/layout | web/src/components/layout/StatusBarFooter.test.tsx | `asserted-unit` |
-
+| `BR-web-08` | Declarative React 19 `<ViewTransition>` and router view transitions seamlessly animate page navigations and action boundaries without mutating upstream component trees | docs/web/electron-desktop.md | web/transitions | web/src/components/transitions/ViewTransition.test.tsx, web/src/router.test.ts | `asserted-unit` |
