@@ -103,7 +103,7 @@ function scheduleNextStatsPoll(): void {
 }
 
 const desktopDev = process.env.QUI_DESKTOP_DEV === '1'
-registerElectronmonMainModules()
+registerElectronmonMainModules({ desktopDev })
 
 const quiWebOrigin = resolveQuiWebOrigin({
 	envOrigin: process.env.QUI_WEB_ORIGIN,

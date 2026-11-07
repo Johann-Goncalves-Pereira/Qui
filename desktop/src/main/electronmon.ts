@@ -6,19 +6,35 @@
 import { readdirSync } from 'node:fs'
 import path from 'node:path'
 
+export type ElectronmonDiscoverMessage = {
+	type: 'discover'
+	file: string
+}
+
+export type RegisterElectronmonMainModulesOptions = {
+	distDir?: string
+	send?: (msg: ElectronmonDiscoverMessage) => void
+	desktopDev?: boolean
+}
+
 /**
  * Register all compiled main and shared modules with electronmon so file modifications
  * trigger a clean process restart instead of an erroneous webContents reload (BR-desktop-37).
+ *
+ * Best-effort only: discovery failures must never abort Electron startup. Patterns in
+ * `package.json` and incremental `tsc` remain the primary SIGSEGV mitigations.
  */
-export function registerElectronmonMainModules(options?: {
-	distDir?: string
-	send?: (msg: unknown) => void
-	desktopDev?: boolean
-}): void {
+export function registerElectronmonMainModules(
+	options?: RegisterElectronmonMainModulesOptions,
+): void {
 	const isDev = options?.desktopDev ?? process.env.QUI_DESKTOP_DEV === '1'
 	const send =
 		options?.send ??
-		(process.send?.bind(process) as ((msg: unknown) => void) | undefined)
+		(typeof process.send === 'function'
+			? (msg: ElectronmonDiscoverMessage): void => {
+					process.send?.(msg)
+				}
+			: undefined)
 	if (!isDev || typeof send !== 'function') {
 		return
 	}
@@ -40,7 +56,10 @@ export function registerElectronmonMainModules(options?: {
 			}
 		}
 		scan(distDir)
-	} catch {
-		// Non-fatal electronmon discovery hook
+	} catch (error) {
+		console.warn(
+			'[electronmon] failed to register main modules for discovery:',
+			error,
+		)
 	}
 }

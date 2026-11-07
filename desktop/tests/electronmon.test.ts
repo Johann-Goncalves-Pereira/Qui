@@ -6,18 +6,27 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
-import { registerElectronmonMainModules } from '../src/main/electronmon.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+	type ElectronmonDiscoverMessage,
+	registerElectronmonMainModules,
+} from '../src/main/electronmon.js'
 
 describe('Electronmon development configuration (BR-desktop-37)', () => {
+	afterEach(() => {
+		vi.restoreAllMocks()
+	})
+
 	it('defines electronmon watch patterns in package.json to filter non-executable declarations and assets', () => {
 		const pkgPath = path.resolve(__dirname, '../package.json')
-		const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+		const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as {
+			electronmon?: { patterns?: string[] }
+		}
 
 		expect(pkg.electronmon).toBeDefined()
-		expect(Array.isArray(pkg.electronmon.patterns)).toBe(true)
+		expect(Array.isArray(pkg.electronmon?.patterns)).toBe(true)
 
-		const patterns = pkg.electronmon.patterns as string[]
+		const patterns = pkg.electronmon?.patterns ?? []
 		expect(patterns).toContain('!src/**')
 		expect(patterns).toContain('!**/*.d.ts')
 		expect(patterns).toContain('!**/*.d.cts')
@@ -28,10 +37,15 @@ describe('Electronmon development configuration (BR-desktop-37)', () => {
 
 	it('configures incremental compilation in tsconfig.json to prevent startup re-emit races', () => {
 		const tsconfigPath = path.resolve(__dirname, '../tsconfig.json')
-		const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
+		const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8')) as {
+			compilerOptions?: {
+				incremental?: boolean
+				tsBuildInfoFile?: string
+			}
+		}
 
-		expect(tsconfig.compilerOptions.incremental).toBe(true)
-		expect(tsconfig.compilerOptions.tsBuildInfoFile).toBe('dist/.tsbuildinfo')
+		expect(tsconfig.compilerOptions?.incremental).toBe(true)
+		expect(tsconfig.compilerOptions?.tsBuildInfoFile).toBe('dist/.tsbuildinfo')
 	})
 
 	it('registers all compiled main and preload modules with electronmon discover hook', () => {
@@ -61,10 +75,9 @@ describe('Electronmon development configuration (BR-desktop-37)', () => {
 			registerElectronmonMainModules({
 				desktopDev: true,
 				distDir: tmpDir,
-				send: (msg: unknown) => {
-					const payload = msg as { type?: string; file?: string }
-					if (payload.type === 'discover' && payload.file) {
-						discovered.push(path.relative(tmpDir, payload.file))
+				send: (msg: ElectronmonDiscoverMessage) => {
+					if (msg.type === 'discover' && msg.file) {
+						discovered.push(path.relative(tmpDir, msg.file))
 					}
 				},
 			})
@@ -84,7 +97,7 @@ describe('Electronmon development configuration (BR-desktop-37)', () => {
 	})
 
 	it('no-ops when desktopDev is disabled or send function is not available', () => {
-		const discovered: unknown[] = []
+		const discovered: ElectronmonDiscoverMessage[] = []
 		registerElectronmonMainModules({
 			desktopDev: false,
 			send: msg => discovered.push(msg),
@@ -97,5 +110,28 @@ describe('Electronmon development configuration (BR-desktop-37)', () => {
 				send: undefined,
 			})
 		}).not.toThrow()
+	})
+
+	it('logs and does not throw when distDir cannot be scanned', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+		const discovered: ElectronmonDiscoverMessage[] = []
+		const missingDir = path.join(
+			os.tmpdir(),
+			`qui-electronmon-missing-${process.pid}-${Date.now()}`,
+		)
+
+		expect(() => {
+			registerElectronmonMainModules({
+				desktopDev: true,
+				distDir: missingDir,
+				send: msg => discovered.push(msg),
+			})
+		}).not.toThrow()
+
+		expect(discovered).toHaveLength(0)
+		expect(warn).toHaveBeenCalledWith(
+			'[electronmon] failed to register main modules for discovery:',
+			expect.any(Error),
+		)
 	})
 })
