@@ -18,6 +18,16 @@ declare global {
       saveAccount?: (username: string, password: string) => Promise<void>
       hasSavedAccount?: () => Promise<boolean>
       unlockAccount?: () => Promise<{ username: string; password: string } | null>
+      syncTheme?: (theme: {
+        id: string
+        name?: string
+        isDark?: boolean
+        cssVars?: {
+          light?: Record<string, string>
+          dark?: Record<string, string>
+        }
+        rawCss?: string
+      }) => Promise<void>
       getDockerStatus?: () => Promise<{
         qui: { name: string; state: string; status: string; image: string; port: number }
         qbit: { name: string; state: string; status: string; image: string; port: number }

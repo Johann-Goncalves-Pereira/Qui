@@ -31,6 +31,7 @@ beforeEach(() => {
 afterEach(() => {
   registerCustomThemes([])
   localStorage.clear()
+  delete (window as unknown as { quiDesktop?: unknown }).quiDesktop
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -113,3 +114,21 @@ describe("boot cache for custom themes", () => {
     expect(cached?.rawCss).toBe(":root { --background: navy; }")
   })
 })
+
+describe("desktop theme sync", () => {
+  it("syncs active theme tokens to window.quiDesktop when available", async () => {
+    const syncTheme = vi.fn().mockResolvedValue(undefined)
+    window.quiDesktop = { syncTheme }
+
+    await setTheme("minimal")
+
+    expect(syncTheme).toHaveBeenCalledWith({
+      id: "minimal",
+      name: "Minimal",
+      isDark: false,
+      cssVars,
+      rawCss: undefined,
+    })
+  })
+})
+

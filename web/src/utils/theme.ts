@@ -216,6 +216,18 @@ const applyTheme = async (theme: Theme, variation: string | null, isDark: boolea
   applyGlassOpacity(readGlassOpacity());
   cacheAppliedTheme(theme);
 
+  if (typeof window !== "undefined" && window.quiDesktop?.syncTheme) {
+    void window.quiDesktop.syncTheme({
+      id: theme.id,
+      name: theme.name,
+      isDark: effectiveIsDark,
+      cssVars: theme.cssVars,
+      rawCss: theme.rawCss,
+    }).catch(() => {
+      // Ignore desktop theme sync errors
+    });
+  }
+
   // Spreadsheet disguise: the tab title is a tell. Set/restore it on theme
   // application so every page (not just those running useTitleBarSpeeds)
   // carries the boring title.

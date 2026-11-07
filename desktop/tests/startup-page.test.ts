@@ -4,10 +4,14 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { startupPageDocument } from '../src/main/startup-page.js'
+import {
+	ANIMATED_LOGO_SVG,
+	LOADING_SPINNER_SVG,
+	startupPageDocument,
+} from '../src/main/startup-page.js'
 
-describe('Startup page (BR-desktop-09)', () => {
-	it('paints an opaque Minimal background, the spinner, and a process code block', () => {
+describe('Startup page (BR-desktop-09, BR-desktop-28)', () => {
+	it('paints an opaque Minimal background, the Qui animated logo, and a process code block', () => {
 		const html = startupPageDocument(
 			'Starting Qui…',
 			'Ensuring Docker containers (qui, qbit) are running…',
@@ -16,11 +20,13 @@ describe('Startup page (BR-desktop-09)', () => {
 
 		expect(html).toContain('background:#252525')
 		expect(html).not.toContain('background:transparent')
-		expect(html).toContain('fill="#faf4ff"')
-		expect(html).toContain('attributeName="opacity"')
+		expect(html).toContain('animated-logo-element')
+		expect(html).toContain('logo-bounce')
+		expect(html).toContain('var(--primary)')
 		expect(html).toContain(
 			'<pre class="process-code"><code>Ensuring Docker containers (qui, qbit) are running…</code></pre>',
 		)
+		expect(ANIMATED_LOGO_SVG).toBe(LOADING_SPINNER_SVG)
 	})
 
 	it('uses the light Minimal fill when the OS appearance is light', () => {
@@ -39,5 +45,29 @@ describe('Startup page (BR-desktop-09)', () => {
 			'<pre class="process-code"><code>docker binary not found &lt;script&gt;</code></pre>',
 		)
 		expect(html).not.toContain('<script>')
+	})
+
+	it('renders tokens and raw CSS from cached theme payload when provided', () => {
+		const html = startupPageDocument('Starting Qui…', 'Connecting…', true, {
+			id: 'tokyo-night',
+			name: 'Tokyo Night',
+			isDark: true,
+			cssVars: {
+				dark: {
+					'--background': '#1a1b26',
+					'--card': '#24283b',
+					'--primary': '#7aa2f7',
+				},
+				light: {
+					'--background': '#e1e2e7',
+				},
+			},
+			rawCss: '.custom-class { color: red; }',
+		})
+
+		expect(html).toContain('background:#1a1b26')
+		expect(html).toContain('--primary:#7aa2f7')
+		expect(html).toContain('.custom-class { color: red; }')
+		expect(html).toContain('class="dark"')
 	})
 })
