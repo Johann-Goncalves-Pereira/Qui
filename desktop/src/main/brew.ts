@@ -96,11 +96,20 @@ export async function runBrewUpdateAndUpgrade(
 			env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: '1' },
 		})
 
-		// Step 2: Run brew upgrade --cask qui to download & replace Qui.app
-		const upgradeRes = await execFileAsync(brew, ['upgrade', '--cask', 'qui'], {
-			timeout: timeoutUpgrade,
-			env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: '1' },
-		})
+		// Step 2: Run brew upgrade --cask -y qui to download & replace Qui.app
+		const upgradeRes = await execFileAsync(
+			brew,
+			['upgrade', '--cask', '-y', 'qui'],
+			{
+				timeout: timeoutUpgrade,
+				env: {
+					...process.env,
+					HOMEBREW_NO_AUTO_UPDATE: '1',
+					HOMEBREW_NO_ASK: '1',
+					NONINTERACTIVE: '1',
+				},
+			},
+		)
 
 		return {
 			success: true,
