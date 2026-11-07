@@ -66,6 +66,9 @@ fi
 BRANCH="chore/desktop-bump-${NEW_VER}"
 git checkout -b "$BRANCH"
 git add desktop/package.json
+if [ -f web/package.json ]; then
+  git add web/package.json
+fi
 if [ -f Casks/qui.rb ]; then
   git add Casks/qui.rb
 fi

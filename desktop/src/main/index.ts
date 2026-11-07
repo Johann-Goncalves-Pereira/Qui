@@ -395,6 +395,10 @@ function registerIpcHandlers(): void {
 			console.warn('Failed to handle theme:sync IPC:', error)
 		}
 	})
+
+	ipcMain.on('app:get-version', event => {
+		event.returnValue = app.getVersion() || CURRENT_APP_VERSION
+	})
 }
 
 function dismissalFile(): string {

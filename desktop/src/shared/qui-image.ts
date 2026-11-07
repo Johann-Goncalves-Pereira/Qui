@@ -6,12 +6,24 @@
 /** Local image built from this repo for developers. */
 export const QUI_IMAGE_LOCAL = 'qui-desktop:local'
 
+/** Base registry image name for this fork on GHCR (lowercase). */
+export const QUI_IMAGE_BASE = 'ghcr.io/johann-goncalves-pereira/qui'
+
+/** Canonical fork image tag for a specific version, defaulting to latest. */
+export function quiImageRelease(version?: string): string {
+	const ver = version?.trim().replace(/^v/i, '')
+	if (ver) {
+		return `${QUI_IMAGE_BASE}:${ver}`
+	}
+	return `${QUI_IMAGE_BASE}:latest`
+}
+
 /**
  * Canonical fork image for downloadable / packaged builds.
  * GHCR requires lowercase owner/name (mixed-case pushes fail).
  * Must NOT be upstream `ghcr.io/autobrr/qui` — that omits fork-only web UI.
  */
-export const QUI_IMAGE_RELEASE = 'ghcr.io/johann-goncalves-pereira/qui:latest'
+export const QUI_IMAGE_RELEASE = quiImageRelease()
 
 /** GitHub Releases asset stem for `docker load` when GHCR is unavailable ($0). */
 export function quiDesktopImageArchiveName(arch: string): string {
@@ -62,13 +74,13 @@ export interface ResolveQuiImageOptions {
 	isPackaged: boolean
 	/** `QUI_DESKTOP_IMAGE` override. */
 	envImage?: string
-	/** Packaged app version. */
+	/** Packaged app version or desktop semver tag. */
 	version?: string
 }
 
 /**
- * Packaged apps pull or load this fork’s versioned image. Unpackaged (dev) builds
- * use the local tag unless `QUI_DESKTOP_IMAGE` is set.
+ * Packaged apps pull or load this fork’s versioned image (pinned to desktop semver).
+ * Unpackaged (dev) builds use the local tag unless `QUI_DESKTOP_IMAGE` is set.
  */
 export function resolveQuiImage(options: ResolveQuiImageOptions): string {
 	const override = options.envImage?.trim()

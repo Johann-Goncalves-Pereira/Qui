@@ -7,11 +7,13 @@ import { readAppVersion } from './app-version.js'
 import {
 	getVersionedQuiImage,
 	QUI_FORK_IMAGE_REPO,
+	QUI_IMAGE_BASE,
 	QUI_IMAGE_LOCAL,
 	QUI_IMAGE_RELEASE,
 	quiDesktopImageArchiveName,
 	quiDesktopImageArchiveUrl,
 	quiEmbeddedImageArchiveRelativePath,
+	quiImageRelease,
 	resolveQuiImage,
 } from './qui-image.js'
 import {
@@ -28,11 +30,13 @@ export {
 	DEFAULT_VITE_ORIGIN,
 	getVersionedQuiImage,
 	QUI_FORK_IMAGE_REPO,
+	QUI_IMAGE_BASE,
 	QUI_IMAGE_LOCAL,
 	QUI_IMAGE_RELEASE,
 	quiDesktopImageArchiveName,
 	quiDesktopImageArchiveUrl,
 	quiEmbeddedImageArchiveRelativePath,
+	quiImageRelease,
 	quiWebLoginUrl,
 	resolveQuiImage,
 	resolveQuiWebOrigin,
