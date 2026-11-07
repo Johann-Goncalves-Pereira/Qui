@@ -53,5 +53,14 @@ describe('resolveQuiImage (BR-desktop-17)', () => {
 		).toBe(
 			'https://github.com/Johann-Goncalves-Pereira/Qui/releases/latest/download/qui-desktop-image-arm64.tar.gz',
 		)
+		expect(
+			quiDesktopImageArchiveUrl(
+				'Johann-Goncalves-Pereira/Qui',
+				'arm64',
+				'0.0.6',
+			),
+		).toBe(
+			'https://github.com/Johann-Goncalves-Pereira/Qui/releases/download/v0.0.6/qui-desktop-image-arm64.tar.gz',
+		)
 	})
 })

@@ -19,9 +19,22 @@ export function quiDesktopImageArchiveName(arch: string): string {
 	return `qui-desktop-image-${normalized}.tar.gz`
 }
 
-/** Latest-release download URL for the fork Qui GUI image archive. */
-export function quiDesktopImageArchiveUrl(repo: string, arch: string): string {
-	return `https://github.com/${repo}/releases/latest/download/${quiDesktopImageArchiveName(arch)}`
+/**
+ * Download URL for the fork Qui GUI image archive.
+ * Prefer the matching desktop semver tag (`v0.0.6`) — GitHub’s
+ * `/releases/latest/download/…` can resolve to an older tag that lacks the asset.
+ */
+export function quiDesktopImageArchiveUrl(
+	repo: string,
+	arch: string,
+	version?: string,
+): string {
+	const name = quiDesktopImageArchiveName(arch)
+	const ver = version?.trim().replace(/^v/i, '')
+	if (ver) {
+		return `https://github.com/${repo}/releases/download/v${ver}/${name}`
+	}
+	return `https://github.com/${repo}/releases/latest/download/${name}`
 }
 
 export interface ResolveQuiImageOptions {
