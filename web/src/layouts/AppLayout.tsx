@@ -15,11 +15,12 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import { MobileScrollProvider, useMobileScroll } from "@/contexts/MobileScrollContext"
 import { TorrentSelectionProvider } from "@/contexts/TorrentSelectionContext"
 import { useCustomThemes } from "@/hooks/useCustomThemes"
 import { ViewTransitionBoundary } from "@/components/transitions/ViewTransitionBoundary"
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay"
 
 function AppLayoutContent() {
   const { t } = useTranslation("common")
@@ -86,7 +87,9 @@ function AppLayoutContent() {
           "lg:pb-0"
         )}>
           <ViewTransitionBoundary name="page-main-content">
-            <Outlet />
+            <Suspense fallback={<LoadingOverlay mode="sprint" />}>
+              <Outlet />
+            </Suspense>
           </ViewTransitionBoundary>
         </main>
         <StatusBarFooter />

@@ -62,6 +62,20 @@ without modifying original upstream component trees (`web/src/pages/`):
 - **Accessibility**: `@media (prefers-reduced-motion: reduce)` in `web/src/index.css` disables
   all transition animations when reduced motion is preferred.
 
+## Articulated Vector Rabbit Loading Architecture & Theme Synchronization
+
+To elevate loading states across the application without modifying upstream page component trees (`web/src/pages/`):
+
+- **Articulated Quadruped Vector Rigging**: `web/src/components/ui/AnimatedLogo.tsx` morphs between 5 anatomical keyframe poses (Gather, Launch, Flight Split, Reach & Catch, Pull-Through) with zero external runtime dependencies via CSS `d: path(...)` and SMIL `<animate attributeName="d">` fallbacks.
+- **Adaptive Motion Modes**:
+  - `sprint`: Full bounding stride with dynamic ground shadow, wind indicators, and subtle outline shimmer (default for splashes and workflow previews).
+  - `gallop`: High-cadence scissor stride for fast background synchronization.
+  - `jump`: High spring leap for major operations and backups.
+  - `turbo`: Articulated bounding rabbit centered within a rotating orbital progress ring for compact spinners, buttons, and modal dialog actions (`RabbitSpinner`).
+- **Dynamic Theme Synchronization**: All SVG fills, strokes, shadows, and orbital tracks derive dynamically from active application theme design tokens (`var(--primary)`, `oklch(from var(--primary) l c h / ...)`, and `color-mix(in srgb, var(--primary) ...)`), adapting instantly when switching themes.
+- **Non-Invasive UI Primitive Injection**: Shared UI primitives (`SaveFooter`, `Button`, router `defaultPendingComponent`) inject the themed `RabbitSpinner` and `LoadingOverlay` without touching upstream page code, guaranteeing zero git rebase friction against `autobrr/qui`.
+- **Accessibility**: `@media (prefers-reduced-motion: reduce)` disables all morphing and translation animations, resting cleanly on the iconic gather brand pose.
+
 ## Related specs
 
 - `BR-web-01` in `docs/specs/catalog.md` — desktop biometric gate session flag.
@@ -71,5 +85,7 @@ without modifying original upstream component trees (`web/src/pages/`):
 - `BR-web-05` in `docs/specs/catalog.md` — calibrated glassmorphism sidebar translucency.
 - `BR-web-08` in `docs/specs/catalog.md` — declarative React 19 `<ViewTransition>` and router view transitions across pages and action boundaries.
 - `BR-web-10` in `docs/specs/catalog.md` — sidebar header h-12 brand row with 'qui' text omitted and logo pushed to the right.
+- `BR-web-11` in `docs/specs/catalog.md` — articulated vector rabbit loading engine with adaptive motion modes, token-driven theme synchronization, and non-invasive injection.
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
+
 

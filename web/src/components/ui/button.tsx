@@ -41,24 +41,34 @@ const buttonVariants = cva(
   }
 )
 
+import { RabbitSpinner } from "@/components/ui/RabbitSpinner"
+
 const Button = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button"> &
     VariantProps<typeof buttonVariants> & {
       asChild?: boolean
+      loading?: boolean
+      loadingText?: React.ReactNode
     }
->(({ className, variant, size, asChild = false, ...props }, ref) => {
+>(({ className, variant, size, asChild = false, loading = false, loadingText, disabled, children, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
+  const isDisabled = disabled || loading
 
   return (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
+      disabled={isDisabled}
       {...props}
-    />
+    >
+      {loading && <RabbitSpinner size={size === "xs" || size === "sm" ? "xs" : "sm"} className="shrink-0" />}
+      {loading && loadingText ? loadingText : children}
+    </Comp>
   )
 })
 Button.displayName = "Button"
 
 export { Button, buttonVariants }
+

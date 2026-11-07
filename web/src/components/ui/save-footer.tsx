@@ -5,7 +5,7 @@
 
 import { Button } from "@/components/ui/button"
 import { CardFooter } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { RabbitSpinner } from "@/components/ui/RabbitSpinner"
 
 interface SaveFooterProps {
   pending: boolean
@@ -17,7 +17,7 @@ export function SaveFooter({ pending, onSave, label }: SaveFooterProps) {
   return (
     <CardFooter className="flex justify-end">
       <Button className="min-h-11 md:min-h-9" onClick={onSave} disabled={pending}>
-        {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {pending && <RabbitSpinner className="mr-2 size-4" />}
         {label}
       </Button>
     </CardFooter>
