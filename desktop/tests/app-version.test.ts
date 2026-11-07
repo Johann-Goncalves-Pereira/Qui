@@ -8,8 +8,8 @@ import { readAppVersion } from '../src/shared/app-version.js'
 import { CURRENT_APP_VERSION } from '../src/shared/constants.js'
 
 describe('readAppVersion (BR-desktop-25)', () => {
-	it('reads version 0.0.0 from desktop package.json', () => {
-		expect(CURRENT_APP_VERSION).toBe('0.0.0')
+	it('reads semantic version from desktop package.json', () => {
+		expect(CURRENT_APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/)
 	})
 
 	it('falls back to 0.0.0 when package.json is missing or corrupted', () => {

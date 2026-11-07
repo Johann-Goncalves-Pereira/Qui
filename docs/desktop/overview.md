@@ -31,6 +31,8 @@ make desktop-dev
 pnpm --dir desktop install:local
 ```
 
+Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `.zip` to `desktop/release/`. Compiled JS stays in `desktop/dist/`. The two directories must stay separate: electron-builder packs `dist/**/*` into `app.asar`, so an output folder inside `dist/` would nest earlier builds (and the release `.dmg`/`.zip`) in the next one.
+
 ### Requirements
 
 - macOS (primary target), Docker Desktop running, Node/pnpm for building the shell
