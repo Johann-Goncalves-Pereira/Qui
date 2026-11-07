@@ -32,4 +32,14 @@ describe('local upstream-sync gate (BR-desktop-21)', () => {
 		expect(prePush).toMatch(/develop|main/)
 		expect(prePush).toMatch(/exit 1/)
 	})
+
+	it('uses content-addressed SHA-pair caching and ref probe (BR-desktop-34)', () => {
+		const script = readFileSync(
+			path.join(repoRoot, 'scripts/upstream-sync-check'),
+			'utf8',
+		)
+		expect(script).toContain('upstream-sync-cache')
+		expect(script).toContain('git ls-remote')
+		expect(script).toContain('QUI_SKIP_SYNC_CACHE')
+	})
 })

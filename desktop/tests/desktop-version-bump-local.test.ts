@@ -38,4 +38,14 @@ describe('desktop-version-bump-local (BR-desktop-28)', () => {
 		expect(publish).toContain('--latest')
 		expect(publish).toContain('package.json')
 	})
+
+	it('uses delta asset verification to avoid redundant uploads (BR-desktop-34)', () => {
+		const publish = readFileSync(
+			path.join(repoRoot, 'scripts/desktop-publish-release-local'),
+			'utf8',
+		)
+		expect(publish).toContain('EXISTING_ASSETS')
+		expect(publish).toContain('UPLOAD_CANDIDATES')
+		expect(publish).toMatch(/already matches|already up to date/)
+	})
 })

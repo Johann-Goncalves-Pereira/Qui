@@ -30,4 +30,13 @@ describe('desktop-publish-qui-image (BR-desktop-17)', () => {
 		// Must not push the upstream package as the release image.
 		expect(script).not.toMatch(/docker push.*autobrr\/qui/)
 	})
+
+	it('ensures all community themes and frontend dist are compiled into image', () => {
+		const script = readFileSync(
+			path.join(repoRoot, 'scripts/desktop-publish-qui-image'),
+			'utf8',
+		)
+		expect(script).toContain('themes-fetch')
+		expect(script).toContain('make frontend')
+	})
 })
