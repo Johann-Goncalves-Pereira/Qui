@@ -83,6 +83,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-20` in `docs/specs/catalog.md` — desktop refresh script.
 - `BR-desktop-22` in `docs/specs/catalog.md` — clean install pre-seeds companion qBittorrent auth bypass.
 - `BR-desktop-23` in `docs/specs/catalog.md` — Qui application menu and hot-reload Developer menu.
+- `BR-desktop-37` in `docs/specs/catalog.md` — electronmon watch patterns, incremental `tsc`, and main-module discovery for SIGSEGV-free `dev:app`.
 - `BR-desktop-24` in `docs/specs/catalog.md` — Homebrew Cask distribution and package manager blueprints.
 - `BR-desktop-25` in `docs/specs/catalog.md` — desktop semantic versioning starting at `0.0.0` with PR merge patch increment.
 - `BR-desktop-28` in `docs/specs/catalog.md` — Qui branded animated SVG logo and cached theme tokens for startup screen.

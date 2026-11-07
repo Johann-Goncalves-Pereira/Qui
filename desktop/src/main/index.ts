@@ -41,6 +41,7 @@ import {
 } from './container-layout.js'
 import { formatContainerUpdatePrompt } from './container-updater-dialog.js'
 import { DockerManager } from './docker.js'
+import { registerElectronmonMainModules } from './electronmon.js'
 import {
 	findMagnetUrlInArgs,
 	MagnetManager,
@@ -102,6 +103,8 @@ function scheduleNextStatsPoll(): void {
 }
 
 const desktopDev = process.env.QUI_DESKTOP_DEV === '1'
+registerElectronmonMainModules({ desktopDev })
+
 const quiWebOrigin = resolveQuiWebOrigin({
 	envOrigin: process.env.QUI_WEB_ORIGIN,
 	desktopDev,
