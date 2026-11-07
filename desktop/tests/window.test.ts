@@ -53,4 +53,15 @@ describe('Main window surface (BR-desktop-05)', () => {
 			Object.defineProperty(process, 'platform', { value: originalPlatform })
 		}
 	})
+
+	it('configures preload script as CommonJS .cjs to prevent ESM syntax error in sandbox (BR-desktop-35)', async () => {
+		const fs = await import('node:fs')
+		const path = await import('node:path')
+		const cjsPath = path.resolve(__dirname, '../dist/preload/index.cjs')
+
+		expect(fs.existsSync(cjsPath)).toBe(true)
+		const content = fs.readFileSync(cjsPath, 'utf8')
+		expect(content).toContain('require("electron")')
+		expect(content).not.toMatch(/^import /m)
+	})
 })

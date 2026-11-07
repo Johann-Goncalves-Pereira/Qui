@@ -70,4 +70,6 @@ behavior exists.
 | `BR-desktop-33` | Desktop container image builds and local refresh fetch and embed licensed community themes into `internal/themes/assets/premium/` so premium themes populate immediately upon license activation | docs/backend/licensing.md | desktop/themes | desktop/tests/desktop-publish-qui-image.test.ts, desktop/tests/desktop-refresh.test.ts | `asserted-unit` |
 | `BR-desktop-34` | Content-addressed SHA-pair caching, lightweight ref probing, and delta release asset validation accelerate local desktop version bumps and packaging under 3 seconds while failing closed on upstream conflicts | docs/desktop/versioning.md | desktop/version | tests/desktop-version-bump-local.test.ts, tests/upstream-sync.test.ts | `asserted-unit` |
 | `BR-web-12` | Button UI primitive isolates Radix Slot delegation when asChild is true, preventing multiple React element child / Slottable exceptions while preserving loading spinner and disabled state contracts | docs/web/electron-desktop.md | web/ui | web/src/components/ui/button.test.tsx | `asserted-unit` |
+| `BR-desktop-35` | Electron sandboxed preload script compiles to CommonJS (.cts -> .cjs) so window.quiDesktop exposes without syntax errors in ES module desktop packages | docs/desktop/overview.md | desktop/preload | tests/window.test.ts | `asserted-unit` |
+
 

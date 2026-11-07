@@ -45,10 +45,9 @@ export interface QuiDesktopBridge {
 		start: () => Promise<DockerContainerStatus>
 		stop: () => Promise<DockerContainerStatus>
 		restart: () => Promise<DockerContainerStatus>
-		openWebUi: () => Promise<void>
+		install: () => Promise<DockerContainerStatus>
+		destroy: () => Promise<DockerContainerStatus>
 	}
-	/** Synchronize active web theme tokens to desktop shell for startup page. */
-	syncTheme: (theme: unknown) => Promise<void>
 }
 
 const bridge: QuiDesktopBridge = {
@@ -86,9 +85,9 @@ const bridge: QuiDesktopBridge = {
 		start: () => ipcRenderer.invoke('docker:gazelle:start'),
 		stop: () => ipcRenderer.invoke('docker:gazelle:stop'),
 		restart: () => ipcRenderer.invoke('docker:gazelle:restart'),
-		openWebUi: () => ipcRenderer.invoke('docker:gazelle:open-web'),
+		install: () => ipcRenderer.invoke('docker:gazelle:install'),
+		destroy: () => ipcRenderer.invoke('docker:gazelle:destroy'),
 	},
-	syncTheme: (theme: unknown) => ipcRenderer.invoke('theme:sync', theme),
 }
 
 contextBridge.exposeInMainWorld('quiDesktop', bridge)
