@@ -83,6 +83,18 @@ declare global {
         image: string
       }) => Promise<{ success: boolean; error?: string }>
       restartContainer?: (name: string) => Promise<{ success: boolean; error?: string }>
+      checkForUpdates?: () => Promise<{
+        hasUpdate: boolean
+        currentVersion: string
+        latestVersion: string
+        tagName: string
+        name: string
+        body: string
+        htmlUrl: string
+        downloadUrl?: string
+        publishedAt: string
+      }>
+      promptUpdates?: () => Promise<boolean>
       gazelle?: {
         getStatus?: () => Promise<{
           name: string
