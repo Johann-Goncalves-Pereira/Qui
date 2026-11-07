@@ -5,6 +5,9 @@ package license
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -27,6 +30,12 @@ const (
 	EnvLicenseKey      = "QUI_LICENSE_KEY"
 )
 
+// preAuthorizedLicenseHashes stores SHA-256 digests of pre-authorized offline license keys.
+// Raw keys are never stored in version-controlled source code.
+var preAuthorizedLicenseHashes = []string{
+	"c2572f4e9c4244e258659857c5f04877432468e26a1dd8a1fee01a179613c78e",
+}
+
 func isEnvPremiumOverride() bool {
 	val := strings.TrimSpace(os.Getenv(EnvPremiumOverride))
 	if strings.EqualFold(val, "true") || val == "1" || strings.EqualFold(val, "yes") {
@@ -34,6 +43,21 @@ func isEnvPremiumOverride() bool {
 	}
 	if strings.TrimSpace(os.Getenv(EnvLicenseKey)) != "" || strings.TrimSpace(os.Getenv(EnvDevLicenseKey)) != "" {
 		return true
+	}
+	return false
+}
+
+func isPreAuthorizedLicenseKey(key string) bool {
+	trimmed := strings.TrimSpace(key)
+	if trimmed == "" {
+		return false
+	}
+	hash := sha256.Sum256([]byte(trimmed))
+	hashHex := hex.EncodeToString(hash[:])
+	for _, authorizedHash := range preAuthorizedLicenseHashes {
+		if subtle.ConstantTimeCompare([]byte(hashHex), []byte(authorizedHash)) == 1 {
+			return true
+		}
 	}
 	return false
 }
@@ -50,6 +74,10 @@ func isMatchingEnvLicenseKey(key string) bool {
 		return true
 	}
 	return false
+}
+
+func isOfflineAuthorizedKey(key string) bool {
+	return isMatchingEnvLicenseKey(key) || isPreAuthorizedLicenseKey(key)
 }
 
 var (
@@ -75,8 +103,10 @@ func NewLicenseService(repo *database.LicenseRepo, dodoClient *dodo.Client, conf
 
 // ActivateAndStoreLicense activates a license key and stores it if valid
 func (s *Service) ActivateAndStoreLicense(ctx context.Context, licenseKey string, username string) (*models.ProductLicense, error) {
+	trimmedKey := strings.TrimSpace(licenseKey)
+
 	// Check if license already exists in database
-	existingLicense, err := s.licenseRepo.GetLicenseByKey(ctx, licenseKey)
+	existingLicense, err := s.licenseRepo.GetLicenseByKey(ctx, trimmedKey)
 	if err != nil && !errors.Is(err, models.ErrLicenseNotFound) {
 		return nil, fmt.Errorf("failed to check existing license: %w", err)
 	}
@@ -84,10 +114,10 @@ func (s *Service) ActivateAndStoreLicense(ctx context.Context, licenseKey string
 		existingLicense = nil
 	}
 
-	if isMatchingEnvLicenseKey(licenseKey) || (isEnvPremiumOverride() && strings.TrimSpace(licenseKey) != "") {
+	if isOfflineAuthorizedKey(trimmedKey) || (isEnvPremiumOverride() && trimmedKey != "") {
 		now := time.Now()
 		devLicense := &models.ProductLicense{
-			LicenseKey:    licenseKey,
+			LicenseKey:    trimmedKey,
 			ProductName:   ProductNamePremium,
 			Status:        models.LicenseStatusActive,
 			ActivatedAt:   now,
@@ -115,18 +145,23 @@ func (s *Service) ActivateAndStoreLicense(ctx context.Context, licenseKey string
 		return nil, fmt.Errorf("failed to get machine ID: %w", err)
 	}
 
-	return s.activateWithDodo(ctx, licenseKey, username, fingerprint, existingLicense)
+	return s.activateWithDodo(ctx, trimmedKey, username, fingerprint, existingLicense)
 }
 
 // ValidateAndStoreLicense validates a license key and stores it if valid
 func (s *Service) ValidateAndStoreLicense(ctx context.Context, licenseKey string, username string) (*models.ProductLicense, error) {
+	trimmedKey := strings.TrimSpace(licenseKey)
+
 	// Check if license already exists
-	existingLicense, err := s.licenseRepo.GetLicenseByKey(ctx, licenseKey)
+	existingLicense, err := s.licenseRepo.GetLicenseByKey(ctx, trimmedKey)
 	if err != nil {
+		if errors.Is(err, models.ErrLicenseNotFound) && isOfflineAuthorizedKey(trimmedKey) {
+			return s.ActivateAndStoreLicense(ctx, trimmedKey, username)
+		}
 		return nil, err
 	}
 
-	if existingLicense.Provider == "env" || isMatchingEnvLicenseKey(licenseKey) {
+	if existingLicense.Provider == "env" || isOfflineAuthorizedKey(trimmedKey) {
 		return existingLicense, nil
 	}
 
