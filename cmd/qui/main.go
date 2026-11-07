@@ -417,7 +417,7 @@ func RunUpdateCommand() *cobra.Command {
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			updater := update.NewUpdater(update.Config{
-				Repository: "autobrr/qui",
+				Repository: "Johann-Goncalves-Pereira/Qui",
 				Version:    buildinfo.Version,
 			})
 			return updater.Run(cmd.Context())
@@ -921,7 +921,7 @@ func (app *Application) runServer() {
 	updateInputs := update.Measure(log.Logger, cfg.Config.DisableSelfUpdate, buildinfo.Version)
 	restarter := update.NewRestarter(updateInputs.BinaryPath)
 	selfUpdater := update.NewUpdater(update.Config{
-		Repository: "autobrr/qui",
+		Repository: "Johann-Goncalves-Pereira/Qui",
 		Version:    buildinfo.Version,
 		BinaryPath: updateInputs.BinaryPath,
 	})

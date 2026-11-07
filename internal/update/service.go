@@ -34,7 +34,7 @@ func NewService(log zerolog.Logger, enabled bool, currentVersion, userAgent stri
 	svc := &Service{
 		log:            log.With().Str("component", "update").Logger(),
 		currentVersion: currentVersion,
-		releaseChecker: version.NewChecker("autobrr", "qui", userAgent),
+		releaseChecker: version.NewChecker("Johann-Goncalves-Pereira", "Qui", userAgent),
 	}
 	svc.isEnabled.Store(enabled)
 	return svc
