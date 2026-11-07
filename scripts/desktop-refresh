@@ -30,6 +30,12 @@ if [[ "$DO_PULL" -eq 1 ]]; then
 	git pull --ff-only
 fi
 
+echo "==> ensuring community themes"
+PREMIUM_COUNT="$(find internal/themes/assets/premium/ -name "*.css" 2>/dev/null | wc -l | tr -d ' ')"
+if [ "$PREMIUM_COUNT" -eq 0 ]; then
+  make themes-fetch
+fi
+
 echo "==> make frontend"
 make frontend
 

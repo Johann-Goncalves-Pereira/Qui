@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Local upstream-sync gate (BR-desktop-21).
+# Local upstream-sync gate (BR-desktop-21, BR-desktop-33).
 # Dry-merge autobrr/qui develop into HEAD without dirtying the worktree.
+# Uses content-addressed SHA-pair caching to avoid redundant network/merge passes.
 # Exit 0 when clean; exit 1 on conflicts or fetch failure.
 
 set -euo pipefail
@@ -13,12 +14,29 @@ cd "$ROOT"
 
 UPSTREAM_URL="${QUI_UPSTREAM_URL:-https://github.com/autobrr/qui.git}"
 UPSTREAM_REF="${QUI_UPSTREAM_REF:-develop}"
+GIT_COMMON_DIR="$(git rev-parse --git-common-dir 2>/dev/null || echo ".git")"
+CACHE_DIR="${GIT_COMMON_DIR}/upstream-sync-cache"
+
+HEAD_TIP="$(git rev-parse HEAD)"
+
+# Check if cached verdict exists using lightweight ls-remote ref probe (no heavy object download)
+if [ "${QUI_SKIP_SYNC_CACHE:-}" != "1" ]; then
+  if ls_out="$(git ls-remote --heads "$UPSTREAM_URL" "$UPSTREAM_REF" 2>/dev/null)" && [ -n "$ls_out" ]; then
+    UPSTREAM_PROBE_TIP="$(printf '%s' "$ls_out" | awk '{print $1}')"
+    if [ -n "$UPSTREAM_PROBE_TIP" ]; then
+      CACHE_FILE="${CACHE_DIR}/${HEAD_TIP}_${UPSTREAM_PROBE_TIP}"
+      if [ -f "$CACHE_FILE" ]; then
+        echo "upstream-sync-check: cached clean (HEAD ${HEAD_TIP:0:7} vs upstream ${UPSTREAM_PROBE_TIP:0:7})"
+        exit 0
+      fi
+    fi
+  fi
+fi
 
 echo "upstream-sync-check: fetching ${UPSTREAM_URL} ${UPSTREAM_REF}…"
 git fetch --no-tags --quiet "$UPSTREAM_URL" "$UPSTREAM_REF"
 
 UPSTREAM_TIP="$(git rev-parse FETCH_HEAD)"
-HEAD_TIP="$(git rev-parse HEAD)"
 
 echo "upstream-sync-check: dry-merge HEAD (${HEAD_TIP:0:7}) ← upstream (${UPSTREAM_TIP:0:7})"
 
@@ -29,6 +47,8 @@ status=$?
 set -e
 
 if [ "$status" -eq 0 ]; then
+  mkdir -p "$CACHE_DIR" 2>/dev/null || true
+  touch "${CACHE_DIR}/${HEAD_TIP}_${UPSTREAM_TIP}" 2>/dev/null || true
   echo "upstream-sync-check: clean (no conflicts with autobrr/qui ${UPSTREAM_REF})"
   exit 0
 fi
