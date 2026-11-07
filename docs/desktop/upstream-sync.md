@@ -97,7 +97,7 @@ Keep a lightweight ruleset on `develop` if you want:
 Remove **Require status checks** (or disable that ruleset rule) so agents can
 squash-merge after the **local** upstream-sync gate passes.
 
-## Fork upstream synchronization on finish-PR (BR-desktop-40)
+## Fork upstream synchronization on finish-PR (BR-desktop-42)
 
 On this repository, running `$finish-pr-workflow` (or manual finish-pr / SM) **must always synchronize the fork** with `autobrr/qui` `develop`.
 
@@ -130,6 +130,7 @@ linked from `AGENTS.md`). On this fork, finish-PR workflows must always invoke o
 ## Related spec
 
 - `BR-desktop-21` — local upstream-sync fails closed on conflicts.
-- `BR-desktop-40` — fork finish-PR workflow enforces upstream synchronization via `upstream-sync-fork`.
+- `BR-desktop-42` — fork finish-PR workflow enforces upstream synchronization via `upstream-sync-fork`.
+
 
 

@@ -45,6 +45,10 @@ export interface QuiDesktopBridge {
 	checkForUpdates: () => Promise<AppReleaseInfo>
 	/** Triggers native desktop multilayer update dialog (shell and containers with pre-update backups) */
 	promptUpdates: () => Promise<boolean>
+	/** Automatically downloads and applies the desktop update in-app */
+	applyUpdate: (
+		version?: string,
+	) => Promise<{ success: boolean; error?: string }>
 	/** Synchronize active theme tokens and dark/light preference to desktop shell for startup page caching */
 	syncTheme: (payload: ThemeSyncPayload) => Promise<void>
 	/** Gazelle companion Docker lifecycle controls */
@@ -91,6 +95,8 @@ const bridge: QuiDesktopBridge = {
 		ipcRenderer.invoke('docker:restart-container', name),
 	checkForUpdates: () => ipcRenderer.invoke('updater:check-app-update'),
 	promptUpdates: () => ipcRenderer.invoke('updater:prompt-updates'),
+	applyUpdate: (version?: string) =>
+		ipcRenderer.invoke('updater:apply-update', version),
 	syncTheme: (payload: ThemeSyncPayload) =>
 		ipcRenderer.invoke('theme:sync', payload),
 	gazelle: {

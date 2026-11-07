@@ -249,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "Update Available",
     "versionAvailable": "Version {{version}} is now available",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "desktopUpdateAvailable": "Qui Desktop Update Available",
+    "reviewAndUpdate": "Review & Update"
   },
   "pwaUpdate": {
     "reload": "Reload",
@@ -338,5 +340,21 @@
   },
   "labels": {
     "path": "Path"
+  },
+  "desktopUpdate": {
+    "title": "Qui Desktop Update Available",
+    "subtitle": "Version {{version}} is ready to download and install. Current version is {{current}}.",
+    "whatsNew": "What's New in {{version}}",
+    "noChangelog": "Performance improvements, bug fixes, and maintenance updates.",
+    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
+    "backupNotice": "Pre-update backup snapshot is archived before updating.",
+    "storageNotice": "All database settings, torrent data, and vaults are safely preserved.",
+    "inProgress": "Downloading update and updating Qui container... Interface will automatically reload momentarily.",
+    "applied": "Update applied successfully! Web interface is refreshing...",
+    "failed": "Failed to apply update.",
+    "later": "Later",
+    "updating": "Updating...",
+    "done": "Done",
+    "downloadAndUpdate": "Download & Update"
   }
 }

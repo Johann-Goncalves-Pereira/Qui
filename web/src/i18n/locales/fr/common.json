@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Conteneur Qui ({{state}}) sur le port {{port}}. Cliquez pour configurer Docker.",
     "tooltipQbit": "Conteneur qBittorrent-nox ({{state}}) sur le port {{port}}. Cliquez pour configurer Docker.",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Companion Gazelle ({{state}}) sur le port {{port}}. Cliquez pour ouvrir la WebUI."
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "Mise à jour disponible",
     "versionAvailable": "La version {{version}} est maintenant disponible",
-    "dismiss": "Fermer"
+    "dismiss": "Fermer",
+    "desktopUpdateAvailable": "Mise à jour Qui Desktop disponible",
+    "reviewAndUpdate": "Examiner et mettre à jour"
   },
   "pwaUpdate": {
     "reload": "Recharger",
@@ -336,5 +340,21 @@
   },
   "labels": {
     "path": "Chemin"
+  },
+  "desktopUpdate": {
+    "title": "Mise à jour Qui Desktop disponible",
+    "subtitle": "La version {{version}} est prête à être téléchargée et installée. Version actuelle : {{current}}.",
+    "whatsNew": "Nouveautés dans {{version}}",
+    "noChangelog": "Améliorations des performances, corrections de bugs et maintenance.",
+    "dataSafetyTitle": "Sécurité des données et sauvegardes pré-mise à jour",
+    "backupNotice": "Un instantané de sauvegarde est archivé avant la mise à jour.",
+    "storageNotice": "Les paramètres de base de données, les données torrent et les coffres sont conservés.",
+    "inProgress": "Téléchargement de la mise à jour et mise à jour du conteneur Qui... L’interface se rechargera automatiquement.",
+    "applied": "Mise à jour appliquée avec succès ! L’interface web se rafraîchit...",
+    "failed": "Échec de l’application de la mise à jour.",
+    "later": "Plus tard",
+    "updating": "Mise à jour...",
+    "done": "Terminé",
+    "downloadAndUpdate": "Télécharger et mettre à jour"
   }
 }

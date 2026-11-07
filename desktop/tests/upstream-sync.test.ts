@@ -43,7 +43,7 @@ describe('local upstream-sync gate (BR-desktop-21)', () => {
 		expect(script).toContain('QUI_SKIP_SYNC_CACHE')
 	})
 
-	it('enforces upstream fork synchronization script and finish-pr rules (BR-desktop-40)', () => {
+	it('enforces upstream fork synchronization script and finish-pr rules (BR-desktop-42)', () => {
 		const syncForkScript = readFileSync(
 			path.join(repoRoot, 'scripts/upstream-sync-fork'),
 			'utf8',

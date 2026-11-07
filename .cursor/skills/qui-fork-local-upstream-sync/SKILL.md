@@ -90,9 +90,10 @@ git push
 
 ## Related
 
-- Spec: `BR-desktop-21`, `BR-desktop-40` in `docs/specs/catalog.md`
+- Spec: `BR-desktop-21`, `BR-desktop-42` in `docs/specs/catalog.md`
 - Rule: `.cursor/rules/510-local-upstream-sync.mdc`
 - Sibling: `$qui-fork-finish-pr` (SM + version bump), `$qui-fork-issue-crafting`
 - Scripts: `scripts/upstream-sync-fork`, `scripts/upstream-sync-check`, `scripts/install-local-hooks`, `.githooks/pre-push`
+
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local upstream-sync fork runner (BR-desktop-40).
+# Local upstream-sync fork runner (BR-desktop-42).
 # Synchronizes the fork's base branch (develop) with autobrr/qui develop.
 # Uses an isolated git worktree and a merge commit (--merge) via a sync PR
 # so GitHub's "behind upstream" counter resets to 0 while preserving fork commits.
@@ -77,7 +77,8 @@ if [ -z "$PR_NUM" ] || [ "$PR_NUM" = "null" ]; then
 ## Summary
 - Synchronize fork \`${BASE_BRANCH}\` with \`autobrr/qui\` \`${UPSTREAM_REF}\` (${BEHIND_COUNT} commit(s) behind).
 - Uses a merge commit (\`--merge\`, not squash) so GitHub's "behind upstream" counter resets to 0 while preserving fork commit history.
-- Automated fork sync per \`docs/desktop/upstream-sync.md\` / BR-desktop-40.
+- Automated fork sync per \`docs/desktop/upstream-sync.md\` / BR-desktop-42.
+
 
 
 ## Test plan

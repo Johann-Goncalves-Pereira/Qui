@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Qui 容器（{{state}}）連接埠 {{port}}。點擊以設定 Docker。",
     "tooltipQbit": "qBittorrent-nox 容器（{{state}}）連接埠 {{port}}。點擊以設定 Docker。",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Gazelle 配套服務（{{state}}）連接埠 {{port}}。點一下開啟 WebUI。"
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "有可用更新",
     "versionAvailable": "版本 {{version}} 現已可用",
-    "dismiss": "關閉"
+    "dismiss": "關閉",
+    "desktopUpdateAvailable": "Qui Desktop 有可用更新",
+    "reviewAndUpdate": "檢視並更新"
   },
   "pwaUpdate": {
     "reload": "重新載入",
@@ -329,5 +333,21 @@
   },
   "labels": {
     "path": "路徑"
+  },
+  "desktopUpdate": {
+    "title": "Qui Desktop 有可用更新",
+    "subtitle": "版本 {{version}} 已準備好下載並安裝。目前版本為 {{current}}。",
+    "whatsNew": "{{version}} 的新內容",
+    "noChangelog": "效能改進、錯誤修正與維護更新。",
+    "dataSafetyTitle": "資料安全與更新前備份",
+    "backupNotice": "更新前會封存更新前備份快照。",
+    "storageNotice": "資料庫設定、種子資料與保險庫都會安全保留。",
+    "inProgress": "正在下載更新並更新 Qui 容器…介面將自動重新載入。",
+    "applied": "更新已成功套用！正在重新整理 Web 介面…",
+    "failed": "套用更新失敗。",
+    "later": "稍後",
+    "updating": "正在更新…",
+    "done": "完成",
+    "downloadAndUpdate": "下載並更新"
   }
 }

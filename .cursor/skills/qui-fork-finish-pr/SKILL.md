@@ -17,7 +17,7 @@ Replaces reliance on GitHub Actions for gates that are budget-blocked. Global
 follow this skill end-to-end.
 
 **Docs:** `docs/desktop/upstream-sync.md`, `docs/desktop/versioning.md`  
-**Specs:** `BR-desktop-21`, `BR-desktop-28`, `BR-desktop-40`
+**Specs:** `BR-desktop-21`, `BR-desktop-28`, `BR-desktop-42`
 
 ## Order (do not skip)
 
@@ -56,7 +56,8 @@ smart-mode approval retry on merge block).
 If the PR title is already `Chore 🔧: Bump Desktop Version to …`, **stop after
 Phase B** (do not bump again).
 
-## Phase C — Fork upstream synchronization (BR-desktop-40)
+## Phase C — Fork upstream synchronization (BR-desktop-42)
+
 
 
 On this repository, **finish-pr must always synchronize the fork** with upstream `autobrr/qui` `develop`:

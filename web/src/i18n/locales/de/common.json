@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Qui-Container ({{state}}) auf Port {{port}}. Klicken, um Docker-Einstellungen zu bearbeiten.",
     "tooltipQbit": "qBittorrent-nox-Container ({{state}}) auf Port {{port}}. Klicken, um Docker-Einstellungen zu bearbeiten.",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Gazelle-Companion ({{state}}) auf Port {{port}}. Klicken, um die WebUI zu öffnen."
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "Update verfügbar",
     "versionAvailable": "Version {{version}} ist jetzt verfügbar",
-    "dismiss": "Verwerfen"
+    "dismiss": "Verwerfen",
+    "desktopUpdateAvailable": "Qui-Desktop-Update verfügbar",
+    "reviewAndUpdate": "Prüfen & aktualisieren"
   },
   "pwaUpdate": {
     "reload": "Neu laden",
@@ -336,5 +340,21 @@
   },
   "labels": {
     "path": "Pfad"
+  },
+  "desktopUpdate": {
+    "title": "Qui-Desktop-Update verfügbar",
+    "subtitle": "Version {{version}} ist bereit zum Download und zur Installation. Aktuelle Version ist {{current}}.",
+    "whatsNew": "Neu in {{version}}",
+    "noChangelog": "Leistungsverbesserungen, Fehlerbehebungen und Wartungsupdates.",
+    "dataSafetyTitle": "Datensicherheit & Backups vor dem Update",
+    "backupNotice": "Vor dem Update wird ein Backup-Snapshot archiviert.",
+    "storageNotice": "Datenbankeinstellungen, Torrent-Daten und Vaults bleiben erhalten.",
+    "inProgress": "Update wird heruntergeladen und der Qui-Container aktualisiert... Die Oberfläche wird automatisch neu geladen.",
+    "applied": "Update erfolgreich angewendet! Die Weboberfläche wird aktualisiert...",
+    "failed": "Update konnte nicht angewendet werden.",
+    "later": "Später",
+    "updating": "Aktualisiere...",
+    "done": "Fertig",
+    "downloadAndUpdate": "Herunterladen & aktualisieren"
   }
 }

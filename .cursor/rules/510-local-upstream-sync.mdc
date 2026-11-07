@@ -3,7 +3,7 @@
 This fork does **not** use GitHub Actions for the upstream merge probe (Actions
 usage is budget-blocked at $0). The gate is local.
 
-## Rule: Always sync upstream on finish-pr (BR-desktop-40)
+## Rule: Always sync upstream on finish-pr (BR-desktop-42)
 
 On this repository (`Johann-Goncalves-Pereira/Qui`), **$finish-pr-workflow must always sync the fork with upstream (`autobrr/qui:develop`)**. Never leave this repository's base branch out-of-date or behind upstream.
 
@@ -19,6 +19,7 @@ On this repository (`Johann-Goncalves-Pereira/Qui`), **$finish-pr-workflow must 
    - Then proceed to `make desktop-version-bump`.
 
 Do not require or wait for a GitHub status check named `Merge autobrr/qui develop`.
-See `docs/desktop/upstream-sync.md` (`BR-desktop-21`, `BR-desktop-40`) and `docs/desktop/versioning.md` (`BR-desktop-28`).
+See `docs/desktop/upstream-sync.md` (`BR-desktop-21`, `BR-desktop-42`) and `docs/desktop/versioning.md` (`BR-desktop-28`).
+
 
 

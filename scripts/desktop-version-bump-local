@@ -48,7 +48,7 @@ fi
 cp "$SELF_TMP" "$0"
 rm -f "$SELF_TMP"
 
-# Invariant: finish-pr on this fork must always synchronize develop with upstream autobrr/qui develop (BR-desktop-40).
+# Invariant: finish-pr on this fork must always synchronize develop with upstream autobrr/qui develop (BR-desktop-42).
 if [ -x "$ROOT/scripts/upstream-sync-fork" ]; then
   "$ROOT/scripts/upstream-sync-fork" "$BASE_BRANCH" || {
     echo "desktop-version-bump-local: upstream sync failed; aborting bump" >&2

@@ -78,8 +78,7 @@ describe("UpdateBanner desktop suppression", () => {
     expect(screen.queryByText("updateBanner.updateAvailable")).toBeNull()
   })
 
-  it("renders desktop update banner and triggers promptUpdates when desktop shell reports update", async () => {
-    const promptUpdates = vi.fn().mockResolvedValue(true)
+  it("renders desktop update banner and opens in-app DesktopUpdateDialog when review is clicked", async () => {
     window.quiDesktop = {
       getAppVersion: () => "0.0.14",
       checkForUpdates: vi.fn().mockResolvedValue({
@@ -87,8 +86,9 @@ describe("UpdateBanner desktop suppression", () => {
         currentVersion: "0.0.14",
         latestVersion: "0.0.15",
         tagName: "v0.0.15",
+        name: "Qui v0.0.15",
+        body: "## What's Changed\n* New features",
       }),
-      promptUpdates,
     }
 
     renderComponent()
@@ -97,6 +97,8 @@ describe("UpdateBanner desktop suppression", () => {
 
     const updateBtn = screen.getByText(/updateBanner\.reviewAndUpdate/)
     updateBtn.click()
-    expect(promptUpdates).toHaveBeenCalledTimes(1)
+
+    expect(await screen.findByText(/desktopUpdate\.title/)).toBeTruthy()
+    expect(screen.getByText(/New features/)).toBeTruthy()
   })
 })

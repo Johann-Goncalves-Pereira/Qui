@@ -26,8 +26,29 @@ for f in desktop/release/Qui-"${VER}"-*.dmg desktop/release/Qui-"${VER}"-*-mac.z
 done
 shopt -u nullglob
 
+# Find previous tag to extract changes
+PREV_TAG="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")"
+CHANGELOG=""
+if [ -n "$PREV_TAG" ]; then
+  COMMITS="$(git log "${PREV_TAG}..${TAG}" --pretty=format:"* %s (%h)" --no-merges 2>/dev/null || true)"
+  if [ -z "$COMMITS" ]; then
+    COMMITS="$(git log "${PREV_TAG}..${TAG}" --oneline 2>/dev/null || true)"
+  fi
+  if [ -n "$COMMITS" ]; then
+    CHANGELOG="$(cat <<EOF
+
+## What's Changed
+${COMMITS}
+
+**Full Changelog**: https://github.com/Johann-Goncalves-Pereira/Qui/compare/${PREV_TAG}...${TAG}
+EOF
+)"
+  fi
+fi
+
 NOTES="$(cat <<EOF
 Qui Desktop **${TAG}** (matches \`desktop/package.json\`).
+${CHANGELOG}
 
 Unsigned macOS build. If Gatekeeper blocks launch:
 \`\`\`bash
@@ -46,7 +67,7 @@ EOF
 
 if gh release view "$TAG" >/dev/null 2>&1; then
   echo "desktop-publish-release-local: release ${TAG} exists; verifying assets and ensuring Latest"
-  gh release edit "$TAG" --title "$TITLE" --latest
+  gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --latest
   if [ "${#ASSETS[@]}" -gt 0 ]; then
     EXISTING_ASSETS="$(gh release view "$TAG" --json assets --jq '.assets[] | "\(.name):\(.size)"' 2>/dev/null || true)"
     UPLOAD_CANDIDATES=()
