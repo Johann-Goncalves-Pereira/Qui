@@ -461,7 +461,7 @@ html[data-glass="on"] .bg-muted {
   background-color: color-mix(in oklab, var(--muted) var(--glass-surface), transparent);
 }
 
-/* View Transitions (BR-web-07) */
+/* View Transitions (BR-web-08) */
 @layer utilities {
   ::view-transition-old(page-main-content),
   ::view-transition-new(page-main-content) {

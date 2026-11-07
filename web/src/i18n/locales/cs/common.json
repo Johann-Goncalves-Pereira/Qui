@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Všechny instance jsou zakázány",
     "noInstancesConfigured": "Žádné instance nejsou nakonfigurovány",
     "logout": "Odhlásit se",
-    "version": "Verze {{version}}",
     "language": "Jazyk",
     "viewOnGitHub": "Zobrazit na GitHubu",
     "rssRunning": "RSS křížového sdílení běží",
@@ -242,7 +241,8 @@
     "switchedToMode": "Přepnuto na {{mode}} režim",
     "switchedToTheme": "Přepnuto na {{theme}} vzhled",
     "switchedToThemeVariation": "Přepnuto na {{theme}} vzhled ({{variation}})",
-    "premiumThemeError": "Tento vzhled vyžaduje licenci. Otevřete Nastavení → Motivy pro aktivaci licence."
+    "premiumThemeError": "Tento vzhled vyžaduje licenci. Otevřete Nastavení → Motivy pro aktivaci licence.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Aktualizace dostupná",

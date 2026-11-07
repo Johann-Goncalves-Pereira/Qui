@@ -1012,7 +1012,22 @@
     "enableToConfigure": "Abilita per configurare",
     "redDescription": "Usata per le ricerche su redacted.sh. Incolla per sostituire; svuota per rimuovere.",
     "opsDescription": "Usata per le ricerche su orpheus.network. Incolla per sostituire; svuota per rimuovere.",
-    "save": "Salva"
+    "save": "Salva",
+    "companionTitle": "Compagno Docker Gazelle",
+    "checking": "Controllo...",
+    "running": "In esecuzione (:7001)",
+    "stopped": "Arrestato",
+    "notInstalled": "Non installato",
+    "openWebUiTitle": "Apri interfaccia Web Gazelle (http://localhost:7001)",
+    "openWebUi": "Apri WebUI",
+    "restartContainerTitle": "Riavvia contenitore Gazelle",
+    "restart": "Riavvia",
+    "stopContainerTitle": "Arresta contenitore Gazelle",
+    "stop": "Arresta",
+    "start": "Avvia Gazelle",
+    "installAndRun": "Installa e avvia Gazelle",
+    "companionDescription": "Distribuisci uno stack di tracker locale OPSnet/Gazelle mappato sulla porta 7001 con stato persistente nella directory dati desktop.",
+    "initialInstallNotice": "Clonazione del repository OPSnet/Gazelle e creazione dei contenitori Docker Compose... operazione che potrebbe richiedere alcuni minuti all'installazione iniziale."
   },
   "searchCache": {
     "title": "Cache di ricerca",

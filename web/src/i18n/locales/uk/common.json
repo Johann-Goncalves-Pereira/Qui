@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Всі екземпляри вимкнено",
     "noInstancesConfigured": "Екземпляри не налаштовано",
     "logout": "Вийти",
-    "version": "Версія {{version}}",
     "language": "Мова",
     "viewOnGitHub": "Переглянути на GitHub",
     "rssRunning": "RSS cross-seed активний",
@@ -242,7 +241,8 @@
     "switchedToMode": "Перемкнуто на {{mode}} режим",
     "switchedToTheme": "Перемкнуто на тему {{theme}}",
     "switchedToThemeVariation": "Перемкнуто на тему {{theme}} ({{variation}})",
-    "premiumThemeError": "Ця тема потребує ліцензії. Відкрийте Налаштування → Теми для активації ліцензії."
+    "premiumThemeError": "Ця тема потребує ліцензії. Відкрийте Налаштування → Теми для активації ліцензії.",
+    "premium": "Преміум"
   },
   "updateBanner": {
     "updateAvailable": "Доступне оновлення",

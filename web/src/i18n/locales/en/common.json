@@ -21,7 +21,6 @@
     "allInstancesDisabled": "All instances are disabled",
     "noInstancesConfigured": "No instances configured",
     "logout": "Logout",
-    "version": "Version {{version}}",
     "language": "Language",
     "viewOnGitHub": "View on GitHub",
     "rssRunning": "Cross-seed RSS running",
@@ -242,7 +241,8 @@
     "switchedToMode": "Switched to {{mode}} mode",
     "switchedToTheme": "Switched to {{theme}} theme",
     "switchedToThemeVariation": "Switched to {{theme}} theme ({{variation}})",
-    "premiumThemeError": "This theme needs a license. Open Settings → Themes to activate one."
+    "premiumThemeError": "This theme needs a license. Open Settings → Themes to activate one.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Update Available",

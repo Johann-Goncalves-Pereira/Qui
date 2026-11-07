@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest"
 import { router } from "./router"
 
-describe("Router configuration (BR-web-07)", () => {
+describe("Router configuration (BR-web-08)", () => {
   it("enables defaultViewTransition for seamless page navigations", () => {
     expect(router.options.defaultViewTransition).toBe(true)
   })

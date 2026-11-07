@@ -50,10 +50,11 @@ export const DEFAULT_GAZELLE_PORT = 7001
 export const QUI_IMAGE = QUI_IMAGE_LOCAL
 
 export const QBIT_IMAGE = 'lscr.io/linuxserver/qbittorrent:latest'
-export const GAZELLE_IMAGE = 'ghcr.io/opsnet/gazelle:latest'
+export const GAZELLE_IMAGE = 'gazelle-desktop:local'
 export const QUI_CONTAINER_NAME = 'qui'
 export const QBIT_CONTAINER_NAME = 'qbittorrent-nox'
 export const GAZELLE_CONTAINER_NAME = 'gazelle'
+export const GAZELLE_REPO_URL = 'https://github.com/OPSnet/Gazelle.git'
 export const GAZELLE_WEB_ORIGIN = `http://localhost:${DEFAULT_GAZELLE_PORT}`
 export const GITHUB_REPO = 'Johann-Goncalves-Pereira/Qui'
 export const CURRENT_APP_VERSION = readAppVersion()

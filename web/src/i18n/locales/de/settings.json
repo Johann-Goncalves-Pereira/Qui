@@ -1012,7 +1012,22 @@
     "enableToConfigure": "Zum Konfigurieren aktivieren",
     "redDescription": "Wird für redacted.sh-Abfragen verwendet. Einfügen zum Ersetzen; leeren zum Entfernen.",
     "opsDescription": "Wird für orpheus.network-Abfragen verwendet. Einfügen zum Ersetzen; leeren zum Entfernen.",
-    "save": "Speichern"
+    "save": "Speichern",
+    "companionTitle": "Gazelle Docker-Begleiter",
+    "checking": "Prüfen...",
+    "running": "Läuft (:7001)",
+    "stopped": "Gestoppt",
+    "notInstalled": "Nicht installiert",
+    "openWebUiTitle": "Gazelle-WebUI öffnen (http://localhost:7001)",
+    "openWebUi": "WebUI öffnen",
+    "restartContainerTitle": "Gazelle-Container neu starten",
+    "restart": "Neu starten",
+    "stopContainerTitle": "Gazelle-Container stoppen",
+    "stop": "Stoppen",
+    "start": "Gazelle starten",
+    "installAndRun": "Gazelle installieren & ausführen",
+    "companionDescription": "Lokalen OPSnet/Gazelle-Tracker-Stack bereitstellen, zugeordnet zu Port 7001 mit persistentem Zustand im Desktop-Datenverzeichnis.",
+    "initialInstallNotice": "Klonen des OPSnet/Gazelle-Repositorys und Erstellen der Docker Compose-Container... dies kann bei der Erstinstallation einige Minuten dauern."
   },
   "searchCache": {
     "title": "Such-Cache",

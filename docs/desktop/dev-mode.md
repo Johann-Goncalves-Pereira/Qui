@@ -64,6 +64,19 @@ QUI_DESKTOP_DEV=1 pnpm run dev:app
 | `desktop/src/main` or `preload` | Electron process relaunches (`electronmon`) |
 | Go backend under `internal/` | `air` rebuilds; refresh the page if needed |
 
+## Menu bar developer tools
+
+When running with `QUI_DESKTOP_DEV=1`, the native application menu bar adds a
+dedicated top-level **Developer** menu:
+
+- **Toggle Developer Tools** (`Alt+Cmd+I` / `Ctrl+Shift+I`): opens Chromium DevTools for the main window.
+- **Reload Electron Window**: reloads the active web contents.
+- **Open Vite Dev Origin** (`http://localhost:5173`): opens the Vite development origin in the default browser.
+- **Probe Backend Health** (`http://localhost:7476/api/healthz`): checks Go backend responsiveness.
+- **Clear Cache and Reload**: clears Electron session cache and triggers a fresh reload.
+
+In production builds (`QUI_DESKTOP_DEV` unset or `0`), the **Developer** menu and all DevTools shortcuts are completely omitted to ensure a clean end-user experience.
+
 ## Stop / troubleshoot
 
 - If the window says nothing is serving `:5173`, start Terminal 1 (`make dev`) first.
@@ -77,3 +90,4 @@ QUI_DESKTOP_DEV=1 pnpm run dev:app
 ## Related spec
 
 - `BR-desktop-19` — origin selection for production vs desktop dev.
+- `BR-desktop-23` — Qui application menu and hot-reload Developer menu.

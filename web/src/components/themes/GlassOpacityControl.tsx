@@ -92,7 +92,7 @@ export function GlassOpacityControl({ layout }: { layout: "menu" | "settings" })
             {!hasPremiumAccess && (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                 <Lock className="h-3 w-3" />
-                Premium
+                {t("themeToggle.premium")}
               </span>
             )}
           </div>

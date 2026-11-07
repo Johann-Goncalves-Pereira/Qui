@@ -5,6 +5,7 @@
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import "@/i18n"
 import { GazelleDockerControl } from "./GazelleDockerControl"
 
 describe("GazelleDockerControl (BR-desktop-15)", () => {
@@ -25,14 +26,14 @@ describe("GazelleDockerControl (BR-desktop-15)", () => {
       name: "gazelle",
       state: "not_found",
       status: "not_installed",
-      image: "ghcr.io/opsnet/gazelle:latest",
+      image: "gazelle-desktop:local",
       port: 7001,
     })
     const start = vi.fn().mockResolvedValue({
       name: "gazelle",
       state: "running",
       status: "running",
-      image: "ghcr.io/opsnet/gazelle:latest",
+      image: "gazelle-desktop:local",
       port: 7001,
     })
 
@@ -66,21 +67,21 @@ describe("GazelleDockerControl (BR-desktop-15)", () => {
       name: "gazelle",
       state: "running",
       status: "running",
-      image: "ghcr.io/opsnet/gazelle:latest",
+      image: "gazelle-desktop:local",
       port: 7001,
     })
     const stop = vi.fn().mockResolvedValue({
       name: "gazelle",
       state: "stopped",
       status: "stopped",
-      image: "ghcr.io/opsnet/gazelle:latest",
+      image: "gazelle-desktop:local",
       port: 7001,
     })
     const restart = vi.fn().mockResolvedValue({
       name: "gazelle",
       state: "running",
       status: "running",
-      image: "ghcr.io/opsnet/gazelle:latest",
+      image: "gazelle-desktop:local",
       port: 7001,
     })
     const openWebUi = vi.fn().mockResolvedValue(undefined)

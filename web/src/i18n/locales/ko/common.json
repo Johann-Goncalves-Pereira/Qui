@@ -21,7 +21,6 @@
     "allInstancesDisabled": "모든 인스턴스가 비활성화되어 있습니다",
     "noInstancesConfigured": "구성된 인스턴스가 없습니다",
     "logout": "로그아웃",
-    "version": "버전 {{version}}",
     "language": "언어",
     "viewOnGitHub": "GitHub에서 보기",
     "rssRunning": "Cross-seed RSS 실행 중",
@@ -242,7 +241,8 @@
     "switchedToMode": "{{mode}} 모드로 전환했습니다",
     "switchedToTheme": "{{theme}} 테마로 전환했습니다",
     "switchedToThemeVariation": "{{theme}} 테마({{variation}})로 전환했습니다",
-    "premiumThemeError": "이 테마에는 라이선스가 필요합니다. 설정 → 테마에서 라이선스를 활성화하세요."
+    "premiumThemeError": "이 테마에는 라이선스가 필요합니다. 설정 → 테마에서 라이선스를 활성화하세요.",
+    "premium": "프리미엄"
   },
   "updateBanner": {
     "updateAvailable": "업데이트 사용 가능",

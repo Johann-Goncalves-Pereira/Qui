@@ -18,7 +18,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("ViewTransitionBoundary component (BR-web-07)", () => {
+describe("ViewTransitionBoundary component (BR-web-08)", () => {
   it("renders children through the boundary", () => {
     render(
       <ViewTransitionBoundary name="test-surface">
@@ -44,7 +44,7 @@ describe("ViewTransitionBoundary component (BR-web-07)", () => {
   })
 })
 
-describe("ActionTransition utilities (BR-web-07)", () => {
+describe("ActionTransition utilities (BR-web-08)", () => {
   it("withActionTransition executes callback inside startTransition", () => {
     const spy = vi.spyOn(React, "startTransition")
     const action = vi.fn()

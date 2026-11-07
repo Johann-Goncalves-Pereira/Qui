@@ -21,7 +21,6 @@
     "allInstancesDisabled": "Todas as instâncias estão desativadas",
     "noInstancesConfigured": "Nenhuma instância configurada",
     "logout": "Sair",
-    "version": "Versão {{version}}",
     "language": "Idioma",
     "viewOnGitHub": "Ver no GitHub",
     "rssRunning": "RSS de cross-seed rodando",
@@ -242,7 +241,8 @@
     "switchedToMode": "Alterado para o modo {{mode}}",
     "switchedToTheme": "Alterado para o tema {{theme}}",
     "switchedToThemeVariation": "Alterado para o tema {{theme}} ({{variation}})",
-    "premiumThemeError": "Este tema precisa de uma licença. Abra Configurações → Temas para ativar uma licença."
+    "premiumThemeError": "Este tema precisa de uma licença. Abra Configurações → Temas para ativar uma licença.",
+    "premium": "Premium"
   },
   "updateBanner": {
     "updateAvailable": "Atualização Disponível",

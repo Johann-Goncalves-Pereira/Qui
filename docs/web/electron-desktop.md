@@ -68,6 +68,6 @@ without modifying original upstream component trees (`web/src/pages/`):
 - `BR-web-03` in `docs/specs/catalog.md` — status bar footer with streamlined borderless service indicators (`icon dot docker:port`) and relocated chrome.
 - `BR-web-04` in `docs/specs/catalog.md` — Docker configuration dialogs (Qui and qBittorrent).
 - `BR-web-05` in `docs/specs/catalog.md` — calibrated glassmorphism sidebar translucency.
-- `BR-web-07` in `docs/specs/catalog.md` — declarative React 19 `<ViewTransition>` and router view transitions across pages and action boundaries.
+- `BR-web-08` in `docs/specs/catalog.md` — declarative React 19 `<ViewTransition>` and router view transitions across pages and action boundaries.
 - `BR-desktop-05` in `docs/specs/catalog.md` — clear window, 50% page while glass is on.
 

@@ -65,8 +65,8 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.name }}
           files: |
-            desktop/dist/*.dmg
-            desktop/dist/*.zip
+            desktop/release/*.dmg
+            desktop/release/*.zip
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
