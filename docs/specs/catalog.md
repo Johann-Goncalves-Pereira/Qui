@@ -62,4 +62,6 @@ behavior exists.
 | `BR-desktop-31` | Automated pre-update snapshot backup archives container configurations and application data to Application Support, guaranteeing zero data loss across updates | docs/desktop/updates.md | desktop/backup | tests/backup.test.ts | `asserted-unit` |
 | `BR-web-07` | Status bar footer displays only the bare version number without a `Version` prefix or `desktop-local` fallback text | docs/desktop/versioning.md | web/layout | web/src/components/layout/StatusBarFooter.test.tsx | `asserted-unit` |
 | `BR-web-08` | Declarative React 19 `<ViewTransition>` and router view transitions seamlessly animate page navigations and action boundaries without mutating upstream component trees | docs/web/electron-desktop.md | web/transitions | web/src/components/transitions/ViewTransition.test.tsx, web/src/router.test.ts | `asserted-unit` |
+| `BR-backend-01` | Built-in SHA-256 cryptographic hash verification unlocks premium license tier for pre-authorized offline keys without external network calls or plaintext secrets | docs/backend/licensing.md | backend/licensing | internal/services/license/license_service_hash_test.go | `asserted-unit` |
+
 

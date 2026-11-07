@@ -74,6 +74,7 @@ docs/*
 !docs/README.md
 !docs/desktop/
 !docs/web/
+!docs/backend/
 .mcp_unused.json
 config.toml
 .env
