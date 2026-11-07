@@ -52,9 +52,17 @@ on `Johann-Goncalves-Pereira/Qui`.
 
 ## Update Docker images (Qui / qBittorrent)
 
-Packaged builds default the Qui image to:
+Packaged (downloadable) builds default the Qui **web/API** image to **this
+fork’s** GHCR package (lowercase owner/name — GHCR rejects mixed case):
 
-`ghcr.io/autobrr/qui:latest`
+`ghcr.io/johann-goncalves-pereira/qui:latest`
+
+That image is built from **this** repository, so StatusBarFooter, Glassmorphism
+controls, Gazelle companion UI, and other desktop fork patches ship with the
+app. It is **not** `ghcr.io/autobrr/qui` (vanilla upstream).
+
+Local / unpackaged Electron defaults to `qui-desktop:local` (rebuild with
+`./scripts/desktop-refresh`).
 
 1. Tray → **Check for Docker Updates…**, or wait for the launch prompt when a
    remote digest differs from local.
@@ -66,7 +74,9 @@ Packaged builds default the Qui image to:
 Override the Qui image (advanced):
 
 ```bash
-QUI_DESKTOP_IMAGE=ghcr.io/autobrr/qui:v1.2.3 open -a Qui
+QUI_DESKTOP_IMAGE=qui-desktop:local open -a Qui
+# or pin a tag:
+QUI_DESKTOP_IMAGE=ghcr.io/johann-goncalves-pereira/qui:0.0.4 open -a Qui
 ```
 
 Or change ports / mounts from the status bar footer badges (Qui / qBittorrent
@@ -74,17 +84,33 @@ dialogs).
 
 ## Publish a release (maintainers)
 
-1. Tag and push a `v*` tag (or run the **Desktop release** workflow manually).
-2. `.github/workflows/desktop-release.yml` builds unsigned `.dmg` + `.zip` and
-   attaches them to the GitHub Release.
-3. Existing Go/Docker release jobs (when used) publish
-   `ghcr.io/autobrr/qui` for container updates.
+**Shell (Electron):**
+
+1. After finish-PR, bump + tag (`./scripts/desktop-version-bump-local`) and
+   optionally `pnpm --dir desktop package:mac:release` +
+   `./scripts/desktop-publish-release-local` ($0 Actions path).
+2. Or `.github/workflows/desktop-release.yml` when Actions minutes are available.
+
+**GUI / API (Docker image users pull on first launch):**
+
+1. Build from this checkout (frontend already in `web/dist` / `internal/web/dist`):
+   `docker build -t ghcr.io/johann-goncalves-pereira/qui:latest -f Dockerfile .`
+2. Push (lowercase tag required):  
+   `docker push ghcr.io/johann-goncalves-pereira/qui:latest`  
+   (and version tags as needed). Public GHCR packages do not require a paid
+   Actions budget.
+3. Release workflow jobs that set `REGISTRY_IMAGE` must lowercase
+   `github.repository` the same way (already done in `release.yml` push jobs).
+
+Never point packaged desktop defaults at `ghcr.io/autobrr/qui` — that omits
+every fork-only web feature.
 
 ## Behaviour summary
 
 - Launch + tray compare semver to GitHub `releases/latest`.
 - Download prefers `.dmg`, then `.zip`, else the release HTML URL.
-- Packaged apps use GHCR; unpackaged/dev defaults to `qui-desktop:local`.
+- Packaged apps pull **fork** GHCR Qui; unpackaged/dev defaults to
+  `qui-desktop:local`.
 - Unsigned builds may need Gatekeeper confirmation on each new binary.
 
 ## Related spec

@@ -6,8 +6,13 @@
 /** Local image built from this repo for developers. */
 export const QUI_IMAGE_LOCAL = 'qui-desktop:local'
 
-/** Canonical upstream image for downloadable / packaged builds. */
-export const QUI_IMAGE_RELEASE = 'ghcr.io/autobrr/qui:latest'
+/**
+ * Canonical fork image for downloadable / packaged builds.
+ * GHCR requires lowercase owner/name (mixed-case pushes fail).
+ * Must NOT be upstream `ghcr.io/autobrr/qui` — that omits fork-only web UI.
+ */
+export const QUI_IMAGE_RELEASE =
+	'ghcr.io/johann-goncalves-pereira/qui:latest'
 
 export interface ResolveQuiImageOptions {
 	/** Electron `app.isPackaged`. */
@@ -17,7 +22,7 @@ export interface ResolveQuiImageOptions {
 }
 
 /**
- * Packaged apps pull the fork GHCR image. Unpackaged (dev) builds use the
+ * Packaged apps pull this fork’s GHCR image. Unpackaged (dev) builds use the
  * local tag unless `QUI_DESKTOP_IMAGE` is set.
  */
 export function resolveQuiImage(options: ResolveQuiImageOptions): string {

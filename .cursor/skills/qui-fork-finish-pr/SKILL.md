@@ -75,6 +75,17 @@ pnpm --dir desktop package:mac:release
 ./scripts/desktop-publish-release-local
 ```
 
+Publish the **fork GUI Docker image** so downloadable apps do not pull upstream:
+
+```bash
+# once per machine: gh auth refresh -s write:packages,read:packages,repo,workflow
+make desktop-publish-qui-image
+```
+
+Packaged Electron defaults to `ghcr.io/johann-goncalves-pereira/qui:latest`
+(not `autobrr/qui`). Without that push, new machines cannot get Glassmorphism /
+StatusBarFooter / Gazelle UI.
+
 Never leave a mismatched marketing tag (e.g. `v1.0.0`) as Latest while
 `desktop/package.json` is `0.0.x` — the in-app updater uses `/releases/latest`.
 
