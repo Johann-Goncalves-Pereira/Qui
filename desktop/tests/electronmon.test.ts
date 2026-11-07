@@ -72,12 +72,13 @@ describe('Electronmon development configuration (BR-desktop-37)', () => {
 			fs.writeFileSync(path.join(assetsDir, 'icon.png'), 'fake-binary')
 
 			const discovered: string[] = []
+			const resolvedTmpDir = path.resolve(tmpDir)
 			registerElectronmonMainModules({
 				desktopDev: true,
 				distDir: tmpDir,
 				send: (msg: ElectronmonDiscoverMessage) => {
 					if (msg.type === 'discover' && msg.file) {
-						discovered.push(path.relative(tmpDir, msg.file))
+						discovered.push(path.relative(resolvedTmpDir, msg.file))
 					}
 				},
 			})
@@ -91,6 +92,21 @@ describe('Electronmon development configuration (BR-desktop-37)', () => {
 			expect(discovered).not.toContain('main/window.d.ts')
 			expect(discovered).not.toContain('preload/index.d.cts')
 			expect(discovered).not.toContain('assets/icon.png')
+
+			// electronmon keys appfiles with path.resolve(cwd, rel) absolute paths
+			const absoluteDiscovered: string[] = []
+			registerElectronmonMainModules({
+				desktopDev: true,
+				distDir: tmpDir,
+				send: (msg: ElectronmonDiscoverMessage) => {
+					absoluteDiscovered.push(msg.file)
+				},
+			})
+			expect(absoluteDiscovered.length).toBeGreaterThan(0)
+			for (const file of absoluteDiscovered) {
+				expect(path.isAbsolute(file)).toBe(true)
+				expect(file).toBe(path.resolve(file))
+			}
 		} finally {
 			fs.rmSync(tmpDir, { recursive: true, force: true })
 		}
@@ -104,12 +120,25 @@ describe('Electronmon development configuration (BR-desktop-37)', () => {
 		})
 		expect(discovered).toHaveLength(0)
 
-		expect(() => {
-			registerElectronmonMainModules({
-				desktopDev: true,
-				send: undefined,
-			})
-		}).not.toThrow()
+		const ignored: ElectronmonDiscoverMessage[] = []
+		const realSend = process.send
+		process.send = ((msg: unknown) => {
+			ignored.push(msg as ElectronmonDiscoverMessage)
+			return true
+		}) as typeof process.send
+		try {
+			expect(() => {
+				registerElectronmonMainModules({
+					desktopDev: true,
+					// Explicit undefined must not fall back to process.send
+					send: undefined,
+					distDir: path.join(os.tmpdir(), 'qui-electronmon-unused'),
+				})
+			}).not.toThrow()
+			expect(ignored).toHaveLength(0)
+		} finally {
+			process.send = realSend
+		}
 	})
 
 	it('logs and does not throw when distDir cannot be scanned', () => {
