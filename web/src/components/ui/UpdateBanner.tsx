@@ -12,7 +12,7 @@ import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
 import { Download, X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export function UpdateBanner() {
@@ -39,6 +39,21 @@ export function UpdateBanner() {
     refetchOnWindowFocus: false,
   })
 
+  // Listen for open-dialog events emitted by desktop main process
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.quiDesktop?.onShowUpdateDialog) {
+      return
+    }
+    const unsubscribe = window.quiDesktop.onShowUpdateDialog((info) => {
+      if (info?.hasUpdate) {
+        setDialogOpen(true)
+      }
+    })
+    return () => {
+      unsubscribe?.()
+    }
+  }, [])
+
   // Standalone browser / Docker container update query
   const { data: updateInfo } = useQuery({
     queryKey: ["latest-version"],
@@ -51,16 +66,17 @@ export function UpdateBanner() {
   })
 
   if (isDesktop) {
-    if (dismissed || !desktopUpdate?.hasUpdate) {
+    if (!desktopUpdate?.hasUpdate) {
       return null
     }
 
     return (
       <>
-        <div className={cn(
-          "mb-3 rounded-md border border-green-200 bg-green-50 p-3",
-          "dark:border-green-800 dark:bg-green-950/50"
-        )}>
+        {!dismissed && (
+          <div className={cn(
+            "mb-3 rounded-md border border-green-200 bg-green-50 p-3",
+            "dark:border-green-800 dark:bg-green-950/50"
+          )}>
           <div className="flex items-start gap-2">
             <Download className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
@@ -97,6 +113,7 @@ export function UpdateBanner() {
             </Button>
           </div>
         </div>
+        )}
         <DesktopUpdateDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}

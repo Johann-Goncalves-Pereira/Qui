@@ -177,12 +177,17 @@ When the user initiates **Download & Update**, the application never redirects e
 3. The matching version container image is downloaded or pulled (`ghcr.io/johann-goncalves-pereira/qui:<version>`).
 4. The container is recreated and the web view reloads automatically once the new version is live.
 
+## Homebrew Cask Automated Updates & Native Alert Suppression (`BR-desktop-44`)
+
+- **Native Alert Sheet Suppression:** Intrusive macOS alert sheets (`dialog.showMessageBox`) are suppressed when updates are found on launch or manual check. The main process emits `updater:show-dialog` via IPC, exclusively opening the in-app `DesktopUpdateDialog`.
+- **Automated Homebrew Upgrades:** For desktop installations managed via Homebrew Cask (`/opt/homebrew/Caskroom/qui` or `brew list --cask qui`), clicking **Download & Update** internally executes `brew update` to refresh tap metadata, followed by `brew upgrade --cask qui` to update `Qui.app` on disk. The matching Docker container is updated in lockstep, the in-memory app version is advanced, and the web interface reloads seamlessly with the new release version.
+
 ## Behaviour summary
 
 - Launch + tray compare semver to GitHub `releases/latest`.
 - Release descriptions always contain `## What's Changed` parsed from commits/PRs between release tags.
 - In-app `DesktopUpdateDialog` displays changelog and triggers automatic download without browser redirects.
-- In-app `applyUpdate` performs pre-update backup, synchronizes container, and reloads interface.
+- In-app `applyUpdate` performs pre-update backup, synchronizes container, executes brew upgrade for Cask installs, and reloads interface.
 - Upstream web update banners and self-update buttons are suppressed in Electron.
 - Component update prompts declare exact target types and reload impacts.
 - Automatic snapshot backups precede all container and shell updates.
@@ -200,4 +205,6 @@ When the user initiates **Download & Update**, the application never redirects e
 - `BR-desktop-40` — automated release changelog generation on version bump.
 - `BR-desktop-41` — automated in-app download and container update via applyUpdate.
 - `BR-web-15` — in-app DesktopUpdateDialog with changelog replacing OS alert sheet.
+- `BR-desktop-44` — Homebrew Cask automated updates and native alert suppression.
+
 

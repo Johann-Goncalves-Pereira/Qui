@@ -97,6 +97,19 @@ declare global {
       }>
       promptUpdates?: () => Promise<boolean>
       applyUpdate?: (version?: string) => Promise<{ success: boolean; error?: string }>
+      onShowUpdateDialog?: (
+        callback: (info: {
+          hasUpdate: boolean
+          currentVersion: string
+          latestVersion: string
+          tagName?: string
+          name?: string
+          body?: string
+          htmlUrl?: string
+          downloadUrl?: string
+          publishedAt?: string
+        }) => void,
+      ) => () => void
       gazelle?: {
         getStatus?: () => Promise<{
           name: string
