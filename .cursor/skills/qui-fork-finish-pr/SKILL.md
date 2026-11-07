@@ -17,7 +17,7 @@ Replaces reliance on GitHub Actions for gates that are budget-blocked. Global
 follow this skill end-to-end.
 
 **Docs:** `docs/desktop/upstream-sync.md`, `docs/desktop/versioning.md`  
-**Specs:** `BR-desktop-21`, `BR-desktop-28`
+**Specs:** `BR-desktop-21`, `BR-desktop-28`, `BR-desktop-40`
 
 ## Order (do not skip)
 
@@ -25,7 +25,8 @@ follow this skill end-to-end.
 1. Local upstream-sync on the PR head (feature branch / worktree)
 2. Squash-merge the PR (finish-pr SM)
 3. Checkout + pull base (develop/main)
-4. Local desktop version bump (unless skip rules below)
+4. Synchronize fork base with upstream autobrr/qui develop (make upstream-sync-fork)
+5. Local desktop version bump (unless skip rules below)
 ```
 
 ## Phase A — Upstream sync
@@ -55,9 +56,22 @@ smart-mode approval retry on merge block).
 If the PR title is already `Chore 🔧: Bump Desktop Version to …`, **stop after
 Phase B** (do not bump again).
 
-## Phase C — Version bump + tag ($0 spend)
+## Phase C — Fork upstream synchronization (BR-desktop-40)
 
-On clean `develop` / `main` after the feature SM:
+
+On this repository, **finish-pr must always synchronize the fork** with upstream `autobrr/qui` `develop`:
+
+```bash
+make upstream-sync-fork
+# or: ./scripts/upstream-sync-fork
+```
+
+This verifies zero conflicts, opens a sync PR if behind upstream, merges it with `--merge` (preserving git commit ancestry so GitHub's behind counter resets to 0), and updates local `develop`.
+
+## Phase D — Version bump + tag ($0 spend)
+
+On clean `develop` / `main` after the feature SM and upstream fork sync:
+
 
 ```bash
 ./scripts/desktop-version-bump-local
@@ -89,7 +103,7 @@ StatusBarFooter / Gazelle UI.
 Never leave a mismatched marketing tag (e.g. `v1.0.0`) as Latest while
 `desktop/package.json` is `0.0.x` — the in-app updater uses `/releases/latest`.
 
-Skip Phase C when:
+Skip Phase D (version bump) when:
 
 - `QUI_SKIP_DESKTOP_VERSION_BUMP=1`
 - The PR you just merged was itself a desktop version bump
@@ -101,13 +115,15 @@ Skip Phase C when:
 [ ] upstream-sync clean on PR head
 [ ] gh pr merge N --squash --delete-branch
 [ ] on develop/main, pulled
-[ ] ./scripts/desktop-version-bump-local   # unless bump PR / skip
+[ ] ./scripts/upstream-sync-fork             # ensure 0 commits behind upstream
+[ ] ./scripts/desktop-version-bump-local     # unless bump PR / skip
 [ ] SetActiveBranch to base
 [ ] report feature PR URL + bump version/tag
 ```
 
 ## Related
 
-- Scripts: `scripts/desktop-version-bump-local`, `scripts/upstream-sync-check`
+- Scripts: `scripts/upstream-sync-fork`, `scripts/desktop-version-bump-local`, `scripts/upstream-sync-check`
 - Rule: `.cursor/rules/510-local-upstream-sync.mdc`
 - Sibling: `$qui-fork-local-upstream-sync`, `$qui-fork-issue-crafting`
+

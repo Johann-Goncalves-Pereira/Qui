@@ -27,7 +27,7 @@ INTERNAL_WEB_DIR = internal/web
 # Go build flags
 LDFLAGS = -ldflags "-X github.com/autobrr/qui/internal/buildinfo.Version=$(VERSION) -X github.com/autobrr/qui/internal/buildinfo.Commit=$(GIT_COMMIT) -X github.com/autobrr/qui/internal/buildinfo.Date=$(BUILD_DATE)"
 
-.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh desktop-version-bump desktop-publish-release desktop-publish-qui-image upstream-sync install-hooks clean test test-postgres test-frontend help themes-fetch themes-clean lint lint-full lint-ratchet lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
+.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh desktop-version-bump desktop-publish-release desktop-publish-qui-image upstream-sync upstream-sync-fork install-hooks clean test test-postgres test-frontend help themes-fetch themes-clean lint lint-full lint-ratchet lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
 
 # Default target
 all: build
@@ -86,6 +86,11 @@ desktop-refresh:
 # Dry-merge autobrr/qui develop into HEAD (local gate; no GitHub Actions).
 upstream-sync:
 	./scripts/upstream-sync-check
+
+# Synchronize develop with autobrr/qui develop via PR with merge commit (--merge).
+upstream-sync-fork:
+	./scripts/upstream-sync-fork
+
 
 # After squash-merge: bump desktop patch via PR + tag (no Actions; $0 spend).
 desktop-version-bump:

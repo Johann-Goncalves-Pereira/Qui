@@ -48,11 +48,24 @@ fi
 cp "$SELF_TMP" "$0"
 rm -f "$SELF_TMP"
 
+# Invariant: finish-pr on this fork must always synchronize develop with upstream autobrr/qui develop (BR-desktop-40).
+if [ -x "$ROOT/scripts/upstream-sync-fork" ]; then
+  "$ROOT/scripts/upstream-sync-fork" "$BASE_BRANCH" || {
+    echo "desktop-version-bump-local: upstream sync failed; aborting bump" >&2
+    exit 1
+  }
+  git fetch origin "$BASE_BRANCH"
+  if git checkout "$BASE_BRANCH" 2>/dev/null; then
+    git pull origin "$BASE_BRANCH"
+  fi
+fi
+
 # Avoid bumping a bump (local commit or squash PR title on tip).
 if git log -1 --pretty=%s "origin/$BASE_BRANCH" | grep -qiE 'bump( desktop)? version|Bump Desktop Version'; then
   echo "desktop-version-bump-local: tip is already a version bump; nothing to do"
   exit 0
 fi
+
 
 OLD_VER="$(node -p "require('./desktop/package.json').version")"
 node desktop/scripts/bump-version.mjs
