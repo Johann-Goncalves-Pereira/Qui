@@ -38,6 +38,9 @@ const mockGetQBitConfig = vi.fn().mockResolvedValue({
   tz: "UTC",
   restartPolicy: "unless-stopped",
   image: "lscr.io/linuxserver/qbittorrent:latest",
+  username: "admin",
+  password: "temporaryPassword123",
+  isTemporaryPassword: true,
 })
 
 vi.mock("@/hooks/useDockerServices", () => ({
@@ -119,5 +122,53 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     })
 
     expect(mockSaveQBit).toHaveBeenCalled()
+  })
+
+  it("renders QBitDockerConfigDialog with blurred password, reveal toggle, and copy buttons (BR-desktop-43)", async () => {
+    const clipboardWriteMock = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: clipboardWriteMock,
+      },
+    })
+
+    render(<QBitDockerConfigDialog open={true} onOpenChange={() => {}} />)
+
+    // Wait for loaded config
+    expect(await screen.findByText("WebUI Administrator Credentials")).toBeDefined()
+    expect(await screen.findByText("Temporary Session Password")).toBeDefined()
+
+    const userInput = screen.getByLabelText("Username") as HTMLInputElement
+    expect(userInput.value).toBe("admin")
+
+    const passInput = screen.getByLabelText("Password") as HTMLInputElement
+    expect(passInput.type).toBe("password")
+    expect(passInput.className).toContain("blur-[3px]")
+
+    // Toggle reveal button
+    const revealBtn = screen.getByRole("button", { name: /Show/i })
+    await act(async () => {
+      fireEvent.click(revealBtn)
+    })
+    expect(passInput.type).toBe("text")
+
+    // Click input itself to blur again
+    await act(async () => {
+      fireEvent.click(passInput)
+    })
+    expect(passInput.type).toBe("password")
+
+    // Copy username button (first Copy button)
+    const copyButtons = screen.getAllByRole("button", { name: /Copy/i })
+    await act(async () => {
+      fireEvent.click(copyButtons[0])
+    })
+    expect(clipboardWriteMock).toHaveBeenCalledWith("admin")
+
+    // Copy password button (second Copy button)
+    await act(async () => {
+      fireEvent.click(copyButtons[1])
+    })
+    expect(clipboardWriteMock).toHaveBeenCalledWith("temporaryPassword123")
   })
 })

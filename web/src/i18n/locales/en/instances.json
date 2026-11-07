@@ -56,7 +56,12 @@
     "passwordRequired": "Password Required",
     "decryptionDescription": "Unable to decrypt saved password. This usually happens when the session secret has changed.",
     "reenterPassword": "Re-enter Password",
-    "recentErrors": "Recent Errors ({{count}})"
+    "recentErrors": "Recent Errors ({{count}})",
+    "authGuideTitle": "qBittorrent Authentication Required",
+    "authGuideDescription": "Modern qBittorrent (v4.6.1+) generates an administrator password on initial start and rejects unauthenticated connections.",
+    "authGuideStep1": "Click the qbittorrent:8080 service badge in the bottom status bar footer to copy the container's generated password.",
+    "authGuideStep2": "Edit this instance, set qBittorrent Authentication to Username / Password (default username: admin), paste the password, and save.",
+    "configureCredentials": "Configure Instance Credentials"
   },
   "form": {
     "labels": {

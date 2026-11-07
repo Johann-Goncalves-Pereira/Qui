@@ -60,7 +60,9 @@
       "restartFailed": "Failed to restart container",
       "genericSaveError": "Error saving configuration",
       "genericRestartError": "Error restarting container",
-      "copyCommandFailed": "Could not copy to clipboard"
+      "copyCommandFailed": "Could not copy to clipboard",
+      "copiedUsername": "Copied username to clipboard",
+      "copiedPassword": "Copied password to clipboard"
     },
     "fields": {
       "hostWebUiPort": "Host Web UI Port",
@@ -91,6 +93,16 @@
       "bitTorrentPeerPort": "BitTorrent Peer Port",
       "peerPortHelp": "TCP & UDP incoming traffic (default: 6881).",
       "dockerCommandPreview": "Docker Command Preview",
+      "webUiCredentials": "WebUI Administrator Credentials",
+      "webUiUsername": "Username",
+      "webUiPassword": "Password",
+      "temporarySessionPassword": "Temporary Session Password",
+      "noPasswordDetected": "No password detected in logs",
+      "show": "Show",
+      "hide": "Hide",
+      "clickToCopy": "Click to copy",
+      "webUiCredentialsHelp": "Required to authenticate Qui Desktop's companion instance (Settings → Instances). Click the password to toggle blur or use the copy button.",
+      "webUiCredentialsManualHelp": "No temporary session password found in logs. If a custom password was set in WebUI preferences, use that password in Settings → Instances.",
       "copy": "Copy",
       "copied": "Copied",
       "quiImageHelp": "e.g. qui-desktop:local or ghcr.io/autobrr/qui:latest",

@@ -399,6 +399,42 @@ describe('DockerManager', () => {
 		expect(mock.executedCommands.some(c => c.args[0] === 'run')).toBe(true)
 	})
 
+	it('getQBitConfig parses credentials from docker logs (BR-desktop-43)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.responses[`docker inspect ${QBIT_CONTAINER_NAME}`] = {
+			stdout: JSON.stringify([
+				{
+					Config: {
+						Image: 'lscr.io/linuxserver/qbittorrent:latest',
+						Env: ['PUID=1000', 'PGID=1000', 'TZ=UTC'],
+					},
+					HostConfig: {
+						Binds: ['/qbit/config:/config', '/qbit/downloads:/downloads'],
+						PortBindings: {
+							'8080/tcp': [{ HostPort: '8080' }],
+							'6881/tcp': [{ HostPort: '6881' }],
+						},
+						RestartPolicy: { Name: 'unless-stopped' },
+					},
+				},
+			]),
+			stderr: '',
+		}
+		mock.responses[`docker logs --tail 200 ${QBIT_CONTAINER_NAME}`] = {
+			stdout:
+				'The WebUI administrator username is: admin\nA temporary password is provided for this session: secretSessionKey123\n',
+			stderr: '',
+		}
+
+		const manager = new DockerManager(mock)
+		const config = await manager.getQBitConfig()
+
+		expect(config.port).toBe(8080)
+		expect(config.username).toBe('admin')
+		expect(config.password).toBe('secretSessionKey123')
+		expect(config.isTemporaryPassword).toBe(true)
+	})
+
 	it('restarts a named container via restartContainer', async () => {
 		const mock = new MockDockerExecutor()
 		const manager = new DockerManager(mock)

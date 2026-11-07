@@ -92,6 +92,9 @@ export const QBitContainerConfigSchema = Schema.Struct({
 	tz: Schema.optional(Schema.String),
 	restartPolicy: Schema.String,
 	image: Schema.String,
+	username: Schema.optional(Schema.String),
+	password: Schema.optional(Schema.String),
+	isTemporaryPassword: Schema.optional(Schema.Boolean),
 })
 
 export type QBitContainerConfig = typeof QBitContainerConfigSchema.Type

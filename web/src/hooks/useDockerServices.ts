@@ -38,6 +38,9 @@ export interface QBitContainerConfig {
   tz?: string
   restartPolicy: string
   image: string
+  username?: string
+  password?: string
+  isTemporaryPassword?: boolean
 }
 
 const DEFAULT_QUI_PORT = 7476
@@ -152,6 +155,7 @@ export function useDockerServices() {
       tz: "UTC",
       restartPolicy: "unless-stopped",
       image: "lscr.io/linuxserver/qbittorrent:latest",
+      username: "admin",
     }
   }, [])
 

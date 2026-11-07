@@ -324,7 +324,13 @@ export function InstanceCard({
           </div>
         </div>
 
-        <InstanceErrorDisplay instance={instance} onEdit={onEdit} showEditButton={true} compact />
+        <InstanceErrorDisplay
+          instance={instance}
+          onEdit={onEdit}
+          showEditButton={true}
+          compact
+          extraErrorMessage={testResult && !testResult.success ? testResult.message : undefined}
+        />
 
         {testResult && (
           <div className={cn(
