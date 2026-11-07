@@ -33,6 +33,7 @@ import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
 import {
 	dockerDataDirs,
+	ensureDockerDataPermissions,
 	ensureQbitPreseedConfig,
 	updatesWorthPrompting,
 } from './container-layout.js'
@@ -197,6 +198,7 @@ async function loadQuiWebUi(): Promise<void> {
 					for (const dir of [dirs.quiConfig, dirs.qbitConfig, dirs.downloads]) {
 						mkdirSync(dir, { recursive: true })
 					}
+					ensureDockerDataPermissions(dirs)
 					ensureQbitPreseedConfig(dirs.qbitConfig)
 					await dockerManager.alignContainer(
 						QUI_CONTAINER_NAME,

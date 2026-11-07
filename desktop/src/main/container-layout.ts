@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import {
 	DEFAULT_GAZELLE_PORT,
@@ -47,6 +47,32 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 	}
 }
 
+/**
+ * Ensures that the Docker data directories and their host parent directories
+ * have traversal permissions (0755) so that container runtimes running unprivileged
+ * UIDs (e.g. linuxserver/qbittorrent UID 1000/911) can traverse virtiofs/bind mounts
+ * without encountering EPERM (Operation not permitted).
+ */
+export function ensureDockerDataPermissions(
+	dirs: DockerDataDirs,
+	chmod: (filePath: string, mode: number) => void = chmodSync,
+): void {
+	const paths = [
+		path.dirname(path.dirname(dirs.quiConfig)),
+		path.dirname(dirs.quiConfig),
+		dirs.quiConfig,
+		dirs.qbitConfig,
+		dirs.downloads,
+	]
+	for (const p of paths) {
+		try {
+			chmod(p, 0o755)
+		} catch {
+			// Best-effort for non-existing or restricted paths
+		}
+	}
+}
+
 export function quiContainerRunArgs(
 	image: string,
 	hostConfig: string,
@@ -80,7 +106,15 @@ export function qbitContainerRunArgs(
 	image: string,
 	hostConfig: string,
 	downloads: string,
+	options?: {
+		puid?: string
+		pgid?: string
+		umask?: string
+	},
 ): string[] {
+	const puid = options?.puid ?? '1000'
+	const pgid = options?.pgid ?? '1000'
+	const umask = options?.umask ?? '022'
 	return [
 		'run',
 		'-d',
@@ -96,6 +130,12 @@ export function qbitContainerRunArgs(
 		`${hostConfig}:/config`,
 		'-v',
 		`${downloads}:/downloads`,
+		'-e',
+		`PUID=${puid}`,
+		'-e',
+		`PGID=${pgid}`,
+		'-e',
+		`UMASK=${umask}`,
 		'--restart',
 		'unless-stopped',
 		image,
@@ -134,6 +174,7 @@ export function ensureQbitPreseedConfig(
 		existsSync,
 		mkdirSync,
 		writeFileSync,
+		chmodSync,
 	},
 ): boolean {
 	const confDir = path.join(qbitConfigDir, 'qBittorrent')
@@ -143,6 +184,11 @@ export function ensureQbitPreseedConfig(
 	}
 	fs.mkdirSync(confDir, { recursive: true })
 	fs.writeFileSync(confPath, DEFAULT_QBIT_PRESEED_CONF, 'utf-8')
+	try {
+		fs.chmodSync(confPath, 0o666)
+	} catch {
+		// Ignore chmod failure in environments without filesystem permissions
+	}
 	return true
 }
 

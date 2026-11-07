@@ -39,6 +39,7 @@ import {
 	defaultQBitConfig,
 	defaultQuiConfig,
 	dockerDataDirs,
+	ensureDockerDataPermissions,
 	imageDigestHasUpdate,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
@@ -259,6 +260,7 @@ export class DockerManager {
 		qbit: DockerContainerStatus
 	}> {
 		const dirs = dockerDataDirs(homedir(), process.platform)
+		ensureDockerDataPermissions(dirs)
 		const quiStatus = await this.ensureContainer(
 			QUI_CONTAINER_NAME,
 			this.quiImage,
@@ -624,6 +626,14 @@ export class DockerManager {
 			)
 			this.mkdir(config.configPath)
 			this.mkdir(config.downloadsPath)
+			ensureDockerDataPermissions({
+				quiConfig: path.join(path.dirname(config.configPath), 'qui'),
+				qbitConfig: config.configPath,
+				downloads: config.downloadsPath,
+				gazelleConfig: '',
+				gazelleData: '',
+				gazelleRepo: '',
+			})
 			try {
 				await this.executor.exec('docker', ['stop', QBIT_CONTAINER_NAME])
 			} catch {
