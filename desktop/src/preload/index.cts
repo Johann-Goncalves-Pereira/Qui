@@ -10,6 +10,7 @@ import type {
 	DockerContainerStatus,
 	QBitContainerConfig,
 	QuiContainerConfig,
+	ThemeSyncPayload,
 } from '../shared/types.js'
 
 export interface QuiDesktopBridge {
@@ -44,6 +45,8 @@ export interface QuiDesktopBridge {
 	checkForUpdates: () => Promise<AppReleaseInfo>
 	/** Triggers native desktop multilayer update dialog (shell and containers with pre-update backups) */
 	promptUpdates: () => Promise<boolean>
+	/** Synchronize active theme tokens and dark/light preference to desktop shell for startup page caching */
+	syncTheme: (payload: ThemeSyncPayload) => Promise<void>
 	/** Gazelle companion Docker lifecycle controls */
 	gazelle: {
 		getStatus: () => Promise<DockerContainerStatus>
@@ -87,6 +90,8 @@ const bridge: QuiDesktopBridge = {
 		ipcRenderer.invoke('docker:restart-container', name),
 	checkForUpdates: () => ipcRenderer.invoke('updater:check-app-update'),
 	promptUpdates: () => ipcRenderer.invoke('updater:prompt-updates'),
+	syncTheme: (payload: ThemeSyncPayload) =>
+		ipcRenderer.invoke('theme:sync', payload),
 	gazelle: {
 		getStatus: () => ipcRenderer.invoke('docker:gazelle:status'),
 		start: () => ipcRenderer.invoke('docker:gazelle:start'),

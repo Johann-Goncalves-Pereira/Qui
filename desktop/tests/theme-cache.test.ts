@@ -63,4 +63,14 @@ describe('Theme cache persistence (BR-desktop-28)', () => {
 		writeFileSync(filePath, JSON.stringify({ noId: true }), 'utf8')
 		expect(readCachedTheme(tempDir)).toBeNull()
 	})
+
+	it('exposes syncTheme on desktop preload bridge (BR-desktop-28)', async () => {
+		const fs = await import('node:fs')
+		const cjsPath = path.resolve(__dirname, '../dist/preload/index.cjs')
+
+		expect(fs.existsSync(cjsPath)).toBe(true)
+		const content = fs.readFileSync(cjsPath, 'utf8')
+		expect(content).toContain('syncTheme')
+		expect(content).toContain('theme:sync')
+	})
 })

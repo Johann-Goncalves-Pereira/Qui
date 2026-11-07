@@ -7,24 +7,12 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { Schema } from 'effect'
 
-export const ThemeSyncPayloadSchema = Schema.Struct({
-	id: Schema.String,
-	name: Schema.optional(Schema.String),
-	isDark: Schema.optional(Schema.Boolean),
-	cssVars: Schema.optional(
-		Schema.Struct({
-			light: Schema.optional(
-				Schema.Record({ key: Schema.String, value: Schema.String }),
-			),
-			dark: Schema.optional(
-				Schema.Record({ key: Schema.String, value: Schema.String }),
-			),
-		}),
-	),
-	rawCss: Schema.optional(Schema.String),
-})
+import {
+	type ThemeSyncPayload,
+	ThemeSyncPayloadSchema,
+} from '../shared/types.js'
 
-export type ThemeSyncPayload = Schema.Schema.Type<typeof ThemeSyncPayloadSchema>
+export { type ThemeSyncPayload, ThemeSyncPayloadSchema }
 
 export function themeCacheFilePath(userDataDir: string): string {
 	return path.join(userDataDir, 'theme-cache.json')
