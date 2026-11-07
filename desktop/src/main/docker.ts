@@ -589,11 +589,10 @@ export class DockerManager {
 	private async loadForkImageFromGithubRelease(
 		desiredImage: string,
 	): Promise<void> {
-		const url = quiDesktopImageArchiveUrl(
-			GITHUB_REPO,
-			this.processArch,
-			CURRENT_APP_VERSION,
-		)
+		const tag = desiredImage.includes(':')
+			? desiredImage.split(':')[1]
+			: CURRENT_APP_VERSION
+		const url = quiDesktopImageArchiveUrl(GITHUB_REPO, this.processArch, tag)
 		const bytes = await this.fetchBinary(url)
 		const archivePath = path.join(
 			tmpdir(),

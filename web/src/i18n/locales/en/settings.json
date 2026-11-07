@@ -1086,6 +1086,9 @@
         "managedByDesktopDetail": "Updates and container lifecycles are managed by Qui Desktop",
         "notCheckedYet": "Not checked yet",
         "lastChecked": "Last checked {{date}}"
+      },
+      "actions": {
+        "checkForUpdates": "Check for Updates"
       }
     },
     "restart": {

@@ -9,6 +9,8 @@ import {
 	APP_NAME,
 	CURRENT_APP_VERSION,
 	GITHUB_REPO,
+	getVersionedQuiImage,
+	QUI_CONTAINER_NAME,
 } from '../shared/constants.js'
 import { type AppReleaseInfo, AppReleaseInfoSchema } from '../shared/types.js'
 
@@ -110,7 +112,8 @@ export class AppReleaseUpdater {
 				downloadUrl: downloadUrl || undefined,
 				publishedAt: String(data.published_at ?? new Date().toISOString()),
 			})
-		} catch {
+		} catch (err) {
+			console.warn('AppReleaseUpdater.checkForUpdates failed:', err)
 			return Schema.decodeUnknownSync(AppReleaseInfoSchema)({
 				hasUpdate: false,
 				currentVersion: this.currentVersion,
@@ -161,8 +164,8 @@ export class AppReleaseUpdater {
 		if (response === 0) {
 			try {
 				await createPreUpdateBackup('desktop-shell')
-			} catch {
-				// Non-fatal backup attempt
+			} catch (err) {
+				console.warn('Pre-update backup failed (desktop-shell):', err)
 			}
 			const targetUrl = info.downloadUrl || info.htmlUrl
 			await shell.openExternal(targetUrl)
@@ -170,5 +173,46 @@ export class AppReleaseUpdater {
 		}
 
 		return false
+	}
+
+	/**
+	 * Automatically applies a desktop update without external browser navigation.
+	 * Performs pre-update backup, pulls or loads the target version container image,
+	 * recreates the Qui container, and reloads the web UI.
+	 */
+	async applyUpdate(
+		_window: BrowserWindow | null,
+		dockerManager: {
+			updateAndRestartContainer: (
+				name: string,
+				image: string,
+			) => Promise<unknown>
+		},
+		loadWebUi: () => Promise<void> | void,
+		targetVersion?: string,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const info = await this.checkForUpdates()
+			const versionToApply = targetVersion || info.latestVersion
+			const targetImage = getVersionedQuiImage(versionToApply)
+
+			try {
+				await createPreUpdateBackup('desktop-update')
+			} catch (err) {
+				console.warn('Pre-update backup failed (desktop-update):', err)
+			}
+
+			await dockerManager.updateAndRestartContainer(
+				QUI_CONTAINER_NAME,
+				targetImage,
+			)
+
+			await loadWebUi()
+
+			return { success: true }
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err)
+			return { success: false, error: message }
+		}
 	}
 }

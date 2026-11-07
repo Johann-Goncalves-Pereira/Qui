@@ -163,7 +163,7 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		expect(info.hasUpdate).toBe(true)
 	})
 
-	it('exposes checkForUpdates and promptUpdates on desktop preload bridge (BR-desktop-36)', async () => {
+	it('exposes checkForUpdates, promptUpdates, and applyUpdate on desktop preload bridge (BR-desktop-36, BR-desktop-41)', async () => {
 		const fs = await import('node:fs')
 		const path = await import('node:path')
 		const cjsPath = path.resolve(__dirname, '../dist/preload/index.cjs')
@@ -174,5 +174,51 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		expect(content).toContain('updater:check-app-update')
 		expect(content).toContain('promptUpdates')
 		expect(content).toContain('updater:prompt-updates')
+		expect(content).toContain('applyUpdate')
+		expect(content).toContain('updater:apply-update')
+	})
+
+	it('applyUpdate performs automated container synchronization and UI reload without external browser navigation (BR-desktop-41)', async () => {
+		const mockFetcher: ReleaseFetcher = {
+			fetchLatest: async () => ({
+				tag_name: 'v0.0.17',
+				name: 'Qui v0.0.17',
+				body: "## What's Changed\n* Feature in 0.0.17",
+				html_url:
+					'https://github.com/Johann-Goncalves-Pereira/Qui/releases/tag/v0.0.17',
+				published_at: new Date().toISOString(),
+				assets: [],
+			}),
+		}
+
+		const updater = new AppReleaseUpdater(
+			'Johann-Goncalves-Pereira/Qui',
+			'0.0.16',
+			mockFetcher,
+		)
+
+		let containerUpdatedWith: string | null = null
+		let webUiReloaded = false
+
+		const mockDockerManager: Parameters<typeof updater.applyUpdate>[1] = {
+			updateAndRestartContainer: async (_name: string, image: string) => {
+				containerUpdatedWith = image
+			},
+		}
+
+		const result = await updater.applyUpdate(
+			null,
+			mockDockerManager,
+			() => {
+				webUiReloaded = true
+			},
+			'0.0.17',
+		)
+
+		expect(result.success).toBe(true)
+		expect(containerUpdatedWith).toBe(
+			'ghcr.io/johann-goncalves-pereira/qui:0.0.17',
+		)
+		expect(webUiReloaded).toBe(true)
 	})
 })

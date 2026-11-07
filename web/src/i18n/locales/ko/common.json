@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Qui 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Docker 설정을 구성합니다.",
     "tooltipQbit": "qBittorrent-nox 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Docker 설정을 구성합니다.",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Gazelle 컴패니언 ({{state}}), 포트 {{port}}. 클릭하여 WebUI 열기."
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "업데이트 사용 가능",
     "versionAvailable": "버전 {{version}}을(를) 지금 사용할 수 있습니다",
-    "dismiss": "닫기"
+    "dismiss": "닫기",
+    "desktopUpdateAvailable": "Qui Desktop 업데이트 사용 가능",
+    "reviewAndUpdate": "검토 및 업데이트"
   },
   "pwaUpdate": {
     "reload": "새로고침",
@@ -329,5 +333,21 @@
   },
   "labels": {
     "path": "경로"
+  },
+  "desktopUpdate": {
+    "title": "Qui Desktop 업데이트 사용 가능",
+    "subtitle": "{{version}} 버전을 다운로드하여 설치할 준비가 되었습니다. 현재 버전은 {{current}}입니다.",
+    "whatsNew": "{{version}}의 새로운 기능",
+    "noChangelog": "성능 개선, 버그 수정 및 유지 관리 업데이트입니다.",
+    "dataSafetyTitle": "데이터 안전 및 업데이트 전 백업",
+    "backupNotice": "업데이트 전에 백업 스냅샷이 보관됩니다.",
+    "storageNotice": "데이터베이스 설정, 토렌트 데이터 및 볼트가 안전하게 유지됩니다.",
+    "inProgress": "업데이트를 다운로드하고 Qui 컨테이너를 업데이트하는 중... 인터페이스가 곧 자동으로 다시 로드됩니다.",
+    "applied": "업데이트가 성공적으로 적용되었습니다! 웹 인터페이스를 새로 고치는 중...",
+    "failed": "업데이트를 적용하지 못했습니다.",
+    "later": "나중에",
+    "updating": "업데이트 중...",
+    "done": "완료",
+    "downloadAndUpdate": "다운로드 및 업데이트"
   }
 }

@@ -154,19 +154,38 @@ The sandboxed Electron preload bridge (`window.quiDesktop`) exposes:
 ## Web UI Multilayer Integration (`BR-web-13`)
 
 - **Settings Page:** Under "Application → Update Status", desktop-managed environments render a dedicated **[Check for Updates]** button triggering `window.quiDesktop.promptUpdates()`.
-- **Update Banner:** When a newer desktop release is available, `UpdateBanner.tsx` renders a desktop update notice and a **[Review & Update]** button calling `promptUpdates()`. Upstream self-update container modals are completely bypassed in desktop mode.
+- **Update Banner:** When a newer desktop release is available, `UpdateBanner.tsx` renders a desktop update notice and a **[Review & Update]** button that opens the in-app `DesktopUpdateDialog` (`BR-web-15`). Upstream self-update container modals are completely bypassed in desktop mode.
+
+## Automated Release Changelog Generation (`BR-desktop-40`)
+
+Releases created via `scripts/desktop-publish-release-local` automatically parse commits and merged pull requests since the previous release tag (`git describe --tags --abbrev=0 "${TAG}^"`). The resulting `## What's Changed` section is written directly into the GitHub Release body, ensuring every new version explicitly describes bug fixes, features, and chores.
+
+## In-App Desktop Update Dialog (`BR-web-15`)
+
+Instead of dropping an OS alert sheet (`dialog.showMessageBox`), clicking "Review & Update" renders an in-app `DesktopUpdateDialog` modal styled seamlessly with the active Qui theme. The dialog renders:
+- Current version vs available new version
+- Publication date and component target
+- Formatted release notes and `## What's Changed` changelog description
+- Data safety and pre-update snapshot backup guarantees
+- Actions: **Later** and **Download & Update**
+
+## Automated In-App Download & Container Synchronization (`BR-desktop-41`)
+
+When the user initiates **Download & Update**, the application never redirects externally to the GitHub release page. Instead:
+1. `window.quiDesktop.applyUpdate()` initiates the update sequence in-app.
+2. A timestamped pre-update backup snapshot is taken automatically.
+3. The matching version container image is downloaded or pulled (`ghcr.io/johann-goncalves-pereira/qui:<version>`).
+4. The container is recreated and the web view reloads automatically once the new version is live.
 
 ## Behaviour summary
 
 - Launch + tray compare semver to GitHub `releases/latest`.
-- Download prefers `.dmg`, then `.zip`, else the release HTML URL.
-- Packaged apps pull **fork** GHCR Qui; unpackaged/dev defaults to
-  `qui-desktop:local`.
-- Unsigned builds may need Gatekeeper confirmation on each new binary.
+- Release descriptions always contain `## What's Changed` parsed from commits/PRs between release tags.
+- In-app `DesktopUpdateDialog` displays changelog and triggers automatic download without browser redirects.
+- In-app `applyUpdate` performs pre-update backup, synchronizes container, and reloads interface.
 - Upstream web update banners and self-update buttons are suppressed in Electron.
 - Component update prompts declare exact target types and reload impacts.
 - Automatic snapshot backups precede all container and shell updates.
-- Settings page and UpdateBanner route update workflows to the desktop multilayer dialog.
 
 ## Related spec
 
@@ -178,4 +197,7 @@ The sandboxed Electron preload bridge (`window.quiDesktop`) exposes:
 - `BR-backend-03` — backend release source pointed to fork repo via direct GitHub API.
 - `BR-desktop-36` — preload bridge exposure of checkForUpdates and promptUpdates.
 - `BR-web-13` — Settings and UpdateBanner routing to desktop multilayer engine.
+- `BR-desktop-40` — automated release changelog generation on version bump.
+- `BR-desktop-41` — automated in-app download and container update via applyUpdate.
+- `BR-web-15` — in-app DesktopUpdateDialog with changelog replacing OS alert sheet.
 

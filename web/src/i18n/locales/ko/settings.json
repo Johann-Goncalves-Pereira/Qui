@@ -1080,7 +1080,12 @@
         "upToDate": "최신 상태",
         "upToDateDetail": "최신 버전을 실행 중입니다",
         "notCheckedYet": "아직 확인되지 않음",
-        "lastChecked": "마지막 확인 {{date}}"
+        "lastChecked": "마지막 확인 {{date}}",
+        "managedByDesktop": "Desktop에서 관리",
+        "managedByDesktopDetail": "업데이트와 컨테이너 수명 주기는 Qui Desktop에서 관리합니다"
+      },
+      "actions": {
+        "checkForUpdates": "업데이트 확인"
       }
     },
     "restart": {

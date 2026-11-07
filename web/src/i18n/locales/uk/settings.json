@@ -1089,7 +1089,12 @@
         "upToDate": "Актуально",
         "upToDateDetail": "Працює остання версія",
         "notCheckedYet": "Ще не перевірено",
-        "lastChecked": "Востаннє перевірено {{date}}"
+        "lastChecked": "Востаннє перевірено {{date}}",
+        "managedByDesktop": "Керується Desktop",
+        "managedByDesktopDetail": "Оновлення та життєві цикли контейнерів керуються Qui Desktop"
+      },
+      "actions": {
+        "checkForUpdates": "Перевірити оновлення"
       }
     },
     "restart": {

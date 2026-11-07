@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Kontejner Qui ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Docker.",
     "tooltipQbit": "Kontejner qBittorrent-nox ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Docker.",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Gazelle companion ({{state}}) na portu {{port}}. Kliknutím otevřete WebUI."
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "Aktualizace dostupná",
     "versionAvailable": "Verze {{version}} je nyní dostupná",
-    "dismiss": "Zavřít"
+    "dismiss": "Zavřít",
+    "desktopUpdateAvailable": "Aktualizace Qui Desktop je k dispozici",
+    "reviewAndUpdate": "Zkontrolovat a aktualizovat"
   },
   "pwaUpdate": {
     "reload": "Znovu načíst",
@@ -343,5 +347,21 @@
   },
   "labels": {
     "path": "Cesta"
+  },
+  "desktopUpdate": {
+    "title": "Aktualizace Qui Desktop je k dispozici",
+    "subtitle": "Verze {{version}} je připravena ke stažení a instalaci. Aktuální verze je {{current}}.",
+    "whatsNew": "Novinky ve {{version}}",
+    "noChangelog": "Vylepšení výkonu, opravy chyb a údržba.",
+    "dataSafetyTitle": "Bezpečnost dat a zálohy před aktualizací",
+    "backupNotice": "Před aktualizací se archivuje snímek zálohy.",
+    "storageNotice": "Nastavení databáze, data torrentů a trezory zůstávají zachovány.",
+    "inProgress": "Stahuje se aktualizace a aktualizuje se kontejner Qui... Rozhraní se automaticky znovu načte.",
+    "applied": "Aktualizace byla úspěšně použita! Webové rozhraní se obnovuje...",
+    "failed": "Aktualizaci se nepodařilo použít.",
+    "later": "Později",
+    "updating": "Aktualizace...",
+    "done": "Hotovo",
+    "downloadAndUpdate": "Stáhnout a aktualizovat"
   }
 }

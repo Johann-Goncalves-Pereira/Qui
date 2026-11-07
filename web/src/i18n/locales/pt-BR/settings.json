@@ -1083,7 +1083,12 @@
         "upToDate": "Atualizado",
         "upToDateDetail": "Executando a versão mais recente",
         "notCheckedYet": "Não verificado ainda",
-        "lastChecked": "Última verificação: {{date}}"
+        "lastChecked": "Última verificação: {{date}}",
+        "managedByDesktop": "Gerenciado pelo Desktop",
+        "managedByDesktopDetail": "Atualizações e ciclos de vida dos containers são gerenciados pelo Qui Desktop"
+      },
+      "actions": {
+        "checkForUpdates": "Verificar atualizações"
       }
     },
     "restart": {

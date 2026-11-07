@@ -34,7 +34,9 @@
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "tooltipQui": "Contenidor Qui ({{state}}) al port {{port}}. Fes clic per configurar Docker.",
     "tooltipQbit": "Contenidor qBittorrent-nox ({{state}}) al port {{port}}. Fes clic per configurar Docker.",
-    "copyright": "{{year}} autobrr"
+    "copyright": "{{year}} autobrr",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipGazelle": "Company Gazelle ({{state}}) al port {{port}}. Feu clic per obrir la WebUI."
   },
   "docker": {
     "qui": {
@@ -247,7 +249,9 @@
   "updateBanner": {
     "updateAvailable": "Actualització disponible",
     "versionAvailable": "La versió {{version}} ja està disponible",
-    "dismiss": "Descarta"
+    "dismiss": "Descarta",
+    "desktopUpdateAvailable": "Actualització de Qui Desktop disponible",
+    "reviewAndUpdate": "Revisar i actualitzar"
   },
   "pwaUpdate": {
     "reload": "Recarrega",
@@ -336,5 +340,21 @@
   },
   "labels": {
     "path": "Camí"
+  },
+  "desktopUpdate": {
+    "title": "Actualització de Qui Desktop disponible",
+    "subtitle": "La versió {{version}} està llesta per descarregar i instal·lar. La versió actual és {{current}}.",
+    "whatsNew": "Novetats a {{version}}",
+    "noChangelog": "Millores de rendiment, correccions d’errors i manteniment.",
+    "dataSafetyTitle": "Seguretat de dades i còpies de seguretat prèvies",
+    "backupNotice": "S’arxiva una instantània de còpia de seguretat abans d’actualitzar.",
+    "storageNotice": "La configuració de la base de dades, les dades de torrents i els vaults es conserven.",
+    "inProgress": "S’està descarregant l’actualització i actualitzant el contenidor Qui... La interfície es tornarà a carregar automàticament.",
+    "applied": "Actualització aplicada correctament! La interfície web s’està actualitzant...",
+    "failed": "No s’ha pogut aplicar l’actualització.",
+    "later": "Més tard",
+    "updating": "Actualitzant...",
+    "done": "Fet",
+    "downloadAndUpdate": "Descarregar i actualitzar"
   }
 }
