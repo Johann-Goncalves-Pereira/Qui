@@ -54,7 +54,7 @@ function SheetContent({
   children,
   side = "right",
   hideClose = false,
-  transitionName,
+  transitionName = "sheet-surface",
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"

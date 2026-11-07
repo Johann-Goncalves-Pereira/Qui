@@ -9,13 +9,15 @@ import React, {
   useContext,
   useTransition,
   type ReactNode,
-  type TransitionStartFunction,
+  type TransitionStartFunction
 } from "react"
 
 export interface ActionTransitionContextValue {
   isPending: boolean
   startTransition: TransitionStartFunction
-  runWithTransition: <T extends (...args: unknown[]) => unknown>(fn: T) => (...args: Parameters<T>) => void
+  runWithTransition: <Args extends unknown[]>(
+    fn: (...args: Args) => unknown
+  ) => (...args: Args) => void
 }
 
 const ActionTransitionContext = createContext<ActionTransitionContextValue | null>(null)
@@ -25,15 +27,16 @@ export interface ActionTransitionProviderProps {
 }
 
 /**
- * ActionTransitionProvider coordinates React 19 transitions across user actions
- * (button clicks, tab activations, dialog switches).
+ * ActionTransitionProvider exposes a shared React transition runner for
+ * opt-in action boundaries (via useActionTransition / withActionTransition).
+ * It does not intercept DOM events globally.
  */
 export function ActionTransitionProvider({ children }: ActionTransitionProviderProps) {
   const [isPending, startTransition] = useTransition()
 
   const runWithTransition = useCallback(
-    <T extends (...args: unknown[]) => unknown>(fn: T) => {
-      return (...args: Parameters<T>): void => {
+    <Args extends unknown[]>(fn: (...args: Args) => unknown) => {
+      return (...args: Args): void => {
         startTransition(() => {
           void fn(...args)
         })
@@ -56,15 +59,16 @@ export function ActionTransitionProvider({ children }: ActionTransitionProviderP
 }
 
 /**
- * Hook to access the current ActionTransition context or create a local transition runner.
+ * Hook to access the current ActionTransition context, or a local transition
+ * runner when no provider is mounted.
  */
 export function useActionTransition(): ActionTransitionContextValue {
   const context = useContext(ActionTransitionContext)
   const [localPending, localStartTransition] = useTransition()
 
   const localRunWithTransition = useCallback(
-    <T extends (...args: unknown[]) => unknown>(fn: T) => {
-      return (...args: Parameters<T>): void => {
+    <Args extends unknown[]>(fn: (...args: Args) => unknown) => {
+      return (...args: Args): void => {
         localStartTransition(() => {
           void fn(...args)
         })
@@ -87,8 +91,10 @@ export function useActionTransition(): ActionTransitionContextValue {
 /**
  * Utility function to wrap an action in React.startTransition.
  */
-export function withActionTransition<T extends (...args: unknown[]) => unknown>(fn: T) {
-  return (...args: Parameters<T>): void => {
+export function withActionTransition<Args extends unknown[]>(
+  fn: (...args: Args) => unknown
+) {
+  return (...args: Args): void => {
     React.startTransition(() => {
       void fn(...args)
     })

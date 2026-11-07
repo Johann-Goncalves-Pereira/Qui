@@ -87,15 +87,8 @@ function TabsList({
 
 function TabsTrigger({
   className,
-  onClick,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    React.startTransition(() => {
-      onClick?.(e)
-    })
-  }
-
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
@@ -103,7 +96,6 @@ function TabsTrigger({
         "data-[state=active]:text-accent-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring text-muted-foreground hover:text-accent-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 relative z-1",
         className
       )}
-      onClick={handleClick}
       {...props}
     />
   )
@@ -112,16 +104,20 @@ function TabsTrigger({
 function TabsContent({
   className,
   children,
+  value,
   transitionName,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content> & {
   transitionName?: string
 }) {
+  const resolvedName = transitionName ?? (value != null ? `tab-panel-${value}` : undefined)
+
   return (
-    <ViewTransitionBoundary name={transitionName}>
+    <ViewTransitionBoundary name={resolvedName}>
       <TabsPrimitive.Content
         data-slot="tabs-content"
         className={cn("flex-1 outline-none", className)}
+        value={value}
         {...props}
       >
         {children}

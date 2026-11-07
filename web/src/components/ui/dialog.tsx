@@ -56,7 +56,7 @@ function DialogContent({
   children,
   showCloseButton = true,
   overlayClassName,
-  transitionName,
+  transitionName = "dialog-surface",
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean

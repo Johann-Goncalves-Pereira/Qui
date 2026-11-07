@@ -46,13 +46,18 @@ without modifying original upstream component trees (`web/src/pages/`):
   In `web/src/layouts/AppLayout.tsx`, the main `<Outlet />` is wrapped in a React 19
   `<ViewTransitionBoundary name="page-main-content">` so every route switch cross-fades
   seamlessly using hardware-accelerated View Transition pseudo-elements.
-- **Action Transitions in UI Primitives**: Radix UI primitives (`TabsContent`, `TabsTrigger`,
-  `DialogContent`, `SheetContent`) wrap active surfaces in `<ViewTransitionBoundary>` and
-  schedule action triggers in `React.startTransition`. Every upstream page consuming these
-  primitives automatically inherits smooth view transitions with zero upstream code edits.
-- **Action Transition Provider**: `web/src/App.tsx` mounts `<ActionTransitionProvider>`
-  which exposes `useActionTransition` and `withActionTransition` utilities for coordinating
-  transitions.
+- **Action Transitions in UI Primitives**: Shared Radix wrappers (`TabsContent`,
+  `DialogContent`, `SheetContent`, `AccordionContent`) wrap surfaces in
+  `<ViewTransitionBoundary>` with stable default names (`dialog-surface`, `sheet-surface`,
+  `tab-panel-*`; accordion bodies use React's auto name unless overridden). Upstream pages
+  that import `@/components/ui/*` inherit those names without page-level edits. Open/value
+  updates that must participate in view transitions should run inside `React.startTransition`
+  (router navigations already do via `defaultViewTransition`; custom actions can use the
+  helpers below).
+- **Action Transition Provider**: `web/src/App.tsx` mounts `<ActionTransitionProvider>`,
+  which exposes opt-in `useActionTransition` and `withActionTransition` helpers. It does
+  not globally intercept DOM events; callers wrap actions when they need a shared pending
+  transition.
 - **Accessibility**: `@media (prefers-reduced-motion: reduce)` in `web/src/index.css` disables
   all transition animations when reduced motion is preferred.
 
