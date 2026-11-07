@@ -33,6 +33,7 @@ import { AccountVault } from './account-vault.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
 import { createPreUpdateBackup } from './backup.js'
+import { isCheckoutUrl, openCheckoutWindow } from './checkout-window.js'
 import {
 	dockerDataDirs,
 	ensureDockerDataPermissions,
@@ -570,6 +571,33 @@ async function promptDesktopUpdates(): Promise<boolean> {
 async function bootstrapApp(): Promise<void> {
 	registerIpcHandlers()
 	mainWindow = createMainWindow()
+
+	mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+		if (isCheckoutUrl(url)) {
+			openCheckoutWindow(url, mainWindow, quiWebOrigin)
+			return { action: 'deny' }
+		}
+		void shell.openExternal(url)
+		return { action: 'deny' }
+	})
+
+	mainWindow.webContents.on('will-navigate', (event, url) => {
+		if (isCheckoutUrl(url)) {
+			event.preventDefault()
+			openCheckoutWindow(url, mainWindow, quiWebOrigin)
+			return
+		}
+		try {
+			const target = new URL(url)
+			const origin = new URL(quiWebOrigin)
+			if (target.origin !== origin.origin && target.protocol !== 'file:') {
+				event.preventDefault()
+				void shell.openExternal(url)
+			}
+		} catch {
+			// ignore malformed URLs
+		}
+	})
 
 	registerApplicationMenu({
 		desktopDev,

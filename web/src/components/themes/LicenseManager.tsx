@@ -516,7 +516,7 @@ export function LicenseManager({
                     {t("themes.license.paymentDialog.steps.choosePaymentMethod.cardDescription")}
                   </p>
                   <Button size="sm" variant="outline" asChild>
-                    <a href={checkoutUrl}>
+                    <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       {t("themes.license.actions.openDodoCheckout")}
                     </a>
@@ -561,7 +561,7 @@ export function LicenseManager({
                     <li>{t("themes.license.paymentDialog.steps.choosePaymentMethod.cryptoSteps.completeCheckout")}</li>
                   </ol>
                   <Button size="sm" variant="outline" asChild>
-                    <a href={checkoutUrl}>
+                    <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       {t("themes.license.actions.openDodoCheckout")}
                     </a>
