@@ -176,6 +176,8 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		expect(content).toContain('updater:prompt-updates')
 		expect(content).toContain('applyUpdate')
 		expect(content).toContain('updater:apply-update')
+		expect(content).toContain('onShowUpdateDialog')
+		expect(content).toContain('updater:show-dialog')
 	})
 
 	it('applyUpdate performs automated container synchronization and UI reload without external browser navigation (BR-desktop-41)', async () => {
@@ -195,6 +197,8 @@ describe('AppReleaseUpdater and semver helpers', () => {
 			'Johann-Goncalves-Pereira/Qui',
 			'0.0.16',
 			mockFetcher,
+			async () => ({ success: true, output: 'brew upgraded' }),
+			async () => false,
 		)
 
 		let containerUpdatedWith: string | null = null
@@ -220,5 +224,87 @@ describe('AppReleaseUpdater and semver helpers', () => {
 			'ghcr.io/johann-goncalves-pereira/qui:0.0.17',
 		)
 		expect(webUiReloaded).toBe(true)
+		expect(updater.getCurrentVersion()).toBe('0.0.17')
+	})
+
+	it('applyUpdate executes internal Homebrew update & upgrade when Qui is installed via Brew (BR-desktop-44)', async () => {
+		let brewRunnerCalled = false
+		const mockFetcher: ReleaseFetcher = {
+			fetchLatest: async () => ({
+				tag_name: 'v0.0.20',
+				name: 'Qui v0.0.20',
+				body: "## What's Changed\n* Bump to 0.0.20",
+				html_url:
+					'https://github.com/Johann-Goncalves-Pereira/Qui/releases/tag/v0.0.20',
+				published_at: new Date().toISOString(),
+				assets: [],
+			}),
+		}
+
+		const updater = new AppReleaseUpdater(
+			'Johann-Goncalves-Pereira/Qui',
+			'0.0.19',
+			mockFetcher,
+			async () => {
+				brewRunnerCalled = true
+				return { success: true, output: 'Updated 1 tap\nUpgraded qui' }
+			},
+			async () => true,
+		)
+
+		const mockDockerManager: Parameters<typeof updater.applyUpdate>[1] = {
+			updateAndRestartContainer: async () => {},
+		}
+
+		let reloaded = false
+		const result = await updater.applyUpdate(
+			null,
+			mockDockerManager,
+			() => {
+				reloaded = true
+			},
+			'0.0.20',
+		)
+
+		expect(result.success).toBe(true)
+		expect(brewRunnerCalled).toBe(true)
+		expect(reloaded).toBe(true)
+		expect(updater.getCurrentVersion()).toBe('0.0.20')
+	})
+
+	it('promptUpdateIfAvailable emits updater:show-dialog to renderer and suppresses native macOS alerts (BR-desktop-44)', async () => {
+		const updater = new AppReleaseUpdater(
+			'Johann-Goncalves-Pereira/Qui',
+			'0.0.19',
+		)
+		let emittedChannel: string | null = null
+		let emittedPayload: unknown = null
+
+		const mockWindow = {
+			isDestroyed: () => false,
+			webContents: {
+				send: (channel: string, payload: unknown) => {
+					emittedChannel = channel
+					emittedPayload = payload
+				},
+			},
+		} as unknown as import('electron').BrowserWindow
+
+		const info = {
+			hasUpdate: true,
+			currentVersion: '0.0.19',
+			latestVersion: '0.0.20',
+			tagName: 'v0.0.20',
+			name: 'Qui v0.0.20',
+			body: 'Release notes',
+			htmlUrl:
+				'https://github.com/Johann-Goncalves-Pereira/Qui/releases/tag/v0.0.20',
+			publishedAt: new Date().toISOString(),
+		}
+
+		const prompted = await updater.promptUpdateIfAvailable(mockWindow, info)
+		expect(prompted).toBe(true)
+		expect(emittedChannel).toBe('updater:show-dialog')
+		expect(emittedPayload).toEqual(info)
 	})
 })

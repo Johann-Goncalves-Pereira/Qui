@@ -4,7 +4,7 @@
  */
 
 import { Schema } from 'effect'
-import { type BrowserWindow, dialog, shell } from 'electron'
+import { type BrowserWindow, dialog } from 'electron'
 import {
 	APP_NAME,
 	CURRENT_APP_VERSION,
@@ -13,8 +13,12 @@ import {
 	QUI_CONTAINER_NAME,
 } from '../shared/constants.js'
 import { type AppReleaseInfo, AppReleaseInfoSchema } from '../shared/types.js'
-
 import { createPreUpdateBackup } from './backup.js'
+import {
+	type BrewUpdateResult,
+	checkBrewCaskInstalled,
+	runBrewUpdateAndUpgrade,
+} from './brew.js'
 
 export function parseSemver(v: string): [number, number, number] {
 	const cleaned = v.trim().replace(/^v/i, '')
@@ -78,11 +82,25 @@ export class GitHubReleaseFetcher implements ReleaseFetcher {
 }
 
 export class AppReleaseUpdater {
+	private currentVersion: string
+
 	constructor(
 		private readonly repo: string = GITHUB_REPO,
-		private readonly currentVersion: string = CURRENT_APP_VERSION,
+		currentVersion: string = CURRENT_APP_VERSION,
 		private readonly fetcher: ReleaseFetcher = new GitHubReleaseFetcher(),
-	) {}
+		private readonly brewRunner: () => Promise<BrewUpdateResult> = runBrewUpdateAndUpgrade,
+		private readonly isBrewChecker: () => Promise<boolean> = checkBrewCaskInstalled,
+	) {
+		this.currentVersion = currentVersion
+	}
+
+	getCurrentVersion(): string {
+		return this.currentVersion
+	}
+
+	setCurrentVersion(version: string): void {
+		this.currentVersion = version.replace(/^v/i, '')
+	}
 
 	async checkForUpdates(): Promise<AppReleaseInfo> {
 		try {
@@ -128,15 +146,15 @@ export class AppReleaseUpdater {
 	}
 
 	/**
-	 * Opens the download URL in the browser. Never downloads or replaces the
-	 * app binary in-process (unsigned release path).
+	 * Notifies the renderer window to display the in-app DesktopUpdateDialog.
+	 * Eliminates intrusive native macOS NSAlert dialogs when updates are available.
 	 */
 	async promptUpdateIfAvailable(
 		window: BrowserWindow | null,
 		info: AppReleaseInfo,
 	): Promise<boolean> {
 		if (!info.hasUpdate) {
-			if (window) {
+			if (window && !window.isDestroyed()) {
 				await dialog.showMessageBox(window, {
 					type: 'info',
 					title: APP_NAME,
@@ -146,39 +164,17 @@ export class AppReleaseUpdater {
 			return false
 		}
 
-		if (!window) return false
+		if (!window || window.isDestroyed()) return false
 
-		const notes = info.body
-			? `\n\nRelease notes:\n${info.body.slice(0, 300)}${info.body.length > 300 ? '…' : ''}`
-			: ''
-		const { response } = await dialog.showMessageBox(window, {
-			type: 'info',
-			title: `${APP_NAME} - Desktop Shell Update Available`,
-			message: `A new version of ${APP_NAME} (desktop-shell) is available: v${info.latestVersion}`,
-			detail: `Component: desktop-shell (macOS Native Shell)\nCurrent version: v${this.currentVersion}\nTarget version: v${info.latestVersion}${notes}\n\nReload / Restart Requirement:\n• Replacing Qui.app requires quitting and restarting the desktop application.\n\nData Safety & Backups:\n• Application settings and container configurations are safely preserved in Application Support and backed up before updates.\n• Data is only removed if you uninstall the application.`,
-			buttons: ['Download Update', 'Later'],
-			defaultId: 0,
-			cancelId: 1,
-		})
-
-		if (response === 0) {
-			try {
-				await createPreUpdateBackup('desktop-shell')
-			} catch (err) {
-				console.warn('Pre-update backup failed (desktop-shell):', err)
-			}
-			const targetUrl = info.downloadUrl || info.htmlUrl
-			await shell.openExternal(targetUrl)
-			return true
-		}
-
-		return false
+		window.webContents.send('updater:show-dialog', info)
+		return true
 	}
 
 	/**
 	 * Automatically applies a desktop update without external browser navigation.
+	 * If Qui is installed via Homebrew Cask, runs `brew update` and `brew upgrade --cask qui` internally.
 	 * Performs pre-update backup, pulls or loads the target version container image,
-	 * recreates the Qui container, and reloads the web UI.
+	 * recreates the Qui container, advances in-memory app version, and reloads the web UI.
 	 */
 	async applyUpdate(
 		_window: BrowserWindow | null,
@@ -190,6 +186,7 @@ export class AppReleaseUpdater {
 		},
 		loadWebUi: () => Promise<void> | void,
 		targetVersion?: string,
+		brewRunner?: () => Promise<BrewUpdateResult>,
 	): Promise<{ success: boolean; error?: string }> {
 		try {
 			const info = await this.checkForUpdates()
@@ -202,10 +199,24 @@ export class AppReleaseUpdater {
 				console.warn('Pre-update backup failed (desktop-update):', err)
 			}
 
+			const isBrew = await this.isBrewChecker()
+			if (isBrew) {
+				const runner = brewRunner ?? this.brewRunner
+				const brewResult = await runner()
+				if (!brewResult.success) {
+					console.warn(
+						'Homebrew cask update failed (proceeding with container update):',
+						brewResult.error,
+					)
+				}
+			}
+
 			await dockerManager.updateAndRestartContainer(
 				QUI_CONTAINER_NAME,
 				targetImage,
 			)
+
+			this.setCurrentVersion(versionToApply)
 
 			await loadWebUi()
 
