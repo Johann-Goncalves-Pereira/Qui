@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename)
  * window created with a solid fill cannot later show the desktop.
  */
 export function createMainWindow(): BrowserWindow {
-	const preloadPath = path.join(__dirname, '../preload/index.js')
+	const preloadPath = path.join(__dirname, '../preload/index.cjs')
 	const material = windowMaterialForGlass(false)
 
 	const win = new BrowserWindow({
