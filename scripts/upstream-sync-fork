@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Local upstream-sync fork runner (BR-desktop-40).
+# Synchronizes the fork's base branch (develop) with autobrr/qui develop.
+# Uses an isolated git worktree and a merge commit (--merge) via a sync PR
+# so GitHub's "behind upstream" counter resets to 0 while preserving fork commits.
+# Exit 0 on clean sync or when already up to date; exit 1 on conflicts.
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "upstream-sync-fork: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+UPSTREAM_URL="${QUI_UPSTREAM_URL:-https://github.com/autobrr/qui.git}"
+UPSTREAM_REF="${QUI_UPSTREAM_REF:-develop}"
+BASE_BRANCH="${1:-develop}"
+
+echo "upstream-sync-fork: probing ${UPSTREAM_URL} (${UPSTREAM_REF}) against origin/${BASE_BRANCH}…"
+git fetch --no-tags --quiet "$UPSTREAM_URL" "$UPSTREAM_REF"
+UPSTREAM_TIP="$(git rev-parse FETCH_HEAD)"
+
+git fetch --no-tags --quiet origin "$BASE_BRANCH"
+ORIGIN_TIP="$(git rev-parse "origin/$BASE_BRANCH")"
+
+BEHIND_COUNT="$(git rev-list --count "origin/$BASE_BRANCH..$UPSTREAM_TIP")"
+
+if [ "$BEHIND_COUNT" -eq 0 ]; then
+  echo "upstream-sync-fork: origin/${BASE_BRANCH} is already up to date with autobrr/qui (${UPSTREAM_REF}) (0 commits behind)"
+  exit 0
+fi
+
+echo "upstream-sync-fork: origin/${BASE_BRANCH} is ${BEHIND_COUNT} commit(s) behind autobrr/qui (${UPSTREAM_REF})"
+echo "upstream-sync-fork: testing dry-merge origin/${BASE_BRANCH} (${ORIGIN_TIP:0:7}) ← upstream (${UPSTREAM_TIP:0:7})…"
+
+set +e
+tree_out="$(git merge-tree --write-tree "origin/$BASE_BRANCH" "$UPSTREAM_TIP" 2>&1)"
+status=$?
+set -e
+
+if [ "$status" -ne 0 ]; then
+  echo "upstream-sync-fork: CONFLICTS merging autobrr/qui ${UPSTREAM_REF} into origin/${BASE_BRANCH}." >&2
+  echo "Resolve conflicts before attempting automated fork sync:" >&2
+  printf '%s\n' "$tree_out" >&2
+  exit 1
+fi
+
+echo "upstream-sync-fork: dry-merge clean with zero conflicts. Synchronizing via isolated worktree…"
+
+SYNC_BRANCH="sync/upstream-${BASE_BRANCH}"
+SYNC_WT="$(mktemp -d "${TMPDIR:-/tmp}/qui-upstream-sync.XXXXXX")"
+cleanup() {
+  git worktree remove --force "$SYNC_WT" 2>/dev/null || true
+  rm -rf "$SYNC_WT" 2>/dev/null || true
+  git branch -D "$SYNC_BRANCH" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+# Create isolated worktree for sync branch branched from origin tip
+git branch -D "$SYNC_BRANCH" 2>/dev/null || true
+git worktree add --force "$SYNC_WT" -B "$SYNC_BRANCH" "origin/$BASE_BRANCH"
+
+echo "upstream-sync-fork: merging upstream tip into ${SYNC_BRANCH} in isolated worktree…"
+git -C "$SYNC_WT" merge --no-edit -m "Merge remote-tracking branch 'upstream/${UPSTREAM_REF}' into ${SYNC_BRANCH}" "$UPSTREAM_TIP"
+
+echo "upstream-sync-fork: pushing ${SYNC_BRANCH} to origin…"
+git -C "$SYNC_WT" push -u origin "$SYNC_BRANCH" --force
+
+PR_NUM="$(gh pr list --head "$SYNC_BRANCH" --base "$BASE_BRANCH" --state open --json number -q '.[0].number' 2>/dev/null || true)"
+
+if [ -z "$PR_NUM" ] || [ "$PR_NUM" = "null" ]; then
+  echo "upstream-sync-fork: opening sync PR…"
+  PR_URL="$(gh pr create --base "$BASE_BRANCH" --head "$SYNC_BRANCH" \
+    --title "Chore 🔧: Sync Fork with Upstream autobrr/qui ${UPSTREAM_REF}" \
+    --body "$(cat <<EOF
+## Summary
+- Synchronize fork \`${BASE_BRANCH}\` with \`autobrr/qui\` \`${UPSTREAM_REF}\` (${BEHIND_COUNT} commit(s) behind).
+- Uses a merge commit (\`--merge\`, not squash) so GitHub's "behind upstream" counter resets to 0 while preserving fork commit history.
+- Automated fork sync per \`docs/desktop/upstream-sync.md\` / BR-desktop-40.
+
+
+## Test plan
+- [x] \`git merge-tree\` dry-merge clean with zero conflicts
+- [ ] Merged into \`${BASE_BRANCH}\` via \`--merge\`
+- [ ] GitHub fork status reports 0 commits behind \`autobrr/qui:${UPSTREAM_REF}\`
+
+## ⚠️ Upstream Docker Alignment & Breaking Change Risk
+- **Target Architectural Layer:** Backend \`internal/\` + Web UI \`web/\` (upstream changes)
+- **Upstream Layout Coupling:** Medium
+- **Potential Breakage Vectors:** Standard upstream updates
+- **Defensive Guardrails & Isolation:** Straight upstream merge; desktop shell unaffected
+- **Future Upstream Sync Impact:** Merge commit preserves ancestry for future syncs
+EOF
+)")"
+  echo "upstream-sync-fork: opened ${PR_URL}"
+  PR_NUM="$(gh pr view "$PR_URL" --json number -q .number)"
+else
+  echo "upstream-sync-fork: reusing existing open PR #${PR_NUM}"
+fi
+
+echo "upstream-sync-fork: merging PR #${PR_NUM} with merge commit (--merge) to preserve upstream ancestry…"
+gh pr merge "$PR_NUM" --merge --delete-branch
+
+echo "upstream-sync-fork: fetching updated origin/${BASE_BRANCH}…"
+git fetch origin "$BASE_BRANCH"
+
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+if [ "$CURRENT_BRANCH" = "$BASE_BRANCH" ]; then
+  git pull origin "$BASE_BRANCH"
+fi
+
+NEW_BEHIND="$(git rev-list --count "origin/$BASE_BRANCH..$UPSTREAM_TIP")"
+echo "upstream-sync-fork: successfully synchronized ${BASE_BRANCH} with autobrr/qui (${UPSTREAM_REF}) (${NEW_BEHIND} commits behind)"
