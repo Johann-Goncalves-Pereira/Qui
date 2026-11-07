@@ -13,16 +13,23 @@ const repoRoot = path.resolve(
 	'../..',
 )
 
-describe('upstream-sync workflow (BR-desktop-21)', () => {
+describe('local upstream-sync gate (BR-desktop-21)', () => {
 	it('fails closed when merging autobrr/qui develop conflicts', () => {
-		const workflow = readFileSync(
-			path.join(repoRoot, '.github/workflows/upstream-sync.yml'),
+		const script = readFileSync(
+			path.join(repoRoot, 'scripts/upstream-sync-check'),
 			'utf8',
 		)
-		expect(workflow).toContain('autobrr/qui')
-		expect(workflow).toContain('develop')
-		expect(workflow).toContain('merge --no-commit')
-		expect(workflow).toMatch(/pull_request/)
-		expect(workflow).toMatch(/exit 1|::error/)
+		expect(script).toContain('autobrr/qui')
+		expect(script).toContain('develop')
+		expect(script).toContain('merge-tree')
+		expect(script).toMatch(/exit 1/)
+
+		const prePush = readFileSync(
+			path.join(repoRoot, '.githooks/pre-push'),
+			'utf8',
+		)
+		expect(prePush).toContain('upstream-sync-check')
+		expect(prePush).toMatch(/develop|main/)
+		expect(prePush).toMatch(/exit 1/)
 	})
 })

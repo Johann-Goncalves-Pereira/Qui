@@ -15,7 +15,7 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 | Understand desktop semantic versioning & PR pipeline | [versioning.md](versioning.md) |
 | Day-to-day develop UI with hot reload | [dev-mode.md](dev-mode.md) |
 | Rebuild the local Docker image + clear Electron cache after pulling code | [refresh-script.md](refresh-script.md) |
-| Open a PR on this fork without fighting upstream | [upstream-sync.md](upstream-sync.md) |
+| Open a PR on this fork without fighting upstream (local sync gate) | [upstream-sync.md](upstream-sync.md) — run `./scripts/install-local-hooks` once |
 
 ### Quick commands
 
@@ -48,7 +48,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - **App updates**: Unsigned GitHub Releases (`.dmg` / `.zip`). The tray and launch check open the download URL; the user replaces Qui.app. See [updates.md](updates.md).
 - **Dev hot reload**: `QUI_DESKTOP_DEV=1` loads Vite (`http://localhost:5173`). See [dev-mode.md](dev-mode.md).
 - **Local refresh**: `./scripts/desktop-refresh` rebuilds `qui-desktop:local`, recreates the container, and clears Electron caches. See [refresh-script.md](refresh-script.md).
-- **Upstream sync**: PRs must merge cleanly with `autobrr/qui` `develop` before merge. See [upstream-sync.md](upstream-sync.md).
+- **Upstream sync**: Local hooks + `make upstream-sync` require a clean merge with `autobrr/qui` `develop` before push (no GitHub Actions gate). See [upstream-sync.md](upstream-sync.md).
 - **Companion Instance**: Qui Desktop runs `qbittorrent-nox` alongside Qui. When no instances exist or on initial setup, the desktop integration provisions a default `Local qBittorrent` instance (`http://host.docker.internal:8080`) with Local Filesystem Access (`hasLocalFilesystemAccess: true`). This immediately satisfies Directory Scanner (`/cross-seed`) and Orphan Scanner requirements without manual instance configuration.
   Users can also install and run a local Gazelle tracker stack ([OPSnet/gazelle](https://github.com/OPSnet/gazelle)) on demand via a one-click button in Settings > Indexers. Qui Desktop automatically clones the official repository into the desktop data directory (`gazelle/repo`), configures the Compose stack, and deploys its services (MySQL, PostgreSQL, Memcached, and Nginx web server) mapped to port `7001`.
 - **Account**: Registration and sign-in save the username and password with Electron `safeStorage`. The next sign-in on the login page asks for Touch ID and submits that saved account. A browser session does not see the vault.

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Point this clone (and its worktrees) at committed hooks in .githooks/
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "install-local-hooks: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+chmod +x .githooks/pre-push scripts/upstream-sync-check scripts/install-local-hooks
+
+git config core.hooksPath .githooks
+
+echo "install-local-hooks: core.hooksPath=$(git config --get core.hooksPath)"
+echo "Local rules active:"
+echo "  • pre-push blocks develop/main"
+echo "  • pre-push runs scripts/upstream-sync-check on feature branches"
+echo "Manual check: make upstream-sync"
