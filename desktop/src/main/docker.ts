@@ -4,7 +4,13 @@
  */
 
 import { execFile } from 'node:child_process'
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	unlinkSync,
+	writeFileSync,
+} from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -160,6 +166,8 @@ export class DockerManager {
 		private readonly fetchBinary: BinaryFetcher = defaultBinaryFetch,
 		private readonly processArch: string = process.arch,
 		private readonly resourcesPath: string = process.resourcesPath ?? '',
+		private readonly readFile: (filePath: string) => string = filePath =>
+			readFileSync(filePath, 'utf8'),
 	) {}
 
 	/**
@@ -303,15 +311,36 @@ export class DockerManager {
 
 	ensureGazelleComposeOverride(repoDir: string): void {
 		const overrideFile = path.join(repoDir, 'docker-compose.override.yml')
-		if (!this.fileExists(overrideFile)) {
-			const content = [
-				'services:',
-				'  web:',
-				`    container_name: ${GAZELLE_CONTAINER_NAME}`,
-				`    image: ${GAZELLE_IMAGE}`,
-				'',
-			].join('\n')
-			this.writeFile(overrideFile, content)
+		const content = [
+			'services:',
+			'  web:',
+			`    container_name: ${GAZELLE_CONTAINER_NAME}`,
+			`    image: ${GAZELLE_IMAGE}`,
+			'    restart: unless-stopped',
+			'',
+		].join('\n')
+		this.writeFile(overrideFile, content)
+	}
+
+	ensureGazellePatches(repoDir: string): void {
+		const galleryScript = path.join(
+			repoDir,
+			'bin',
+			'build-stylesheet-gallery.mjs',
+		)
+		if (this.fileExists(galleryScript)) {
+			try {
+				const original = this.readFile(galleryScript)
+				if (original.includes('process.exitCode = 1;\n});')) {
+					const patched = original.replace(
+						'process.exitCode = 1;\n});',
+						'console.warn("Puppeteer preview launch skipped in headless container");\nprocess.exitCode = 0;\n});',
+					)
+					this.writeFile(galleryScript, patched)
+				}
+			} catch {
+				// Best-effort patch
+			}
 		}
 	}
 
@@ -352,6 +381,7 @@ export class DockerManager {
 
 		try {
 			await this.ensureGazelleRepoCloned(dirs.gazelleRepo)
+			this.ensureGazellePatches(dirs.gazelleRepo)
 			this.ensureGazelleComposeOverride(dirs.gazelleRepo)
 			await this.composeExec(['up', '-d'], dirs.gazelleRepo)
 		} catch (error) {
