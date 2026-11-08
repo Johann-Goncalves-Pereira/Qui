@@ -132,4 +132,3 @@ export const VpnConfigSchema = Schema.Struct({
 })
 
 export type VpnConfig = typeof VpnConfigSchema.Type
-

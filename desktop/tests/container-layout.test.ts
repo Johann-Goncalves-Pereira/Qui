@@ -16,12 +16,14 @@ import {
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
 	parseQBitCredentialsFromLogs,
+	parseWireGuardConf,
 	patchQBitConfigAuthBypass,
 	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
 	quiConfigToRunArgs,
 	quiContainerRunArgs,
 	updatesWorthPrompting,
+	vpnContainerRunArgs,
 } from '../src/main/container-layout.js'
 
 describe('Docker data survives container replacement (BR-desktop-11)', () => {
@@ -365,5 +367,41 @@ Connection to localhost succeeded!
 		expect(emptyCreds.username).toBe('admin')
 		expect(emptyCreds.password).toBeUndefined()
 		expect(emptyCreds.isTemporary).toBe(false)
+	})
+
+	it('parses WireGuard conf file into privateKey and address', () => {
+		const sampleConf = `[Interface]
+PrivateKey = aaaaaa111111=
+Address = 10.2.0.2/32
+DNS = 10.2.0.1
+`
+		const res = parseWireGuardConf(sampleConf)
+		expect(res.privateKey).toBe('aaaaaa111111=')
+		expect(res.address).toBe('10.2.0.2/32')
+	})
+
+	it('generates Gluetun VPN container run arguments and attaches qBittorrent', () => {
+		const vpnArgs = vpnContainerRunArgs({
+			provider: 'protonvpn',
+			wireguardPrivateKey: 'my-key=',
+			wireguardAddress: '10.2.0.5/32',
+			serverCountry: 'Netherlands',
+		})
+		expect(vpnArgs).toContain('--cap-add=NET_ADMIN')
+		expect(vpnArgs).toContain('VPN_SERVICE_PROVIDER=protonvpn')
+		expect(vpnArgs).toContain('WIREGUARD_PRIVATE_KEY=my-key=')
+		expect(vpnArgs).toContain('WIREGUARD_ADDRESSES=10.2.0.5/32')
+		expect(vpnArgs).toContain('SERVER_COUNTRIES=Netherlands')
+
+		const qbitAttachedArgs = qbitContainerRunArgs(
+			'qbit:latest',
+			'/host/cfg',
+			'/host/dl',
+			{
+				vpnContainer: 'qui-vpn',
+			},
+		)
+		expect(qbitAttachedArgs).toContain('--network=container:qui-vpn')
+		expect(qbitAttachedArgs).not.toContain('-p')
 	})
 })

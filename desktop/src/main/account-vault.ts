@@ -71,7 +71,7 @@ export class VpnVault {
 		return stored !== null && stored.byteLength > 0
 	}
 
-	read(): any | null {
+	read(): unknown | null {
 		const stored = this.readFile()
 		if (!stored || stored.byteLength === 0) {
 			return null

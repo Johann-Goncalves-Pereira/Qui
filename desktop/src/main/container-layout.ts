@@ -185,12 +185,7 @@ export function qbitContainerRunArgs(
 	const puid = options?.puid ?? '1000'
 	const pgid = options?.pgid ?? '1000'
 	const umask = options?.umask ?? '022'
-	const args = [
-		'run',
-		'-d',
-		'--name',
-		QBIT_CONTAINER_NAME,
-	]
+	const args = ['run', '-d', '--name', QBIT_CONTAINER_NAME]
 	if (options?.vpnContainer) {
 		args.push(`--network=container:${options.vpnContainer}`)
 	} else {

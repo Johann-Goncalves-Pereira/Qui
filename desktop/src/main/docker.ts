@@ -45,7 +45,6 @@ import {
 	QBitContainerConfigSchema,
 	type QuiContainerConfig,
 	QuiContainerConfigSchema,
-	type VpnConfig,
 	VpnConfigSchema,
 } from '../shared/types.js'
 import {
@@ -785,18 +784,26 @@ export class DockerManager {
 			// 1. Stop and remove existing qbittorrent container
 			try {
 				await this.executor.exec('docker', ['stop', QBIT_CONTAINER_NAME])
-			} catch {}
+			} catch {
+				// Container might not be running
+			}
 			try {
 				await this.executor.exec('docker', ['rm', QBIT_CONTAINER_NAME])
-			} catch {}
+			} catch {
+				// Container might not exist
+			}
 
 			// 2. Stop and remove existing VPN container
 			try {
 				await this.executor.exec('docker', ['stop', VPN_CONTAINER_NAME])
-			} catch {}
+			} catch {
+				// Container might not be running
+			}
 			try {
 				await this.executor.exec('docker', ['rm', VPN_CONTAINER_NAME])
-			} catch {}
+			} catch {
+				// Container might not exist
+			}
 
 			if (config.enabled) {
 				// Spin up Gluetun container
@@ -832,7 +839,11 @@ export class DockerManager {
 	}
 
 	async getVpnStatus(): Promise<DockerContainerStatus> {
-		return this.getContainerStatus(VPN_CONTAINER_NAME, DEFAULT_QBIT_PORT, VPN_IMAGE)
+		return this.getContainerStatus(
+			VPN_CONTAINER_NAME,
+			DEFAULT_QBIT_PORT,
+			VPN_IMAGE,
+		)
 	}
 
 	async restartContainer(

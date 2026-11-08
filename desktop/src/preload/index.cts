@@ -41,8 +41,10 @@ export interface QuiDesktopBridge {
 	restartContainer: (
 		name: string,
 	) => Promise<{ success: boolean; error?: string }>
-	getVpnConfig: () => Promise<any>
-	saveVpnConfig: (config: unknown) => Promise<{ success: boolean; error?: string }>
+	getVpnConfig: () => Promise<unknown>
+	saveVpnConfig: (
+		config: unknown,
+	) => Promise<{ success: boolean; error?: string }>
 	getVpnStatus: () => Promise<DockerContainerStatus>
 	openVpnAuthPage: (provider?: string) => Promise<void>
 	parseWireGuardConf: (
@@ -123,10 +125,13 @@ const bridge: QuiDesktopBridge = {
 	restartContainer: (name: string) =>
 		ipcRenderer.invoke('docker:restart-container', name),
 	getVpnConfig: () => ipcRenderer.invoke('vpn:get-config'),
-	saveVpnConfig: (config: unknown) => ipcRenderer.invoke('vpn:save-config', config),
+	saveVpnConfig: (config: unknown) =>
+		ipcRenderer.invoke('vpn:save-config', config),
 	getVpnStatus: () => ipcRenderer.invoke('vpn:status'),
-	openVpnAuthPage: (provider?: string) => ipcRenderer.invoke('vpn:open-auth-page', provider),
-	parseWireGuardConf: (content: string) => ipcRenderer.invoke('vpn:parse-conf', content),
+	openVpnAuthPage: (provider?: string) =>
+		ipcRenderer.invoke('vpn:open-auth-page', provider),
+	parseWireGuardConf: (content: string) =>
+		ipcRenderer.invoke('vpn:parse-conf', content),
 	checkForUpdates: () => ipcRenderer.invoke('updater:check-app-update'),
 	promptUpdates: () => ipcRenderer.invoke('updater:prompt-updates'),
 	applyUpdate: (version?: string) =>
