@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
 	buildQuiAddMagnetUrl,
 	findMagnetUrlInArgs,
+	isMagnetProtocolClientDefault,
 	MagnetManager,
 	normalizeMagnetUrl,
 	registerMagnetProtocolHandler,
@@ -127,6 +128,56 @@ describe('Registering protocol handler', () => {
 			{ isDefaultApp: false },
 		)
 		expect(registered).toBe(false)
+	})
+})
+
+describe('Checking default protocol client status', () => {
+	it('checks isDefaultProtocolClient in packaged mode', () => {
+		const isDefaultProtocolClient = vi.fn().mockReturnValue(true)
+		const isDefault = isMagnetProtocolClientDefault(
+			{
+				setAsDefaultProtocolClient: vi.fn(),
+				isDefaultProtocolClient,
+			},
+			{ isDefaultApp: false },
+		)
+		expect(isDefault).toBe(true)
+		expect(isDefaultProtocolClient).toHaveBeenCalledWith('magnet')
+	})
+
+	it('checks isDefaultProtocolClient with script path in defaultApp (dev) mode', () => {
+		const isDefaultProtocolClient = vi.fn().mockReturnValue(false)
+		const isDefault = isMagnetProtocolClientDefault(
+			{
+				setAsDefaultProtocolClient: vi.fn(),
+				isDefaultProtocolClient,
+			},
+			{
+				isDefaultApp: true,
+				execPath: '/path/to/electron',
+				argv: ['electron', 'dist/main/index.js'],
+			},
+		)
+		expect(isDefault).toBe(false)
+		expect(isDefaultProtocolClient).toHaveBeenCalledWith(
+			'magnet',
+			'/path/to/electron',
+			[expect.stringContaining('dist/main/index.js')],
+		)
+	})
+
+	it('returns false when isDefaultProtocolClient is unavailable or throws', () => {
+		expect(
+			isMagnetProtocolClientDefault({ setAsDefaultProtocolClient: vi.fn() }),
+		).toBe(false)
+
+		const throwingApp = {
+			setAsDefaultProtocolClient: vi.fn(),
+			isDefaultProtocolClient: vi.fn().mockImplementation(() => {
+				throw new Error('OS lookup failed')
+			}),
+		}
+		expect(isMagnetProtocolClientDefault(throwingApp)).toBe(false)
 	})
 })
 
