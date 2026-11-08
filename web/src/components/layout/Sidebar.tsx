@@ -312,7 +312,7 @@ export function Sidebar() {
           )}
         </div>
 
-        <div className="mt-auto space-y-3 pt-3">
+        <div className="mt-auto space-y-3 pt-3 mb-4">
           <UpdateBanner />
 
           {!isDemo && (
