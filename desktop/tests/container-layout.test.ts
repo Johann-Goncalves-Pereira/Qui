@@ -16,6 +16,7 @@ import {
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
 	parseQBitCredentialsFromLogs,
+	patchQBitConfigAuthBypass,
 	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
 	quiConfigToRunArgs,
@@ -294,6 +295,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 				createdDirs.add(dirPath)
 				return undefined
 			},
+			readFileSync: (filePath: string) => writtenFiles.get(filePath) ?? '',
 			writeFileSync: (filePath: string, data: string) => {
 				writtenFiles.set(filePath, data)
 			},
@@ -312,11 +314,35 @@ describe('Docker container config arguments & inspect parsing', () => {
 		expect(writtenFiles.get(confPath)).toContain('WebUI\\LocalHostAuth=false')
 		expect(writtenFiles.get(confPath)).toContain('WebUI\\Address=*')
 
-		// Second run: existing config preserved without overwrite
-		writtenFiles.set(confPath, '[Custom]\nuser_edited=true')
-		const secondRun = ensureQbitPreseedConfig(qbitConfigDir, mockFs)
-		expect(secondRun).toBe(false)
-		expect(writtenFiles.get(confPath)).toBe('[Custom]\nuser_edited=true')
+		// Existing config that already has bypass: left unchanged
+		writtenFiles.set(
+			confPath,
+			'[Preferences]\nWebUI\\AuthSubnetWhitelistEnabled=true\n',
+		)
+		const unchanged = ensureQbitPreseedConfig(qbitConfigDir, mockFs)
+		expect(unchanged).toBe(false)
+
+		// Container-written config without bypass: patched in place (BR-desktop-46)
+		const legacy = `[WebUI]\nAddress=*\nServerDomains=*\n`
+		writtenFiles.set(confPath, legacy)
+		const patched = ensureQbitPreseedConfig(qbitConfigDir, mockFs)
+		expect(patched).toBe(true)
+		expect(writtenFiles.get(confPath)).toContain('[Preferences]')
+		expect(writtenFiles.get(confPath)).toContain(
+			'WebUI\\AuthSubnetWhitelistEnabled=true',
+		)
+		expect(writtenFiles.get(confPath)).toContain('[WebUI]')
+	})
+
+	it('patchQBitConfigAuthBypass inserts keys under existing Preferences section (BR-desktop-46)', () => {
+		const legacy = `[Preferences]\nConnection\\ResolvePeerCountries=true\n\n[WebUI]\nAddress=*\n`
+		const patched = patchQBitConfigAuthBypass(legacy)
+		expect(patched).toContain('WebUI\\AuthSubnetWhitelistEnabled=true')
+		expect(patched).toContain('Connection\\ResolvePeerCountries=true')
+		expect(patched.indexOf('[Preferences]')).toBeLessThan(
+			patched.indexOf('[WebUI]'),
+		)
+		expect(patchQBitConfigAuthBypass(patched)).toBe(patched)
 	})
 
 	it('parses qBittorrent username and temporary password from container logs (BR-desktop-43)', () => {

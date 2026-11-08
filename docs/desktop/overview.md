@@ -85,6 +85,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-18` in `docs/specs/catalog.md` — unsigned release download prompt.
 - `BR-desktop-20` in `docs/specs/catalog.md` — desktop refresh script.
 - `BR-desktop-22` in `docs/specs/catalog.md` — clean install pre-seeds companion qBittorrent auth bypass.
+- `BR-desktop-46` in `docs/desktop/qbit-companion-auth-bypass.md` — legacy companion configs patched when auth bypass keys are missing.
 - `BR-desktop-23` in `docs/specs/catalog.md` — Qui application menu and hot-reload Developer menu.
 - `BR-desktop-37` in `docs/specs/catalog.md` — electronmon watch patterns, incremental `tsc`, and main-module discovery for SIGSEGV-free `dev:app`.
 - `BR-desktop-24` in `docs/specs/catalog.md` — Homebrew Cask distribution and package manager blueprints.

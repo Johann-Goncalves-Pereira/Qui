@@ -3,7 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	writeFileSync,
+} from 'node:fs'
 import path from 'node:path'
 import {
 	DEFAULT_GAZELLE_PORT,
@@ -142,6 +148,16 @@ export function qbitContainerRunArgs(
 	]
 }
 
+export const QBIT_AUTH_BYPASS_MARKER = 'WebUI\\AuthSubnetWhitelistEnabled=true'
+
+const QBIT_AUTH_BYPASS_PREFERENCE_LINES = [
+	'WebUI\\Address=*',
+	'WebUI\\ServerDomains=*',
+	QBIT_AUTH_BYPASS_MARKER,
+	'WebUI\\AuthSubnetWhitelist=10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1/32, ::ffff:10.0.0.0/104, ::ffff:172.16.0.0/108, ::ffff:192.168.0.0/112, ::ffff:127.0.0.1/128, ::ffff:0:0/96',
+	'WebUI\\LocalHostAuth=false',
+]
+
 export const DEFAULT_QBIT_PRESEED_CONF = `[BitTorrent]
 Session\\DefaultSavePath=/downloads/
 Session\\Port=6881
@@ -195,16 +211,42 @@ export function parseQBitCredentialsFromLogs(logs: string): QBitCredentials {
 }
 
 /**
+ * Merges subnet auth-bypass keys into qBittorrent.conf when the companion
+ * container already wrote a partial file without whitelist settings.
+ */
+export function patchQBitConfigAuthBypass(confContent: string): string {
+	if (confContent.includes(QBIT_AUTH_BYPASS_MARKER)) {
+		return confContent
+	}
+	const eol = confContent.includes('\r\n') ? '\r\n' : '\n'
+	const lines = confContent.split(/\r?\n/)
+	const prefIdx = lines.findIndex(line => line.trim() === '[Preferences]')
+	const insert = QBIT_AUTH_BYPASS_PREFERENCE_LINES
+	if (prefIdx >= 0) {
+		let insertAt = prefIdx + 1
+		while (insertAt < lines.length && !lines[insertAt].startsWith('[')) {
+			insertAt++
+		}
+		lines.splice(insertAt, 0, ...insert)
+		return lines.join(eol)
+	}
+	const prefix = confContent.trimEnd()
+	return `${prefix}${prefix.length > 0 ? eol + eol : ''}[Preferences]${eol}${insert.join(eol)}${eol}`
+}
+
+/**
  * Ensures that qBittorrent has an initial configuration file on clean install.
  * By pre-seeding AuthSubnetWhitelist and LocalHostAuth=false, Qui communicating
  * via the Docker network / loopback does not get locked out by random password
- * generation or brute-force IP bans.
+ * generation or brute-force IP bans. Existing configs missing the bypass are
+ * patched before the companion container starts.
  */
 export function ensureQbitPreseedConfig(
 	qbitConfigDir: string,
 	fs = {
 		existsSync,
 		mkdirSync,
+		readFileSync,
 		writeFileSync,
 		chmodSync,
 	},
@@ -212,7 +254,18 @@ export function ensureQbitPreseedConfig(
 	const confDir = path.join(qbitConfigDir, 'qBittorrent')
 	const confPath = path.join(confDir, 'qBittorrent.conf')
 	if (fs.existsSync(confPath)) {
-		return false
+		const existing = fs.readFileSync(confPath, 'utf-8')
+		if (existing.includes(QBIT_AUTH_BYPASS_MARKER)) {
+			return false
+		}
+		const patched = patchQBitConfigAuthBypass(existing)
+		fs.writeFileSync(confPath, patched, 'utf-8')
+		try {
+			fs.chmodSync(confPath, 0o666)
+		} catch {
+			// Ignore chmod failure in environments without filesystem permissions
+		}
+		return true
 	}
 	fs.mkdirSync(confDir, { recursive: true })
 	fs.writeFileSync(confPath, DEFAULT_QBIT_PRESEED_CONF, 'utf-8')
