@@ -48,4 +48,14 @@ describe('desktop-version-bump-local (BR-desktop-28)', () => {
 		expect(publish).toContain('UPLOAD_CANDIDATES')
 		expect(publish).toMatch(/already matches|already up to date/)
 	})
+
+	it('enforces postflight_steps stanza and verifies Cask download availability (BR-desktop-48)', () => {
+		const script = readFileSync(
+			path.join(repoRoot, 'scripts/desktop-version-bump-local'),
+			'utf8',
+		)
+		expect(script).toContain('postflight_steps')
+		expect(script).toContain('curl -ILs')
+		expect(script).toContain('VERIFY_URL')
+	})
 })
