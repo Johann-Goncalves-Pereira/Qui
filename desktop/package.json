@@ -44,7 +44,8 @@
         "name": "Magnet URI Scheme",
         "schemes": [
           "magnet"
-        ]
+        ],
+        "role": "Viewer"
       }
     ],
     "mac": {

@@ -13,6 +13,7 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 | Install or update via Homebrew Cask / package managers | [package-managers.md](package-managers.md) |
 | Install or update the downloadable macOS app | [updates.md](updates.md) |
 | Understand desktop semantic versioning & PR pipeline | [versioning.md](versioning.md) — after SM run `make desktop-version-bump` ($0 Actions) |
+| Configure native magnet link handlers & browser association | [magnet-links.md](magnet-links.md) |
 | Day-to-day develop UI with hot reload | [dev-mode.md](dev-mode.md) |
 | Rebuild the local Docker image + clear Electron cache after pulling code | [refresh-script.md](refresh-script.md) |
 | Open a PR on this fork without fighting upstream (local sync gate) | [upstream-sync.md](upstream-sync.md) — run `./scripts/install-local-hooks` once |
@@ -60,6 +61,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 
 - [package-managers.md](package-managers.md) — install via Homebrew Cask and package manager roadmap
 - [updates.md](updates.md) — install / update the downloadable app and Docker images
+- [magnet-links.md](magnet-links.md) — native magnet protocol handling and browser association
 - [versioning.md](versioning.md) — desktop semver baseline (`0.0.0`) and automated PR merge bump
 - [dev-mode.md](dev-mode.md) — hot-reload Electron + Vite
 - [refresh-script.md](refresh-script.md) — one-command local image rebuild
@@ -101,4 +103,5 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-39` in `docs/specs/catalog.md` — frameless checkout window with platform-positioned close button.
 - `BR-web-16` in `docs/specs/catalog.md` — Actionable authentication remediation guidance on instance connection errors.
 - `BR-desktop-43` in `docs/specs/catalog.md` — qBittorrent container WebUI credentials card with blurred password reveal and copy actions.
+- `BR-desktop-47` in `docs/specs/catalog.md` — native magnet protocol handling, client verification, and browser association.
 
