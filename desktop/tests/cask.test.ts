@@ -57,4 +57,9 @@ describe('Homebrew Cask specification (BR-desktop-24)', () => {
 		expect(caskContent).not.toContain('depends_on macos: :catalina')
 		expect(caskContent).not.toContain('depends_on macos: ">= :catalina"')
 	})
+
+	it('uses modern postflight_steps instead of deprecated postflight stanza', () => {
+		expect(caskContent).toContain('postflight_steps do')
+		expect(caskContent).not.toMatch(/^\s*postflight\s+do/m)
+	})
 })
