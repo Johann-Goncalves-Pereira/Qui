@@ -67,7 +67,7 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router"
 import { navigateWithSearch } from "@/lib/router-search"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
 import { Archive, Check, ChevronsUpDown, Cog, Download, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
 
@@ -259,6 +259,11 @@ export function Header({
   // Detect platform for appropriate key display
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
   const shortcutKey = isMac ? "⌘K" : "Ctrl+K"
+  const isDesktop = typeof window !== "undefined" && window.quiDesktop !== undefined
+  const isDesktopMac = isDesktop && isMac
+  const dragAreaStyle: CSSProperties | undefined = isDesktopMac
+    ? ({ WebkitAppRegion: "drag" } as CSSProperties)
+    : undefined
 
   // Global keyboard shortcut to focus search
   useHotkeys(
@@ -338,7 +343,23 @@ export function Header({
   // Assigned, not returned inline: the spreadsheet ribbon strip mounts as a
   // sibling above the header without reindenting the whole header tree.
   const headerElement = (
-    <header className={cn("sticky top-0 z-50 hidden md:flex flex-wrap lg:flex-nowrap items-start lg:items-center justify-between sm:border-b bg-background pl-2 pr-4 md:pl-4 md:pr-4 lg:pl-0 lg:static py-2 lg:py-0", headerHeight)}>
+    <header
+      className={cn(
+        "sticky top-0 z-50 hidden md:flex flex-wrap lg:flex-nowrap items-start lg:items-center justify-between sm:border-b bg-background pl-2 pr-4 md:pl-4 md:pr-4 lg:static py-2 lg:py-0 transition-[padding] duration-300 ease-out relative",
+        sidebarCollapsed
+          ? (isDesktopMac ? "lg:pl-20" : "lg:pl-4")
+          : "lg:pl-0",
+        headerHeight
+      )}
+    >
+      {isDesktopMac && sidebarCollapsed && (
+        <div
+          data-slot="traffic-lights-drag-region"
+          className="absolute left-0 top-0 h-12 w-20"
+          style={dragAreaStyle}
+          aria-hidden="true"
+        />
+      )}
       <div className={cn("hidden md:flex items-center gap-2 mr-2 order-1 lg:order-none", innerHeight)}>
         {children}
         {instanceName && (hasMultipleActiveInstances || isAllInstancesRoute) ? (
@@ -361,7 +382,7 @@ export function Header({
                 ) : (
                   <Logo className="h-5 w-5" />
                 )}
-                <span className="flex items-center max-w-32">
+                <span className={cn("flex items-center max-w-32", sidebarCollapsed && "lg:hidden")}>
                   <span className="truncate">{instanceName}</span>
                   <ChevronsUpDown className="h-3 w-3 text-muted-foreground ml-1 mt-0.5 opacity-60 flex-shrink-0" />
                 </span>
@@ -428,9 +449,11 @@ export function Header({
             ) : (
               <Logo className="h-5 w-5" />
             )}
-            {instanceName ? (
-              <span className="truncate max-w-32">{instanceName}</span>
-            ) : "qui"}
+            {!sidebarCollapsed && (
+              instanceName ? (
+                <span className="truncate max-w-32">{instanceName}</span>
+              ) : "qui"
+            )}
           </h1>
         )}
       </div>
