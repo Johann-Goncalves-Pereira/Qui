@@ -14,6 +14,7 @@ import { ApiKeysManager } from "@/components/settings/ApiKeysManager"
 import { ClientApiKeysManager } from "@/components/settings/ClientApiKeysManager"
 import { DateTimePreferencesForm } from "@/components/settings/DateTimePreferencesForm"
 import { GazelleSettingsCard } from "@/components/settings/GazelleSettingsCard"
+import { VpnSettingsCard } from "@/components/settings/VpnSettingsCard"
 import { DEFAULT_SETTINGS_TAB, SETTINGS_NAV_GROUPS, type SettingsTab } from "@/components/settings/tabs"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SectionedPage, type SectionNavGroup } from "@/components/layout/SectionedPage"
@@ -918,17 +919,20 @@ export function Settings({ search, onSearchChange }: SettingsProps) {
         )}
 
         {activeTab === "instances" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("instances.title")}</CardTitle>
-              <CardDescription>
-                {t("instances.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <InstancesManager search={search} onSearchChange={onSearchChange} />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <VpnSettingsCard />
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("instances.title")}</CardTitle>
+                <CardDescription>
+                  {t("instances.description")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <InstancesManager search={search} onSearchChange={onSearchChange} />
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {activeTab === "indexers" && (

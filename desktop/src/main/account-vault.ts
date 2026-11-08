@@ -52,3 +52,34 @@ export class AccountVault {
 		return decoded
 	}
 }
+
+export class VpnVault {
+	constructor(
+		private readonly cipher: AccountCipher,
+		private readonly readFile: () => Uint8Array | null,
+		private readonly writeFile: (bytes: Uint8Array) => void,
+	) {}
+
+	save(config: unknown): void {
+		const encoded = JSON.stringify(config)
+		const sealed = this.cipher.encrypt(encoded)
+		this.writeFile(sealed)
+	}
+
+	has(): boolean {
+		const stored = this.readFile()
+		return stored !== null && stored.byteLength > 0
+	}
+
+	read(): unknown | null {
+		const stored = this.readFile()
+		if (!stored || stored.byteLength === 0) {
+			return null
+		}
+		try {
+			return JSON.parse(this.cipher.decrypt(stored))
+		} catch {
+			return null
+		}
+	}
+}

@@ -20,13 +20,15 @@ import {
 	QBIT_IMAGE,
 	QUI_CONTAINER_NAME,
 	QUI_IMAGE,
+	VPN_CONTAINER_NAME,
+	VPN_IMAGE,
 } from '../shared/constants.js'
 import type {
 	QBitContainerConfig,
 	QuiContainerConfig,
 } from '../shared/types.js'
 
-export interface DockerDataDirs {
+export interface ContainerDataDirs {
 	quiConfig: string
 	qbitConfig: string
 	downloads: string
@@ -35,8 +37,14 @@ export interface DockerDataDirs {
 	gazelleRepo: string
 }
 
-/** Host directories that survive `docker rm`. Qui keeps its account database here. */
-export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
+export type DockerDataDirs = ContainerDataDirs
+export type PodmanDataDirs = ContainerDataDirs
+
+/** Host directories that survive container removal. Qui keeps its account database here. */
+export function containerDataDirs(
+	home: string,
+	platform: string,
+): ContainerDataDirs {
 	const root =
 		platform === 'darwin'
 			? path.join(home, 'Library', 'Application Support', 'Qui', 'docker')
@@ -52,6 +60,9 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 		gazelleRepo: path.join(root, 'gazelle', 'repo'),
 	}
 }
+
+export const dockerDataDirs = containerDataDirs
+export const podmanDataDirs = containerDataDirs
 
 /**
  * Ensures that the Docker data directories and their host parent directories
@@ -108,6 +119,58 @@ export function quiContainerRunArgs(
 	return args
 }
 
+export function parseWireGuardConf(content: string): {
+	privateKey: string
+	address: string
+} {
+	const privateKeyMatch = content.match(/PrivateKey\s*=\s*([^\r\n]+)/i)
+	const addressMatch = content.match(/Address\s*=\s*([^\r\n]+)/i)
+	return {
+		privateKey: privateKeyMatch ? privateKeyMatch[1].trim() : '',
+		address: addressMatch ? addressMatch[1].trim() : '10.2.0.2/32',
+	}
+}
+
+export function vpnContainerRunArgs(
+	vpnConfig: {
+		provider: string
+		wireguardPrivateKey?: string
+		wireguardAddress?: string
+		serverCountry?: string
+	},
+	vpnImage = VPN_IMAGE,
+): string[] {
+	const args = [
+		'run',
+		'-d',
+		'--name',
+		VPN_CONTAINER_NAME,
+		'--cap-add=NET_ADMIN',
+		'--device=/dev/net/tun:/dev/net/tun',
+		'-p',
+		`${DEFAULT_QBIT_PORT}:8080`,
+		'-p',
+		'6881:6881',
+		'-p',
+		'6881:6881/udp',
+		'-e',
+		`VPN_SERVICE_PROVIDER=${vpnConfig.provider}`,
+		'-e',
+		'VPN_TYPE=wireguard',
+		'-e',
+		`WIREGUARD_PRIVATE_KEY=${vpnConfig.wireguardPrivateKey ?? ''}`,
+		'-e',
+		`WIREGUARD_ADDRESSES=${vpnConfig.wireguardAddress ?? '10.2.0.2/32'}`,
+		'--restart',
+		'unless-stopped',
+		vpnImage,
+	]
+	if (vpnConfig.serverCountry) {
+		args.push('-e', `SERVER_COUNTRIES=${vpnConfig.serverCountry}`)
+	}
+	return args
+}
+
 export function qbitContainerRunArgs(
 	image: string,
 	hostConfig: string,
@@ -116,22 +179,26 @@ export function qbitContainerRunArgs(
 		puid?: string
 		pgid?: string
 		umask?: string
+		vpnContainer?: string
 	},
 ): string[] {
 	const puid = options?.puid ?? '1000'
 	const pgid = options?.pgid ?? '1000'
 	const umask = options?.umask ?? '022'
-	return [
-		'run',
-		'-d',
-		'--name',
-		QBIT_CONTAINER_NAME,
-		'-p',
-		`${DEFAULT_QBIT_PORT}:8080`,
-		'-p',
-		'6881:6881',
-		'-p',
-		'6881:6881/udp',
+	const args = ['run', '-d', '--name', QBIT_CONTAINER_NAME]
+	if (options?.vpnContainer) {
+		args.push(`--network=container:${options.vpnContainer}`)
+	} else {
+		args.push(
+			'-p',
+			`${DEFAULT_QBIT_PORT}:8080`,
+			'-p',
+			'6881:6881',
+			'-p',
+			'6881:6881/udp',
+		)
+	}
+	args.push(
 		'-v',
 		`${hostConfig}:/config`,
 		'-v',
@@ -145,7 +212,8 @@ export function qbitContainerRunArgs(
 		'--restart',
 		'unless-stopped',
 		image,
-	]
+	)
+	return args
 }
 
 export const QBIT_AUTH_BYPASS_MARKER = 'WebUI\\AuthSubnetWhitelistEnabled=true'

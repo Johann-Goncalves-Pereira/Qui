@@ -27,7 +27,7 @@ import {
 	resolveQuiImage,
 	resolveQuiWebOrigin,
 } from '../shared/constants.js'
-import { AccountVault } from './account-vault.js'
+import { AccountVault, VpnVault } from './account-vault.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
 import { createPreUpdateBackup } from './backup.js'
@@ -36,6 +36,7 @@ import {
 	dockerDataDirs,
 	ensureDockerDataPermissions,
 	ensureQbitPreseedConfig,
+	parseWireGuardConf,
 	updatesWorthPrompting,
 } from './container-layout.js'
 import {
@@ -344,6 +345,36 @@ function registerIpcHandlers(): void {
 		await shell.openExternal(GAZELLE_WEB_ORIGIN)
 	})
 
+	ipcMain.handle('vpn:get-config', async () => {
+		const vault = vpnVault()
+		return vault.read()
+	})
+
+	ipcMain.handle('vpn:save-config', async (_event, config: unknown) => {
+		const vault = vpnVault()
+		vault.save(config)
+		return dockerManager.applyVpnConfig(config)
+	})
+
+	ipcMain.handle('vpn:status', async () => {
+		return dockerManager.getVpnStatus()
+	})
+
+	ipcMain.handle('vpn:open-auth-page', async (_event, provider?: string) => {
+		const targetUrl =
+			provider === 'proton' || provider === 'protonvpn'
+				? 'https://account.protonvpn.com/downloads#wireguard-configuration'
+				: 'https://account.protonvpn.com/downloads'
+		await shell.openExternal(targetUrl)
+	})
+
+	ipcMain.handle('vpn:parse-conf', async (_event, confContent: unknown) => {
+		if (typeof confContent !== 'string') {
+			return { privateKey: '', address: '10.2.0.2/32' }
+		}
+		return parseWireGuardConf(confContent)
+	})
+
 	ipcMain.handle('api:transfer-stats', async () => {
 		return apiClient.getTransferStats()
 	})
@@ -515,6 +546,26 @@ function writeDismissedDigests(value: Record<string, string>): void {
 function accountVault(): AccountVault {
 	const file = path.join(app.getPath('userData'), 'account.bin')
 	return new AccountVault(
+		{
+			encrypt: plain => safeStorage.encryptString(plain),
+			decrypt: bytes => safeStorage.decryptString(Buffer.from(bytes)),
+		},
+		() => {
+			try {
+				return readFileSync(file)
+			} catch {
+				return null
+			}
+		},
+		bytes => {
+			writeFileSync(file, Buffer.from(bytes))
+		},
+	)
+}
+
+function vpnVault(): VpnVault {
+	const file = path.join(app.getPath('userData'), 'vpn-config.bin')
+	return new VpnVault(
 		{
 			encrypt: plain => safeStorage.encryptString(plain),
 			decrypt: bytes => safeStorage.decryptString(Buffer.from(bytes)),
