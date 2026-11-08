@@ -19,7 +19,7 @@ cask "qui" do
   app "Qui.app"
 
   postflight_steps do
-    system_command "xattr", args: ["-cr", "#{appdir}/Qui.app"]
+    run "/usr/bin/xattr", args: ["-cr", "{{appdir}}/Qui.app"]
   end
 
   zap trash: [
