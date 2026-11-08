@@ -84,6 +84,31 @@ declare global {
         image: string
       }) => Promise<{ success: boolean; error?: string }>
       restartContainer?: (name: string) => Promise<{ success: boolean; error?: string }>
+      getVpnConfig?: () => Promise<{
+        enabled: boolean
+        provider: string
+        wireguardPrivateKey?: string
+        wireguardAddress?: string
+        serverCountry?: string
+        killSwitchOnly?: boolean
+      } | null>
+      saveVpnConfig?: (config: {
+        enabled: boolean
+        provider: string
+        wireguardPrivateKey?: string
+        wireguardAddress?: string
+        serverCountry?: string
+        killSwitchOnly?: boolean
+      }) => Promise<{ success: boolean; error?: string }>
+      getVpnStatus?: () => Promise<{
+        name: string
+        state: string
+        status: string
+        image: string
+        port: number
+      }>
+      openVpnAuthPage?: (provider?: string) => Promise<void>
+      parseWireGuardConf?: (content: string) => Promise<{ privateKey: string; address: string }>
       checkForUpdates?: () => Promise<{
         hasUpdate: boolean
         currentVersion: string

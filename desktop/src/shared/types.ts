@@ -121,3 +121,15 @@ export const ThemeSyncPayloadSchema = Schema.Struct({
 })
 
 export type ThemeSyncPayload = typeof ThemeSyncPayloadSchema.Type
+
+export const VpnConfigSchema = Schema.Struct({
+	enabled: Schema.Boolean,
+	provider: Schema.String,
+	wireguardPrivateKey: Schema.optional(Schema.String),
+	wireguardAddress: Schema.optional(Schema.String),
+	serverCountry: Schema.optional(Schema.String),
+	killSwitchOnly: Schema.optional(Schema.Boolean),
+})
+
+export type VpnConfig = typeof VpnConfigSchema.Type
+

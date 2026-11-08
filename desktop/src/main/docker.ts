@@ -29,6 +29,8 @@ import {
 	QUI_CONTAINER_NAME,
 	QUI_IMAGE,
 	QUI_IMAGE_LOCAL,
+	VPN_CONTAINER_NAME,
+	VPN_IMAGE,
 } from '../shared/constants.js'
 import {
 	quiDesktopImageArchiveUrl,
@@ -43,6 +45,8 @@ import {
 	QBitContainerConfigSchema,
 	type QuiContainerConfig,
 	QuiContainerConfigSchema,
+	type VpnConfig,
+	VpnConfigSchema,
 } from '../shared/types.js'
 import {
 	defaultQBitConfig,
@@ -57,6 +61,7 @@ import {
 	qbitContainerRunArgs,
 	quiConfigToRunArgs,
 	quiContainerRunArgs,
+	vpnContainerRunArgs,
 } from './container-layout.js'
 
 const execFileAsync = promisify(execFile)
@@ -768,6 +773,66 @@ export class DockerManager {
 			const error = err instanceof Error ? err.message : String(err)
 			return { success: false, error }
 		}
+	}
+
+	async applyVpnConfig(
+		rawConfig: unknown,
+	): Promise<{ success: boolean; error?: string }> {
+		try {
+			const config = Schema.decodeUnknownSync(VpnConfigSchema)(rawConfig)
+			const dirs = dockerDataDirs(homedir(), process.platform)
+
+			// 1. Stop and remove existing qbittorrent container
+			try {
+				await this.executor.exec('docker', ['stop', QBIT_CONTAINER_NAME])
+			} catch {}
+			try {
+				await this.executor.exec('docker', ['rm', QBIT_CONTAINER_NAME])
+			} catch {}
+
+			// 2. Stop and remove existing VPN container
+			try {
+				await this.executor.exec('docker', ['stop', VPN_CONTAINER_NAME])
+			} catch {}
+			try {
+				await this.executor.exec('docker', ['rm', VPN_CONTAINER_NAME])
+			} catch {}
+
+			if (config.enabled) {
+				// Spin up Gluetun container
+				await this.pullIfMissing(VPN_IMAGE)
+				const vpnArgs = vpnContainerRunArgs(config)
+				await this.executor.exec('docker', vpnArgs)
+
+				// Spin up qBittorrent attached to VPN container network namespace
+				await this.pullIfMissing(QBIT_IMAGE)
+				const qbitArgs = qbitContainerRunArgs(
+					QBIT_IMAGE,
+					dirs.qbitConfig,
+					dirs.downloads,
+					{ vpnContainer: VPN_CONTAINER_NAME },
+				)
+				await this.executor.exec('docker', qbitArgs)
+			} else {
+				// Spin up qBittorrent standalone
+				await this.pullIfMissing(QBIT_IMAGE)
+				const qbitArgs = qbitContainerRunArgs(
+					QBIT_IMAGE,
+					dirs.qbitConfig,
+					dirs.downloads,
+				)
+				await this.executor.exec('docker', qbitArgs)
+			}
+
+			return { success: true }
+		} catch (err) {
+			const error = err instanceof Error ? err.message : String(err)
+			return { success: false, error }
+		}
+	}
+
+	async getVpnStatus(): Promise<DockerContainerStatus> {
+		return this.getContainerStatus(VPN_CONTAINER_NAME, DEFAULT_QBIT_PORT, VPN_IMAGE)
 	}
 
 	async restartContainer(
