@@ -87,29 +87,37 @@ const DEFAULT_EXEC_PATH = [
 	.filter(Boolean)
 	.join(':')
 
-export const DOCKER_BINARY_NOT_FOUND = 'docker binary not found'
+export const PODMAN_BINARY_NOT_FOUND = 'podman binary not found'
+export const DOCKER_BINARY_NOT_FOUND = PODMAN_BINARY_NOT_FOUND
 
-/** macOS GUI launches do not inherit a shell PATH, so look up the CLI by path. */
-export function dockerBinaryCandidates(homeDir: string): readonly string[] {
+/** macOS GUI launches do not inherit a shell PATH, so look up the Podman CLI by path. */
+export function podmanBinaryCandidates(homeDir: string): readonly string[] {
 	return [
-		path.join(homeDir, '.docker', 'bin', 'docker'),
-		'/opt/homebrew/bin/docker',
-		'/usr/local/bin/docker',
-		'/Applications/Docker.app/Contents/Resources/bin/docker',
+		'/opt/homebrew/bin/podman',
+		'/usr/local/bin/podman',
+		path.join(homeDir, '.local', 'bin', 'podman'),
+		'/usr/bin/podman',
+		'/bin/podman',
 	]
 }
 
-export function resolveDockerBinary(
+/** Legacy alias for backwards compatibility with tests and callers. */
+export const dockerBinaryCandidates = podmanBinaryCandidates
+
+export function resolvePodmanBinary(
 	exists: (candidate: string) => boolean,
 	homeDir: string,
 ): string {
-	for (const candidate of dockerBinaryCandidates(homeDir)) {
+	for (const candidate of podmanBinaryCandidates(homeDir)) {
 		if (exists(candidate)) {
 			return candidate
 		}
 	}
-	throw new Error(DOCKER_BINARY_NOT_FOUND)
+	throw new Error(PODMAN_BINARY_NOT_FOUND)
 }
+
+/** Legacy alias for backwards compatibility. */
+export const resolveDockerBinary = resolvePodmanBinary
 
 export class CliDockerExecutor implements DockerExecutor {
 	constructor(
@@ -122,7 +130,10 @@ export class CliDockerExecutor implements DockerExecutor {
 		args: string[],
 		options?: DockerExecOptions,
 	): Promise<{ stdout: string; stderr: string }> {
-		const executable = command === 'docker' ? this.locateBinary() : command
+		const executable =
+			command === 'docker' || command === 'podman'
+				? this.locateBinary()
+				: command
 		const pathValue = [path.dirname(executable), DEFAULT_EXEC_PATH].join(
 			path.delimiter,
 		)
@@ -233,6 +244,10 @@ export class DockerManager {
 		} catch {
 			return false
 		}
+	}
+
+	async isPodmanAvailable(): Promise<boolean> {
+		return this.isDockerAvailable()
 	}
 
 	async getContainerStatus(
@@ -349,24 +364,38 @@ export class DockerManager {
 		composeArgs: string[],
 		cwd: string,
 	): Promise<{ stdout: string; stderr: string }> {
-		try {
-			return await this.executor.exec('docker', ['compose', ...composeArgs], {
-				cwd,
-				timeout: 600000,
-			})
-		} catch (err) {
-			const errMsg = err instanceof Error ? err.message : String(err)
-			if (
-				errMsg.includes('unknown command: docker compose') ||
-				errMsg.includes('is not a docker command')
-			) {
-				return await this.executor.exec('docker-compose', composeArgs, {
+		const candidates: Array<{ cmd: string; args: string[] }> = [
+			{ cmd: 'docker', args: ['compose', ...composeArgs] },
+			{ cmd: 'docker-compose', args: composeArgs },
+			{ cmd: 'podman', args: ['compose', ...composeArgs] },
+			{ cmd: 'podman-compose', args: composeArgs },
+		]
+
+		let lastError: unknown = null
+		for (const candidate of candidates) {
+			try {
+				return await this.executor.exec(candidate.cmd, candidate.args, {
 					cwd,
 					timeout: 600000,
 				})
+			} catch (err) {
+				lastError = err
+				const errMsg = err instanceof Error ? err.message : String(err)
+				if (
+					errMsg.includes('unknown command') ||
+					errMsg.includes('is not a') ||
+					errMsg.includes('not found') ||
+					errMsg.includes('ENOENT')
+				) {
+					continue
+				}
+				throw err
 			}
-			throw err
 		}
+		throw (
+			lastError ??
+			new Error('Neither podman compose nor docker compose succeeded')
+		)
 	}
 
 	async startGazelle(): Promise<DockerContainerStatus> {
@@ -753,3 +782,8 @@ export class DockerManager {
 		}
 	}
 }
+
+export const PodmanManager = DockerManager
+export const CliPodmanExecutor = CliDockerExecutor
+export type PodmanExecutor = DockerExecutor
+export type PodmanExecOptions = DockerExecOptions

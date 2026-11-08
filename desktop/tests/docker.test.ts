@@ -54,19 +54,20 @@ class MockDockerExecutor implements DockerExecutor {
 }
 
 describe('Docker CLI resolution (BR-desktop-10)', () => {
-	it('checks the Docker Desktop user CLI, Homebrew, /usr/local, then the app bundle', () => {
+	it('checks the Podman user CLI, Homebrew, /usr/local, and system paths', () => {
 		const home = path.join('Users', 'example')
 		expect(dockerBinaryCandidates(home)).toEqual([
-			path.join(home, '.docker', 'bin', 'docker'),
-			'/opt/homebrew/bin/docker',
-			'/usr/local/bin/docker',
-			'/Applications/Docker.app/Contents/Resources/bin/docker',
+			'/opt/homebrew/bin/podman',
+			'/usr/local/bin/podman',
+			path.join(home, '.local', 'bin', 'podman'),
+			'/usr/bin/podman',
+			'/bin/podman',
 		])
 	})
 
 	it('uses the first candidate that exists', () => {
 		const home = path.join('Users', 'example')
-		const homebrew = '/opt/homebrew/bin/docker'
+		const homebrew = '/opt/homebrew/bin/podman'
 		const resolved = resolveDockerBinary(
 			candidate => candidate === homebrew,
 			home,
@@ -74,7 +75,7 @@ describe('Docker CLI resolution (BR-desktop-10)', () => {
 		expect(resolved).toBe(homebrew)
 	})
 
-	it('reports docker binary not found when every candidate is missing', () => {
+	it('reports podman binary not found when every candidate is missing', () => {
 		expect(() =>
 			resolveDockerBinary(() => false, path.join('Users', 'example')),
 		).toThrow(DOCKER_BINARY_NOT_FOUND)

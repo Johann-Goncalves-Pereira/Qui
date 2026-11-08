@@ -26,7 +26,7 @@ import type {
 	QuiContainerConfig,
 } from '../shared/types.js'
 
-export interface DockerDataDirs {
+export interface ContainerDataDirs {
 	quiConfig: string
 	qbitConfig: string
 	downloads: string
@@ -35,8 +35,14 @@ export interface DockerDataDirs {
 	gazelleRepo: string
 }
 
-/** Host directories that survive `docker rm`. Qui keeps its account database here. */
-export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
+export type DockerDataDirs = ContainerDataDirs
+export type PodmanDataDirs = ContainerDataDirs
+
+/** Host directories that survive container removal. Qui keeps its account database here. */
+export function containerDataDirs(
+	home: string,
+	platform: string,
+): ContainerDataDirs {
 	const root =
 		platform === 'darwin'
 			? path.join(home, 'Library', 'Application Support', 'Qui', 'docker')
@@ -52,6 +58,9 @@ export function dockerDataDirs(home: string, platform: string): DockerDataDirs {
 		gazelleRepo: path.join(root, 'gazelle', 'repo'),
 	}
 }
+
+export const dockerDataDirs = containerDataDirs
+export const podmanDataDirs = containerDataDirs
 
 /**
  * Ensures that the Docker data directories and their host parent directories

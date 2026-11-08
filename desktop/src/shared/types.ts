@@ -14,6 +14,8 @@ export const DockerContainerStatusSchema = Schema.Struct({
 })
 
 export type DockerContainerStatus = typeof DockerContainerStatusSchema.Type
+export const PodmanContainerStatusSchema = DockerContainerStatusSchema
+export type PodmanContainerStatus = DockerContainerStatus
 
 export const DockerUpdateInfoSchema = Schema.Struct({
 	hasUpdate: Schema.Boolean,
@@ -23,6 +25,8 @@ export const DockerUpdateInfoSchema = Schema.Struct({
 })
 
 export type DockerUpdateInfo = typeof DockerUpdateInfoSchema.Type
+export const PodmanUpdateInfoSchema = DockerUpdateInfoSchema
+export type PodmanUpdateInfo = DockerUpdateInfo
 
 export const TorrentTransferStatsSchema = Schema.Struct({
 	dlSpeed: Schema.Number,
