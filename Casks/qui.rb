@@ -18,6 +18,10 @@ cask "qui" do
 
   app "Qui.app"
 
+  postflight do
+    system_command "xattr", args: ["-cr", "#{appdir}/Qui.app"]
+  end
+
   zap trash: [
     "~/Library/Application Support/Qui",
     "~/Library/Caches/com.autobrr.qui.desktop",

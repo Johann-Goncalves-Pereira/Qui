@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Download, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { setUpdateBannerMounted } from "@/lib/desktop-update-state"
 
 export function UpdateBanner() {
   const isDesktop = typeof window !== "undefined" && window.quiDesktop !== undefined
@@ -21,6 +22,13 @@ export function UpdateBanner() {
   const [dismissed, setDismissed] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const selfUpdate = useSelfUpdate()
+
+  useEffect(() => {
+    setUpdateBannerMounted(true)
+    return () => {
+      setUpdateBannerMounted(false)
+    }
+  }, [])
 
   const bannerButtonClass = "h-6 text-xs border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900"
 

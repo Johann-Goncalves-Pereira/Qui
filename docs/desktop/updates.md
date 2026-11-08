@@ -182,11 +182,20 @@ When the user initiates **Download & Update**, the application never redirects e
 - **Native Alert Sheet Suppression:** Intrusive macOS alert sheets (`dialog.showMessageBox`) are suppressed when updates are found on launch or manual check. The main process emits `updater:show-dialog` via IPC, exclusively opening the in-app `DesktopUpdateDialog`.
 - **Automated Homebrew Upgrades:** For desktop installations managed via Homebrew Cask (`/opt/homebrew/Caskroom/qui` or `brew list --cask qui`), clicking **Download & Update** internally executes `brew update` to refresh tap metadata, followed by `brew upgrade --cask qui` to update `Qui.app` on disk. The matching Docker container is updated in lockstep, the in-memory app version is advanced, and the web interface reloads seamlessly with the new release version.
 
+## Companion Container Updates & Root Router Hosting (`BR-desktop-45`, `BR-web-17`)
+
+- **Native Container Alert Suppression:** When Docker companion updates (`qbittorrent-nox`, `qui`) are detected on startup or check (`checkAndPromptDockerUpdates`), native macOS `dialog.showMessageBox` alert sheets are completely eliminated. The main process emits `updater:show-container-dialog` with component metadata.
+- **Router Root Hosting (`__root.tsx`):** `DesktopUpdateHost` is mounted at the root router route (`web/src/routes/__root.tsx`), ensuring that both shell and container update dialogs trigger on all screens—including initial onboarding (`/setup`), login (`/login`), and dashboard views.
+- **In-App Container Dialog (`ContainerUpdateDialog`):** Displays component badges, descriptions, reload/restart impacts, pre-update backup assurances, and action controls (**Later** / **Update Now**).
+- **Gatekeeper Quarantine Removal:** Following `brew upgrade --cask qui` or cask installations, `xattr -cr /Applications/Qui.app` is executed automatically (and specified in `Casks/qui.rb` postflight) to strip `com.apple.quarantine` and avoid Gatekeeper verification blockage.
+
 ## Behaviour summary
 
 - Launch + tray compare semver to GitHub `releases/latest`.
 - Release descriptions always contain `## What's Changed` parsed from commits/PRs between release tags.
 - In-app `DesktopUpdateDialog` displays changelog and triggers automatic download without browser redirects.
+- In-app `ContainerUpdateDialog` presents companion updates and reload requirements without native OS sheets.
+- `DesktopUpdateHost` at router root guarantees update prompts trigger on `/setup`, `/login`, and all views.
 - In-app `applyUpdate` performs pre-update backup, synchronizes container, executes brew upgrade for Cask installs, and reloads interface.
 - Upstream web update banners and self-update buttons are suppressed in Electron.
 - Component update prompts declare exact target types and reload impacts.
@@ -206,5 +215,7 @@ When the user initiates **Download & Update**, the application never redirects e
 - `BR-desktop-41` — automated in-app download and container update via applyUpdate.
 - `BR-web-15` — in-app DesktopUpdateDialog with changelog replacing OS alert sheet.
 - `BR-desktop-44` — Homebrew Cask automated updates and native alert suppression.
+- `BR-desktop-45` — companion container update alert suppression and Gatekeeper quarantine clearing.
+- `BR-web-17` — ContainerUpdateDialog and DesktopUpdateHost mounted at root router for seamless multi-route update prompts.
 
 

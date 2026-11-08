@@ -4,7 +4,7 @@
  */
 
 import { Schema } from 'effect'
-import { type BrowserWindow, dialog } from 'electron'
+import type { BrowserWindow } from 'electron'
 import {
 	APP_NAME,
 	CURRENT_APP_VERSION,
@@ -155,9 +155,8 @@ export class AppReleaseUpdater {
 	): Promise<boolean> {
 		if (!info.hasUpdate) {
 			if (window && !window.isDestroyed()) {
-				await dialog.showMessageBox(window, {
+				window.webContents.send('updater:status', {
 					type: 'info',
-					title: APP_NAME,
 					message: `You are using the latest version of ${APP_NAME} (v${this.currentVersion}).`,
 				})
 			}

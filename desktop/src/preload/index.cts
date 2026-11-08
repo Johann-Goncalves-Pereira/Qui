@@ -51,6 +51,26 @@ export interface QuiDesktopBridge {
 	) => Promise<{ success: boolean; error?: string }>
 	/** Subscribes to open-dialog events triggered by desktop main process */
 	onShowUpdateDialog: (callback: (info: AppReleaseInfo) => void) => () => void
+	/** Subscribes to container update dialog events triggered by desktop main process */
+	onShowContainerUpdateDialog: (
+		callback: (details: unknown) => void,
+	) => () => void
+	/** Applies pending Docker container updates and recreates containers */
+	applyContainerUpdates: () => Promise<{
+		success: boolean
+		error?: string
+		reloaded?: boolean
+	}>
+	/** Dismisses pending Docker container updates for current session digests */
+	dismissContainerUpdates: () => Promise<{ success: boolean }>
+	/** Subscribes to non-blocking desktop status notifications */
+	onUpdateStatus: (
+		callback: (status: {
+			message: string
+			detail?: string
+			type?: 'info' | 'success' | 'error'
+		}) => void,
+	) => () => void
 	/** Synchronize active theme tokens and dark/light preference to desktop shell for startup page caching */
 	syncTheme: (payload: ThemeSyncPayload) => Promise<void>
 	/** Gazelle companion Docker lifecycle controls */
@@ -109,6 +129,41 @@ const bridge: QuiDesktopBridge = {
 		ipcRenderer.on('updater:show-dialog', listener)
 		return () => {
 			ipcRenderer.removeListener('updater:show-dialog', listener)
+		}
+	},
+	onShowContainerUpdateDialog: (callback: (details: unknown) => void) => {
+		const listener = (_event: Electron.IpcRendererEvent, details: unknown) => {
+			callback(details)
+		}
+		ipcRenderer.on('updater:show-container-dialog', listener)
+		return () => {
+			ipcRenderer.removeListener('updater:show-container-dialog', listener)
+		}
+	},
+	applyContainerUpdates: () =>
+		ipcRenderer.invoke('updater:apply-container-updates'),
+	dismissContainerUpdates: () =>
+		ipcRenderer.invoke('updater:dismiss-container-updates'),
+	onUpdateStatus: (
+		callback: (status: {
+			message: string
+			detail?: string
+			type?: 'info' | 'success' | 'error'
+		}) => void,
+	) => {
+		const listener = (
+			_event: Electron.IpcRendererEvent,
+			status: {
+				message: string
+				detail?: string
+				type?: 'info' | 'success' | 'error'
+			},
+		) => {
+			callback(status)
+		}
+		ipcRenderer.on('updater:status', listener)
+		return () => {
+			ipcRenderer.removeListener('updater:status', listener)
 		}
 	},
 	syncTheme: (payload: ThemeSyncPayload) =>
