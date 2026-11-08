@@ -55,6 +55,39 @@ export interface AppProtocolClientTarget {
 		path?: string,
 		args?: string[],
 	) => boolean
+	isDefaultProtocolClient?: (
+		protocol: string,
+		path?: string,
+		args?: string[],
+	) => boolean
+}
+
+export function isMagnetProtocolClientDefault(
+	appInstance: AppProtocolClientTarget,
+	options?: {
+		isDefaultApp?: boolean
+		execPath?: string
+		argv?: string[]
+	},
+): boolean {
+	if (typeof appInstance.isDefaultProtocolClient !== 'function') {
+		return false
+	}
+	try {
+		const isDefaultApp = options?.isDefaultApp ?? process.defaultApp
+		const execPath = options?.execPath ?? process.execPath
+		const argv = options?.argv ?? process.argv
+
+		if (isDefaultApp && argv.length >= 2) {
+			const scriptPath = path.resolve(argv[1])
+			return appInstance.isDefaultProtocolClient('magnet', execPath, [
+				scriptPath,
+			])
+		}
+		return appInstance.isDefaultProtocolClient('magnet')
+	} catch {
+		return false
+	}
 }
 
 export function registerMagnetProtocolHandler(
