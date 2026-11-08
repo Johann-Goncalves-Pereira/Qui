@@ -220,7 +220,7 @@ export function patchQBitConfigAuthBypass(confContent: string): string {
 	}
 	const eol = confContent.includes('\r\n') ? '\r\n' : '\n'
 	const lines = confContent.split(/\r?\n/)
-	const prefIdx = lines.findIndex((line) => line.trim() === '[Preferences]')
+	const prefIdx = lines.findIndex(line => line.trim() === '[Preferences]')
 	const insert = QBIT_AUTH_BYPASS_PREFERENCE_LINES
 	if (prefIdx >= 0) {
 		let insertAt = prefIdx + 1
