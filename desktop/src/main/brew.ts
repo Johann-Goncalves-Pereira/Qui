@@ -111,6 +111,15 @@ export async function runBrewUpdateAndUpgrade(
 			},
 		)
 
+		// Step 3: Clear macOS Gatekeeper quarantine flag so Qui.app opens without security blocks
+		try {
+			await execFileAsync('xattr', ['-cr', '/Applications/Qui.app'], {
+				timeout: 10000,
+			})
+		} catch {
+			// Best-effort quarantine removal
+		}
+
 		return {
 			success: true,
 			output: `${updateRes.stdout}\n${upgradeRes.stdout}`.trim(),

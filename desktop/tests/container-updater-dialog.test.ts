@@ -93,5 +93,8 @@ describe('formatContainerUpdatePrompt (BR-desktop-30)', () => {
 		expect(prompt.detail).toContain('qui (Qui Web & API)')
 		expect(prompt.detail).toContain('qbittorrent-nox')
 		expect(prompt.reloadRequirements.length).toBe(2)
+		expect(prompt.components).toHaveLength(2)
+		expect(prompt.components[0].type).toBe('qui')
+		expect(prompt.components[1].type).toBe('qbittorrent-nox')
 	})
 })

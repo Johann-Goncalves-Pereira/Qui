@@ -110,6 +110,34 @@ declare global {
           publishedAt?: string
         }) => void,
       ) => () => void
+      onShowContainerUpdateDialog?: (
+        callback: (details: {
+          title: string
+          message: string
+          detail: string
+          componentTypes: ("qui" | "qbittorrent-nox" | "other")[]
+          reloadRequirements: string[]
+          components?: {
+            type: "qui" | "qbittorrent-nox" | "other"
+            image: string
+            description: string
+            reloadRequirement: string
+          }[]
+        }) => void,
+      ) => () => void
+      applyContainerUpdates?: () => Promise<{
+        success: boolean
+        error?: string
+        reloaded?: boolean
+      }>
+      dismissContainerUpdates?: () => Promise<{ success: boolean }>
+      onUpdateStatus?: (
+        callback: (status: {
+          message: string
+          detail?: string
+          type?: "info" | "success" | "error"
+        }) => void,
+      ) => () => void
       gazelle?: {
         getStatus?: () => Promise<{
           name: string

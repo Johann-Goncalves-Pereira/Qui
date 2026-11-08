@@ -10,14 +10,12 @@ import { Schema } from 'effect'
 import {
 	app,
 	BrowserWindow,
-	dialog,
 	ipcMain,
 	nativeTheme,
 	safeStorage,
 	shell,
 } from 'electron'
 import {
-	APP_NAME,
 	CURRENT_APP_VERSION,
 	DEFAULT_QBIT_PORT,
 	DEFAULT_QUI_PORT,
@@ -40,7 +38,10 @@ import {
 	ensureQbitPreseedConfig,
 	updatesWorthPrompting,
 } from './container-layout.js'
-import { formatContainerUpdatePrompt } from './container-updater-dialog.js'
+import {
+	type ContainerUpdateTarget,
+	formatContainerUpdatePrompt,
+} from './container-updater-dialog.js'
 import { DockerManager } from './docker.js'
 import { registerElectronmonMainModules } from './electronmon.js'
 import {
@@ -121,6 +122,7 @@ const dockerManager = new DockerManager(undefined, undefined, quiImage)
 const biometricAuth = new BiometricAuthService()
 /** Suppress repeat Docker image dialogs in one session (tray can force a recheck). */
 let dockerImageUpdatePromptShownThisSession = false
+let pendingContainerUpdates: ContainerUpdateTarget[] = []
 const apiClient = new QuiApiClient(quiWebOrigin)
 const appUpdater = new AppReleaseUpdater()
 const magnetManager = new MagnetManager(quiWebOrigin)
@@ -375,6 +377,76 @@ function registerIpcHandlers(): void {
 		)
 	})
 
+	ipcMain.handle('updater:apply-container-updates', async () => {
+		try {
+			if (pendingContainerUpdates.length === 0) {
+				const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
+				const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
+				pendingContainerUpdates = updatesWorthPrompting(
+					[quiUpdate, qbitUpdate],
+					{},
+				)
+			}
+
+			if (pendingContainerUpdates.length === 0) {
+				return {
+					success: true,
+					message: 'All containers are already up to date.',
+				}
+			}
+
+			try {
+				await createPreUpdateBackup('docker-update')
+			} catch {
+				// Non-fatal backup failure
+			}
+
+			for (const u of pendingContainerUpdates) {
+				const name =
+					u.image === quiImage ? QUI_CONTAINER_NAME : QBIT_CONTAINER_NAME
+				await dockerManager.updateAndRestartContainer(name, u.image)
+			}
+
+			const hasQuiUpdate = pendingContainerUpdates.some(
+				u => u.image === quiImage,
+			)
+			const updatedCount = pendingContainerUpdates.length
+			pendingContainerUpdates = []
+
+			if (hasQuiUpdate) {
+				void loadQuiWebUi()
+			}
+
+			if (mainWindow && !mainWindow.isDestroyed()) {
+				mainWindow.webContents.send('updater:status', {
+					type: 'success',
+					message: 'Containers updated successfully!',
+					detail: `Updated ${updatedCount} container component(s). Pre-update backup archived.`,
+				})
+			}
+
+			return {
+				success: true,
+				reloaded: hasQuiUpdate,
+			}
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err)
+			return { success: false, error: message }
+		}
+	})
+
+	ipcMain.handle('updater:dismiss-container-updates', async () => {
+		const dismissed = readDismissedDigests()
+		for (const update of pendingContainerUpdates) {
+			if (update.remoteDigest) {
+				dismissed[update.image] = update.remoteDigest
+			}
+		}
+		writeDismissedDigests(dismissed)
+		pendingContainerUpdates = []
+		return { success: true }
+	})
+
 	ipcMain.handle('window:set-material', async (_event, glass: unknown) => {
 		if (!mainWindow || typeof glass !== 'boolean') {
 			return
@@ -482,53 +554,17 @@ async function checkAndPromptDockerUpdates(options?: {
 			[quiUpdate, qbitUpdate],
 			options?.force ? {} : readDismissedDigests(),
 		)
-		if (updates.length > 0 && mainWindow) {
+		if (updates.length > 0 && mainWindow && !mainWindow.isDestroyed()) {
 			dockerImageUpdatePromptShownThisSession = true
+			pendingContainerUpdates = updates
 			const promptDetails = formatContainerUpdatePrompt(updates, quiImage)
-			const { response } = await dialog.showMessageBox(mainWindow, {
-				type: 'question',
-				title: promptDetails.title,
-				message: promptDetails.message,
-				detail: promptDetails.detail,
-				buttons: ['Update Now', 'Later'],
-				defaultId: 0,
-				cancelId: 1,
-			})
-
-			if (response !== 0) {
-				const dismissed = readDismissedDigests()
-				for (const update of updates) {
-					dismissed[update.image] = update.remoteDigest
-				}
-				writeDismissedDigests(dismissed)
-				return
-			}
-
-			if (response === 0) {
-				try {
-					await createPreUpdateBackup('docker-update')
-				} catch {
-					// Non-fatal backup failure
-				}
-				for (const u of updates) {
-					const name =
-						u.image === quiImage ? QUI_CONTAINER_NAME : QBIT_CONTAINER_NAME
-					await dockerManager.updateAndRestartContainer(name, u.image)
-				}
-				await dialog.showMessageBox(mainWindow, {
-					type: 'info',
-					title: APP_NAME,
-					message: 'Containers updated successfully!',
-					detail: `Updated components: ${promptDetails.componentTypes.join(', ')}.\nAutomated pre-update backup was saved in Application Support.`,
-				})
-				if (promptDetails.componentTypes.includes('qui')) {
-					void loadQuiWebUi()
-				}
-			}
-		} else if (options?.force && mainWindow) {
-			await dialog.showMessageBox(mainWindow, {
+			mainWindow.webContents.send(
+				'updater:show-container-dialog',
+				promptDetails,
+			)
+		} else if (options?.force && mainWindow && !mainWindow.isDestroyed()) {
+			mainWindow.webContents.send('updater:status', {
 				type: 'info',
-				title: APP_NAME,
 				message: 'All containers are up to date.',
 				detail:
 					'qui and qbittorrent-nox are running the latest container images.',
@@ -540,7 +576,7 @@ async function checkAndPromptDockerUpdates(options?: {
 }
 
 async function promptDesktopUpdates(): Promise<boolean> {
-	if (!mainWindow) {
+	if (!mainWindow || mainWindow.isDestroyed()) {
 		return false
 	}
 	try {
@@ -555,9 +591,8 @@ async function promptDesktopUpdates(): Promise<boolean> {
 		if (updates.length > 0) {
 			await checkAndPromptDockerUpdates({ force: true })
 		} else if (!info.hasUpdate) {
-			await dialog.showMessageBox(mainWindow, {
+			mainWindow.webContents.send('updater:status', {
 				type: 'info',
-				title: APP_NAME,
 				message: `Qui Desktop is up to date (v${appUpdater.getCurrentVersion()}).`,
 				detail:
 					'All desktop layers (application shell, qui, and qbittorrent-nox) are running the latest versions.',

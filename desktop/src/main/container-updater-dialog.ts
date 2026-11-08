@@ -13,12 +13,20 @@ export interface ContainerUpdateTarget {
 	remoteDigest?: string
 }
 
+export interface ContainerComponentUpdate {
+	type: UpdateComponentType
+	image: string
+	description: string
+	reloadRequirement: string
+}
+
 export interface ContainerUpdatePromptDetails {
 	title: string
 	message: string
 	detail: string
 	componentTypes: UpdateComponentType[]
 	reloadRequirements: string[]
+	components: ContainerComponentUpdate[]
 }
 
 /**
@@ -49,33 +57,36 @@ export function formatContainerUpdatePrompt(
 	const componentTypes: UpdateComponentType[] = []
 	const componentDescriptions: string[] = []
 	const reloadRequirements: string[] = []
+	const components: ContainerComponentUpdate[] = []
 
 	for (const update of updates) {
 		const compType = identifyUpdateComponentType(update.image, quiImage)
 		componentTypes.push(compType)
 
+		let desc = ''
+		let reload = ''
+
 		if (compType === 'qui') {
-			componentDescriptions.push(
-				'• qui (Qui Web & API): Recreates container with the latest image.',
-			)
-			reloadRequirements.push(
-				'• qui: Web interface will automatically refresh once restarted.',
-			)
+			desc = 'qui (Qui Web & API): Recreates container with the latest image.'
+			reload = 'qui: Web interface will automatically refresh once restarted.'
 		} else if (compType === 'qbittorrent-nox') {
-			componentDescriptions.push(
-				'• qbittorrent-nox (qBittorrent Engine): Recreates container with the latest image.',
-			)
-			reloadRequirements.push(
-				'• qbittorrent-nox: Container will restart; torrent connections will momentarily reconnect.',
-			)
+			desc =
+				'qbittorrent-nox (qBittorrent Engine): Recreates container with the latest image.'
+			reload =
+				'qbittorrent-nox: Container will restart; torrent connections will momentarily reconnect.'
 		} else {
-			componentDescriptions.push(
-				`• ${update.image} (Companion Service): Recreates container with the latest image.`,
-			)
-			reloadRequirements.push(
-				`• ${update.image}: Companion container will restart.`,
-			)
+			desc = `${update.image} (Companion Service): Recreates container with the latest image.`
+			reload = `${update.image}: Companion container will restart.`
 		}
+
+		componentDescriptions.push(`• ${desc}`)
+		reloadRequirements.push(`• ${reload}`)
+		components.push({
+			type: compType,
+			image: update.image,
+			description: desc,
+			reloadRequirement: reload,
+		})
 	}
 
 	const names = componentTypes.join(', ')
@@ -102,5 +113,6 @@ export function formatContainerUpdatePrompt(
 		detail,
 		componentTypes,
 		reloadRequirements,
+		components,
 	}
 }

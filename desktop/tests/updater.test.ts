@@ -307,4 +307,42 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		expect(emittedChannel).toBe('updater:show-dialog')
 		expect(emittedPayload).toEqual(info)
 	})
+
+	it('promptUpdateIfAvailable emits updater:status when app is already up to date (BR-desktop-45)', async () => {
+		const updater = new AppReleaseUpdater(
+			'Johann-Goncalves-Pereira/Qui',
+			'0.0.20',
+		)
+		let emittedChannel: string | null = null
+		let emittedPayload: unknown = null
+
+		const mockWindow = {
+			isDestroyed: () => false,
+			webContents: {
+				send: (channel: string, payload: unknown) => {
+					emittedChannel = channel
+					emittedPayload = payload
+				},
+			},
+		} as unknown as import('electron').BrowserWindow
+
+		const info = {
+			hasUpdate: false,
+			currentVersion: '0.0.20',
+			latestVersion: '0.0.20',
+			tagName: 'v0.0.20',
+			name: 'Qui v0.0.20',
+			body: '',
+			htmlUrl: '',
+			publishedAt: new Date().toISOString(),
+		}
+
+		const prompted = await updater.promptUpdateIfAvailable(mockWindow, info)
+		expect(prompted).toBe(false)
+		expect(emittedChannel).toBe('updater:status')
+		expect(emittedPayload).toEqual({
+			type: 'info',
+			message: 'You are using the latest version of Qui (v0.0.20).',
+		})
+	})
 })
