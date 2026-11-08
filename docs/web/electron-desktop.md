@@ -23,6 +23,11 @@ for Touch ID and returns the saved username and password. Pages that show the
 sidebar call `setSidebarChrome(true)` so the traffic lights line up with the
 logo. On the sidebar, the "qui" text is omitted and the logo is pushed to the
 right (`ml-auto`), vertically centered with the traffic lights in the 48px row.
+When the sidebar is collapsed, the desktop header similarly omits the "qui"
+text (keeping only the logo and uncollapse toggle button) and applies 80px left
+padding (`lg:pl-20`) with a top-left drag region on macOS desktop to prevent
+overlap with native traffic lights, while Windows and standalone browser environments
+apply clean 16px padding (`lg:pl-4`).
 
 ## Desktop Header Height & Docker Layout Resilience
 
