@@ -5,6 +5,7 @@
 
 import { createRootRoute, Outlet, redirect } from "@tanstack/react-router"
 import { NotFound } from "@/pages/NotFound"
+import { DesktopUpdateHost } from "@/components/ui/DesktopUpdateHost"
 
 export const Route = createRootRoute({
   beforeLoad: ({ location }) => {
@@ -19,6 +20,7 @@ export const Route = createRootRoute({
   component: () => (
     <>
       <Outlet />
+      <DesktopUpdateHost />
     </>
   ),
   notFoundComponent: NotFound,

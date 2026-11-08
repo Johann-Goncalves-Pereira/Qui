@@ -368,5 +368,21 @@
     "updating": "Updating...",
     "done": "Done",
     "downloadAndUpdate": "Download & Update"
+  },
+  "containerUpdate": {
+    "title": "Container Updates Available",
+    "subtitle": "Updates are available for: {{components}}",
+    "componentsTitle": "Components to Update",
+    "reloadRequirementsTitle": "Reload & Restart Requirements",
+    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
+    "backupNotice": "A pre-update backup of your container configurations and databases is created automatically before updating.",
+    "storageNotice": "All application settings, torrent data, and configurations are safely preserved.",
+    "inProgress": "Pulling container images and updating services... Interface will refresh if required.",
+    "applied": "Containers updated successfully!",
+    "failed": "Failed to update containers.",
+    "later": "Later",
+    "updating": "Updating Containers...",
+    "done": "Updated",
+    "updateNow": "Update Now"
   }
 }
