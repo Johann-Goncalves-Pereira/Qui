@@ -89,5 +89,6 @@ behavior exists.
 | `BR-desktop-46` | On startup, merge subnet WebUI auth-bypass preference keys into existing companion `qBittorrent.conf` when `WebUI\AuthSubnetWhitelistEnabled` is missing | docs/desktop/qbit-companion-auth-bypass.md | desktop/docker | tests/container-layout.test.ts | `asserted-unit` |
 | `BR-web-17` | `ContainerUpdateDialog` renders component badges, reload requirements, data safety guarantees, and action controls, hosted alongside `DesktopUpdateDialog` in `DesktopUpdateHost` at router root for multi-route update availability | docs/desktop/updates.md | web/updater | web/src/components/ui/ContainerUpdateDialog.test.tsx, web/src/components/ui/DesktopUpdateHost.test.tsx | `asserted-unit` |
 | `BR-desktop-47` | Desktop shell registers as the default OS handler for magnet protocol, verifies isDefaultProtocolClient status, and seamlessly buffers and routes magnet URLs to Qui /add endpoint | docs/desktop/magnet-links.md | desktop/magnet | tests/magnet.test.ts | `asserted-unit` |
+| `BR-desktop-48` | Suppress intrusive update check and alert prompts on application launch so alerts never interrupt startup, while modernizing Casks/qui.rb to postflight_steps | docs/desktop/updates.md | desktop/updater | tests/cask.test.ts, tests/updater.test.ts | `asserted-unit` |
 
 

@@ -110,6 +110,15 @@ Skip Phase D (version bump) when:
 - The PR you just merged was itself a desktop version bump
 - User explicitly said not to bump
 
+## Phase E — Verify Release & Homebrew Cask Availability (BR-desktop-48)
+
+Before finishing the project, verify that the bump release is fully usable and does not produce 404 or alert errors:
+
+1. **Verify GitHub Release Assets:** Ensure `gh release view "v<ver>" --json assets` contains `Qui-<ver>-arm64.dmg`, `Qui-<ver>-arm64-mac.zip`, and `qui-desktop-image-arm64.tar.gz`. Assets array must never be empty.
+2. **Verify DMG Download:** `curl -ILs -o /dev/null -w "%{http_code}" https://github.com/Johann-Goncalves-Pereira/Qui/releases/download/v<ver>/Qui-<ver>-arm64.dmg` must return `200`.
+3. **Verify Homebrew Cask:** `brew fetch --cask johann-goncalves-pereira/qui/qui` must succeed with exit code 0 and no deprecation warnings (`postflight_steps do` used).
+4. **Verify Clean Startup (No Alert Prompts):** Ensure `desktop/src/main/index.ts` does not contain automatic startup update modal prompts.
+
 ## Checklist
 
 ```text
@@ -118,13 +127,15 @@ Skip Phase D (version bump) when:
 [ ] on develop/main, pulled
 [ ] ./scripts/upstream-sync-fork             # ensure 0 commits behind upstream
 [ ] ./scripts/desktop-version-bump-local     # unless bump PR / skip
+[ ] verify release assets: Qui-<ver>-arm64.dmg exists on GitHub release (HTTP 200)
+[ ] verify brew fetch --cask qui succeeds without 404 or deprecation warnings
 [ ] SetActiveBranch to base
 [ ] report feature PR URL + bump version/tag
 ```
 
 ## Related
 
-- Scripts: `scripts/upstream-sync-fork`, `scripts/desktop-version-bump-local`, `scripts/upstream-sync-check`
+- Scripts: `scripts/upstream-sync-fork`, `scripts/desktop-version-bump-local`, `scripts/desktop-publish-release-local`, `scripts/upstream-sync-check`
 - Rule: `.cursor/rules/510-local-upstream-sync.mdc`
 - Sibling: `$qui-fork-local-upstream-sync`, `$qui-fork-issue-crafting`
 

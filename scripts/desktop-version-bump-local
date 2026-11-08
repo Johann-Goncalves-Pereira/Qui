@@ -71,9 +71,10 @@ OLD_VER="$(node -p "require('./desktop/package.json').version")"
 node desktop/scripts/bump-version.mjs
 NEW_VER="$(node -p "require('./desktop/package.json').version")"
 
-# Keep Homebrew cask version in lockstep with desktop package.json.
+# Keep Homebrew cask version in lockstep with desktop package.json and ensure postflight_steps.
 if [ -f Casks/qui.rb ]; then
   perl -pi -e "s/version \"\\d+\\.\\d+\\.\\d+\"/version \"${NEW_VER}\"/" Casks/qui.rb
+  perl -pi -e "s/\\bpostflight\\s+do\\b/postflight_steps do/" Casks/qui.rb
 fi
 
 BRANCH="chore/desktop-bump-${NEW_VER}"
@@ -140,6 +141,16 @@ if [ -x "$ROOT/scripts/desktop-publish-release-local" ]; then
   "$ROOT/scripts/desktop-publish-release-local" || {
     echo "desktop-version-bump-local: warning: publish release failed (tag is still pushed)" >&2
   }
+fi
+
+# Verify Cask download URL before concluding
+VERIFY_URL="https://github.com/Johann-Goncalves-Pereira/Qui/releases/download/v${NEW_VER}/Qui-${NEW_VER}-arm64.dmg"
+echo "desktop-version-bump-local: verifying ${VERIFY_URL}..."
+HTTP_STATUS="$(curl -ILs -o /dev/null -w "%{http_code}" "$VERIFY_URL" || echo "000")"
+if [ "$HTTP_STATUS" != "200" ]; then
+  echo "desktop-version-bump-local: warning: Cask download ${VERIFY_URL} returned HTTP ${HTTP_STATUS}" >&2
+else
+  echo "desktop-version-bump-local: verified Cask download ${VERIFY_URL} (HTTP 200 OK)"
 fi
 
 echo "desktop-version-bump-local: ${OLD_VER} → ${NEW_VER} (tag v${NEW_VER} on ${BASE_BRANCH})"

@@ -253,14 +253,6 @@ async function loadQuiWebUi(): Promise<void> {
 			if (pendingAddUrl && mainWindow) {
 				void mainWindow.loadURL(pendingAddUrl)
 			}
-			// Non-blocking background check for Docker & app updates
-			void (async () => {
-				await checkAndPromptDockerUpdates()
-				const appRelease = await appUpdater.checkForUpdates()
-				if (appRelease.hasUpdate && mainWindow) {
-					await appUpdater.promptUpdateIfAvailable(mainWindow, appRelease)
-				}
-			})()
 		}
 	})()
 	return openingQui

@@ -24,4 +24,14 @@ describe('desktop-publish-release-local (BR-desktop-40)', () => {
 		expect(script).toMatch(/git describe|git log/)
 		expect(script).toContain('--notes')
 	})
+
+	it('ensures package:mac:release runs if DMG missing and verifies asset download (BR-desktop-48)', () => {
+		const script = readFileSync(
+			path.join(repoRoot, 'scripts/desktop-publish-release-local'),
+			'utf8',
+		)
+		expect(script).toContain('package:mac:release')
+		expect(script).toContain('curl -ILs')
+		expect(script).toContain('VERIFY_URL')
+	})
 })

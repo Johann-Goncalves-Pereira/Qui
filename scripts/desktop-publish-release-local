@@ -19,6 +19,11 @@ if ! git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
   exit 1
 fi
 
+if [ ! -f "desktop/release/Qui-${VER}-arm64.dmg" ]; then
+  echo "desktop-publish-release-local: release DMG missing for ${VER}; packaging with pnpm --dir desktop package:mac:release..."
+  pnpm --dir desktop package:mac:release
+fi
+
 ASSETS=()
 shopt -s nullglob
 for f in desktop/release/Qui-"${VER}"-*.dmg desktop/release/Qui-"${VER}"-*-mac.zip desktop/release/qui-desktop-image-*.tar.gz; do
@@ -99,3 +104,12 @@ else
 fi
 
 echo "desktop-publish-release-local: ${TITLE} → https://github.com/Johann-Goncalves-Pereira/Qui/releases/tag/${TAG}"
+
+VERIFY_URL="https://github.com/Johann-Goncalves-Pereira/Qui/releases/download/${TAG}/Qui-${VER}-arm64.dmg"
+echo "desktop-publish-release-local: verifying ${VERIFY_URL}..."
+HTTP_STATUS="$(curl -ILs -o /dev/null -w "%{http_code}" "$VERIFY_URL" || echo "000")"
+if [ "$HTTP_STATUS" != "200" ]; then
+  echo "desktop-publish-release-local: warning: asset download verification returned HTTP ${HTTP_STATUS}" >&2
+else
+  echo "desktop-publish-release-local: verified ${VERIFY_URL} (HTTP 200 OK)"
+fi
