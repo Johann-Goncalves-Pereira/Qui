@@ -217,5 +217,6 @@ When the user initiates **Download & Update**, the application never redirects e
 - `BR-desktop-44` — Homebrew Cask automated updates and native alert suppression.
 - `BR-desktop-45` — companion container update alert suppression and Gatekeeper quarantine clearing.
 - `BR-web-17` — ContainerUpdateDialog and DesktopUpdateHost mounted at root router for seamless multi-route update prompts.
+- `BR-desktop-48` — Startup update alert suppression and Homebrew postflight_steps modernization.
 
 
