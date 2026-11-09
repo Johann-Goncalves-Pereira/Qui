@@ -20,8 +20,6 @@ type RuleNeeds struct {
 	CrossMatch         CrossMatchNeeds
 	// CrossSeedGroupsAll is set when a reader needs the groups of the whole library.
 	CrossSeedGroupsAll bool
-	// CrossSeedSharedAll is set when an include or preserve FREE_SPACE delete needs the Shared-file check before its first claim.
-	CrossSeedSharedAll bool
 	// TagCrossSeeds is set when a tag action includes cross-seeds.
 	TagCrossSeeds         bool
 	SeasonPack            bool
@@ -178,9 +176,12 @@ func (n *RuleNeeds) addCrossSeedActions(ac *models.ActionConditions) {
 	if deleteKeepsFilesForOtherInstances(ac.Delete) {
 		n.CrossMatch.SameContent = true
 		n.CrossMatch.OtherShared = true
-		if ConditionUsesField(ac.Delete.Condition, FieldFreeSpace) {
-			n.CrossSeedSharedAll = true
-		}
+	}
+	if del := ac.Delete; del != nil && del.Enabled && del.Mode == DeleteModeWithFiles && ConditionUsesField(del.Condition, FieldFreeSpace) {
+		n.CrossMatch.SameContent = true
+	}
+	if move := ac.Move; move != nil && move.Enabled {
+		n.CrossMatch.SameContent = true
 	}
 	if actionsReadAllCrossSeedGroups(ac) {
 		n.CrossMatch.SameContent = true
@@ -193,15 +194,6 @@ func (n *RuleNeeds) addCrossSeedActions(ac *models.ActionConditions) {
 
 // actionsReadAllCrossSeedGroups reports whether an enabled action reads the groups of the whole library.
 func actionsReadAllCrossSeedGroups(ac *models.ActionConditions) bool {
-	if del := ac.Delete; del != nil && del.Enabled && ConditionUsesField(del.Condition, FieldFreeSpace) {
-		switch del.Mode {
-		case DeleteModeWithFilesIncludeCrossSeeds, DeleteModeWithFilesPreserveCrossSeeds, DeleteModeWithFiles:
-			return true
-		}
-	}
-	if move := ac.Move; move != nil && move.Enabled {
-		return true
-	}
 	cat := ac.Category
 	return tagsIncludeCrossSeeds(ac) ||
 		cat != nil && cat.Enabled && (cat.IncludeCrossSeeds || len(cat.BlockIfCrossSeedInCategories) > 0)
