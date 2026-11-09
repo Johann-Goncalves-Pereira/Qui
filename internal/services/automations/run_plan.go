@@ -659,23 +659,34 @@ type moveExpansion struct {
 	ruleByHash map[string]ruleRef
 	moved      map[string]struct{}
 	indexes    map[groupExpandKey]*groupIndex
+	// failedGroups holds the groups that failed a check for the group, so they cannot move
+	// for any trigger.
+	failedGroups map[ruleGroupKey]struct{}
+	groupChecks  int
+}
+
+func newMoveExpansion(in runPlanInput, ruleByHash map[string]ruleRef) *moveExpansion {
+	return &moveExpansion{in: in, ruleByHash: ruleByHash, moved: make(map[string]struct{}), failedGroups: make(map[ruleGroupKey]struct{})}
 }
 
 // planMoves expands the move of each trigger to the group members and the cross-seeds that
 // share files with it. A torrent already at the target path stays out, and a torrent moves to
 // one path only. A pulled-in torrent keeps the rule of the torrent that pulled it in.
 func (s *Service) planMoves(ctx context.Context, in runPlanInput, triggers plannedAction[string]) plannedAction[string] {
+	return s.expandMoves(ctx, newMoveExpansion(in, triggers.rules), triggers)
+}
+
+func (s *Service) expandMoves(ctx context.Context, m *moveExpansion, triggers plannedAction[string]) plannedAction[string] {
+	in := m.in
 	var planned plannedAction[string]
-	m := &moveExpansion{in: in, ruleByHash: triggers.rules, moved: make(map[string]struct{})}
 	for _, path := range slices.Sorted(maps.Keys(triggers.byTarget)) {
 		hashes := triggers.byTarget[path]
 		ruleByCrossSeedKey := crossSeedRuleRefsByKey(hashes, in.torrentByHash, m.ruleByHash, in.crossSeeds)
 		normalizedDest := normalizePath(path)
 
 		// Before moving, we need to expand move targets to avoid breaking related torrents.
-		var expandedHashes []string
+		var expandedHashes, legacyTriggers []string
 		m.indexes = make(map[groupExpandKey]*groupIndex)
-		legacyKeysToExpand := make(map[string]struct{})
 
 		for _, hash := range hashes {
 			if _, exists := m.moved[hash]; exists {
@@ -691,14 +702,12 @@ func (s *Service) planMoves(ctx context.Context, in runPlanInput, triggers plann
 			// Legacy cross-seed expansion behavior
 			expandedHashes = append(expandedHashes, hash)
 			m.moved[hash] = struct{}{}
-			if t, exists := in.torrentByHash[hash]; exists {
-				legacyKeysToExpand[in.crossSeeds.key(t)] = struct{}{}
+			if _, exists := in.torrentByHash[hash]; exists {
+				legacyTriggers = append(legacyTriggers, hash)
 			}
 		}
 
-		if len(legacyKeysToExpand) > 0 {
-			expandedHashes = append(expandedHashes, m.legacyCrossSeeds(legacyKeysToExpand, normalizedDest, ruleByCrossSeedKey)...)
-		}
+		expandedHashes = append(expandedHashes, m.legacyCrossSeeds(legacyTriggers, normalizedDest, ruleByCrossSeedKey)...)
 
 		for _, hash := range expandedHashes {
 			planned.add(path, hash, m.ruleByHash[hash])
@@ -728,32 +737,29 @@ func (s *Service) planMoveGroup(ctx context.Context, m *moveExpansion, state *to
 		m.indexes[rgk] = idx
 	}
 
+	groupKey := ruleGroupKey{ruleID: rule.ID, key: idx.KeyForHash(hash)}
+	if _, failed := m.failedGroups[groupKey]; failed {
+		return nil
+	}
+
 	members := []string{hash}
 	if idx != nil {
 		if found := idx.MembersForHash(hash); len(found) > 0 {
 			members = found
 		}
 	}
-	if !groupHoldsSharedFiles(members, in.crossSeeds) {
+	m.groupChecks++
+	expand, verifyOverlap, minPercent := s.moveGroupChecks(in, rule, state.moveGroupID, idx, hash, members)
+	if !expand {
+		// A trigger without a group key is a group of its own.
+		if groupKey.key != "" {
+			m.failedGroups[groupKey] = struct{}{}
+		}
 		return nil
 	}
-
-	// Ambiguous ContentPath safety (ContentPath == SavePath): verify overlap or skip.
-	if !s.shouldExpandGroupWithAmbiguityPolicy(ctx, in.instanceID, rule, state.moveGroupID, idx, hash, in.torrentByHash) {
-		return nil
-	}
-
-	// GroupId semantics are strict: every member must satisfy the move condition.
-	var cond *models.RuleCondition
-	if rule.Conditions != nil && rule.Conditions.Move != nil {
-		cond = rule.Conditions.Move.Condition
-	}
-	if in.evalCtx != nil && cond != nil && ConditionUsesField(cond, FieldFreeSpace) {
-		in.evalCtx.LoadFreeSpaceSourceState(GetFreeSpaceRuleKey(rule))
-	}
-	activateRuleGrouping(in.evalCtx, rule, in.torrents, s.syncManager)
-	if !allGroupMembersMatchCondition(members, in.torrentByHash, cond, in.evalCtx) ||
-		groupHasDroppedMember(rule, members, in.torrentByHash) {
+	// Ambiguous ContentPath safety (ContentPath == SavePath): the files of the trigger must
+	// overlap the other members. Another trigger of the group can still pass.
+	if verifyOverlap && !s.triggerOverlapsGroup(ctx, in.instanceID, idx, hash, in.torrentByHash, minPercent) {
 		return nil
 	}
 
@@ -769,6 +775,34 @@ func (s *Service) planMoveGroup(ctx context.Context, m *moveExpansion, state *to
 	return expandedHashes
 }
 
+// moveGroupChecks runs the checks that give the same answer for every trigger in the group.
+// It returns whether the group can move, and whether each trigger must first pass the
+// overlap check with minPercent.
+func (s *Service) moveGroupChecks(in runPlanInput, rule *models.Automation, groupID string, idx *groupIndex, hash string, members []string) (expand, verifyOverlap bool, minPercent int) {
+	if !groupHoldsSharedFiles(members, in.crossSeeds) {
+		return false, false, 0
+	}
+	expand, verifyOverlap, minPercent = s.groupAmbiguityPolicy(rule, groupID, idx, hash)
+	if !expand {
+		return false, false, 0
+	}
+
+	// GroupId semantics are strict: every member must satisfy the move condition.
+	var cond *models.RuleCondition
+	if rule.Conditions != nil && rule.Conditions.Move != nil {
+		cond = rule.Conditions.Move.Condition
+	}
+	if in.evalCtx != nil && cond != nil && ConditionUsesField(cond, FieldFreeSpace) {
+		in.evalCtx.LoadFreeSpaceSourceState(GetFreeSpaceRuleKey(rule))
+	}
+	activateRuleGrouping(in.evalCtx, rule, in.torrents, s.syncManager)
+	if !allGroupMembersMatchCondition(members, in.torrentByHash, cond, in.evalCtx) ||
+		groupHasDroppedMember(rule, members, in.torrentByHash) {
+		return false, false, 0
+	}
+	return true, verifyOverlap, minPercent
+}
+
 // canMove returns whether the torrent can still join a move to the path: it is not planned for
 // a path yet, not deleted, and not at the path already.
 func (m *moveExpansion) canMove(hash, normalizedDest string) bool {
@@ -782,15 +816,21 @@ func (m *moveExpansion) canMove(hash, normalizedDest string) bool {
 	return ok && normalizePath(t.SavePath) != normalizedDest
 }
 
-// legacyCrossSeeds returns the cross-seeds of the legacy triggers that move with them.
-func (m *moveExpansion) legacyCrossSeeds(keys map[string]struct{}, normalizedDest string, ruleByCrossSeedKey map[string]ruleRef) []string {
+// legacyCrossSeeds returns the cross-seeds of the legacy triggers that move with them: the
+// members of their groups, each group walked once.
+func (m *moveExpansion) legacyCrossSeeds(triggers []string, normalizedDest string, ruleByCrossSeedKey map[string]ruleRef) []string {
 	var expandedHashes []string
-	for _, t := range m.in.torrents {
-		if !m.canMove(t.Hash, normalizedDest) {
+	walked := make(map[string]struct{})
+	for _, trigger := range triggers {
+		key := m.in.crossSeeds.key(m.in.torrentByHash[trigger])
+		if _, seen := walked[key]; seen {
 			continue
 		}
-		key := m.in.crossSeeds.key(t)
-		if _, matched := keys[key]; matched {
+		walked[key] = struct{}{}
+		for _, t := range m.in.crossSeeds.members(trigger) {
+			if !m.canMove(t.Hash, normalizedDest) {
+				continue
+			}
 			expandedHashes = append(expandedHashes, t.Hash)
 			m.moved[t.Hash] = struct{}{}
 			inheritRuleRefForCrossSeed(t.Hash, key, m.ruleByHash, ruleByCrossSeedKey)

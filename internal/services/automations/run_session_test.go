@@ -6,6 +6,7 @@ package automations
 import (
 	"context"
 	"encoding/json/v2"
+	"fmt"
 	"maps"
 	"slices"
 	"sync"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/qbittorrent"
+	"github.com/autobrr/qui/pkg/hardlink"
 )
 
 // cannedSession answers every Resolve with one canned result and no member
@@ -100,11 +102,16 @@ const (
 // newRecordingStubService serves a and c as cross-seeds and b alone.
 func newRecordingStubService(t *testing.T, tags map[string]string, localFS bool) (*Service, int, *stubQbt, *recordingMatcher) {
 	t.Helper()
-	stub, sharing := newWriteStub(t, []stubTorrent{
+	return newRecordingStubServiceOf(t, []stubTorrent{
 		{sessionA, "Quiet.Coast.2020.1080p.BluRay.x264-GRP", tags[sessionA], ""},
 		{sessionB, "Silent.Shore.2021.1080p.BluRay.x264-GRP", tags[sessionB], ""},
 		{sessionC, "Quiet.Coast.2020.1080p.BluRay.x264-GRP", tags[sessionC], ""},
-	})
+	}, localFS)
+}
+
+func newRecordingStubServiceOf(t *testing.T, torrents []stubTorrent, localFS bool) (*Service, int, *stubQbt, *recordingMatcher) {
+	t.Helper()
+	stub, sharing := newWriteStub(t, torrents)
 	stub.localFS = localFS
 	matcher := &recordingMatcher{links: sharing}
 	svc, _, instanceIDs := newStubService(t, matcher, stub)
@@ -118,9 +125,16 @@ type deleteOutcome struct{ deleted, filesDeleted []string }
 // new service, and checks the deletes and the asks of each.
 func runEachForm(t *testing.T, rule *models.Automation, tags map[string]string, localFS bool, want deleteOutcome, check func(t *testing.T, asks []ResolveRequest, stub *stubQbt)) {
 	t.Helper()
+	runEachFormOn(t, func(t *testing.T) (*Service, int, *stubQbt, *recordingMatcher) {
+		return newRecordingStubService(t, tags, localFS)
+	}, rule, want, check)
+}
+
+func runEachFormOn(t *testing.T, newService func(t *testing.T) (*Service, int, *stubQbt, *recordingMatcher), rule *models.Automation, want deleteOutcome, check func(t *testing.T, asks []ResolveRequest, stub *stubQbt)) {
+	t.Helper()
 	for _, form := range []string{"live", "dry run", "preview"} {
 		t.Run(form, func(t *testing.T) {
-			svc, instanceID, stub, matcher := newRecordingStubService(t, tags, localFS)
+			svc, instanceID, stub, matcher := newService(t)
 			switch form {
 			case "live", "dry run":
 				r := *rule
@@ -197,24 +211,82 @@ func TestRunSession_DeleteAsksTheTriggerGroupsAndTheSharedCheck(t *testing.T) {
 	}
 }
 
-func TestRunSession_FreeSpaceDeleteAsksTheWholeLibraryWithTheSharedCheckFirst(t *testing.T) {
-	rule := func(mode string) *models.Automation {
-		r := deleteRule(mode, &models.RuleCondition{Field: FieldFreeSpace, Operator: models.OperatorLessThan, Value: "1500"})
-		r.SortingConfig = &models.SortingConfig{SchemaVersion: "1", Type: models.SortingTypeSimple, Field: FieldName, Direction: models.SortDirectionDESC}
-		return r
+// freeSpaceLibrary serves count torrents of 1000 bytes on a disk with 1000
+// free bytes. The name sort puts them in hash order.
+func freeSpaceLibrary(count int) []stubTorrent {
+	torrents := make([]stubTorrent, count)
+	for i := range torrents {
+		torrents[i] = stubTorrent{hash: fmt.Sprintf("%040d", i), name: fmt.Sprintf("Harbor.Watch.S01E%03d.1080p.WEB.h264-GRP", i)}
 	}
-	// The sort puts b first, and its delete frees enough space.
-	want := deleteOutcome{[]string{sessionB}, []string{sessionB}}
-	for _, mode := range []string{DeleteModeWithFilesIncludeCrossSeeds, DeleteModeWithFilesPreserveCrossSeeds} {
+	return torrents
+}
+
+func freeSpaceRule(mode, below string) *models.Automation {
+	r := deleteRule(mode, &models.RuleCondition{Field: FieldFreeSpace, Operator: models.OperatorLessThan, Value: below})
+	r.SortingConfig = &models.SortingConfig{SchemaVersion: "1", Type: models.SortingTypeSimple, Field: FieldName, Direction: models.SortDirectionASC}
+	return r
+}
+
+func stubHashes(torrents []stubTorrent) []string {
+	hashes := make([]string, len(torrents))
+	for i, torrent := range torrents {
+		hashes[i] = torrent.hash
+	}
+	return hashes
+}
+
+// A FREE_SPACE rule that stops after 2 claims asks for the groups of one
+// read-ahead batch, not of the whole library. An include or preserve rule asks
+// for the Shared-file check with it.
+func TestRunSession_FreeSpaceDeleteReadsOneBatchAhead(t *testing.T) {
+	library := freeSpaceLibrary(2*freeSpaceReadAheadBatch + 5)
+	claimed := stubHashes(library[:2])
+	for _, mode := range []string{DeleteModeWithFiles, DeleteModeWithFilesIncludeCrossSeeds, DeleteModeWithFilesPreserveCrossSeeds} {
 		for _, localFS := range []bool{false, true} {
-			t.Run(mode, func(t *testing.T) {
-				runEachForm(t, rule(mode), nil, localFS, want, func(t *testing.T, asks []ResolveRequest, _ *stubQbt) {
-					require.Equal(t, []ResolveRequest{{All: true, Groups: true, OtherShared: true}}, asks,
-						"one whole-library ask, before the first claim, and no second build")
+			t.Run(fmt.Sprintf("%s/localFS=%t", mode, localFS), func(t *testing.T) {
+				newService := func(t *testing.T) (*Service, int, *stubQbt, *recordingMatcher) {
+					return newRecordingStubServiceOf(t, library, localFS)
+				}
+				runEachFormOn(t, newService, freeSpaceRule(mode, "2500"), deleteOutcome{claimed, claimed}, func(t *testing.T, asks []ResolveRequest, _ *stubQbt) {
+					want := ResolveRequest{Hashes: stubHashes(library[:freeSpaceReadAheadBatch]), Groups: true, OtherShared: mode != DeleteModeWithFiles}
+					require.Equal(t, []ResolveRequest{want}, asks)
 				})
 			})
 		}
 	}
+}
+
+// The Shared-file check answers before the first claim, so a first claim that
+// shares a file with another instance frees no space and the rule claims one
+// more torrent.
+func TestRunSession_FreeSpacePreserveAsksTheSharedCheckBeforeTheFirstClaim(t *testing.T) {
+	library := freeSpaceLibrary(2*freeSpaceReadAheadBatch + 5)
+	claimed := stubHashes(library[:3])
+	newService := func(t *testing.T) (*Service, int, *stubQbt, *recordingMatcher) {
+		svc, instanceID, stub, matcher := newRecordingStubServiceOf(t, library, true)
+		matcher.shared = map[string]struct{}{claimed[0]: {}}
+		return svc, instanceID, stub, matcher
+	}
+	runEachFormOn(t, newService, freeSpaceRule(DeleteModeWithFilesPreserveCrossSeeds, "2500"), deleteOutcome{claimed, claimed[1:]}, func(t *testing.T, asks []ResolveRequest, _ *stubQbt) {
+		want := ResolveRequest{Hashes: stubHashes(library[:freeSpaceReadAheadBatch]), Groups: true, OtherShared: true}
+		require.Equal(t, []ResolveRequest{want}, asks)
+	})
+}
+
+// A rule that claims most of the library asks in a few rounds, each twice the
+// size of the one before.
+func TestRunSession_FreeSpaceReadAheadDoubles(t *testing.T) {
+	library := freeSpaceLibrary(3*freeSpaceReadAheadBatch + 5)
+	svc, instanceID, stub, matcher := newRecordingStubServiceOf(t, library, false)
+	_, err := svc.applyRulesForInstance(t.Context(), instanceID, true, []*models.Automation{freeSpaceRule(DeleteModeWithFilesIncludeCrossSeeds, "1000000")}, false)
+	require.NoError(t, err)
+	require.ElementsMatch(t, stubHashes(library), stub.writtenHashes()["delete"])
+	b := freeSpaceReadAheadBatch
+	require.Equal(t, []ResolveRequest{
+		{Hashes: stubHashes(library[:b]), Groups: true, OtherShared: true},
+		{Hashes: stubHashes(library[b : 3*b]), Groups: true},
+		{Hashes: stubHashes(library[3*b:]), Groups: true},
+	}, matcher.requests())
 }
 
 // The deletes take the same torrents and files as with the groups of the
@@ -317,7 +389,7 @@ func TestRunSession_HardlinkCopyLeadsToASecondGroup(t *testing.T) {
 	}
 
 	evalCtx, matcher := openTestRunSession(t, torrents, links, files)
-	evalCtx.crossSeeds.resolveDeletes(nil, []string{"source"}, hardlinks)
+	evalCtx.crossSeeds.resolveDeletes(nil, []string{"source"}, hardlinks, true)
 	asks := []ResolveRequest{
 		{Hashes: []string{"source"}, Groups: true, OtherShared: true},
 		{Hashes: []string{"copy"}, Groups: true},
@@ -330,6 +402,80 @@ func TestRunSession_HardlinkCopyLeadsToASecondGroup(t *testing.T) {
 	whole := &EvalContext{SameInstanceContentByHash: links, CrossSeedFilesByHash: files}
 	require.Equal(t, selected(whole, buildCrossSeedGroups(torrents, whole)), scoped)
 	require.Equal(t, []string{"copy", "copy2", "episode2", "pack", "pack2", "source"}, scoped)
+}
+
+// An include FREE_SPACE rule that follows hardlinks reads the hardlink copies
+// of its batch and their groups in one ask, before it counts the first claim.
+// It deletes and projects what it does with the groups of the whole library.
+func TestRunSession_FreeSpaceReadAheadFollowsHardlinkCopies(t *testing.T) {
+	t.Parallel()
+	// copyA and copyB are hardlink copies of source, each in its own group.
+	torrents := []qbt.Torrent{
+		{Hash: "source", SavePath: "/s", ContentPath: "/s/01.mkv", Size: 1000},
+		{Hash: "copyA", SavePath: "/a", ContentPath: "/a/01.mkv", Size: 1000},
+		{Hash: "packA", SavePath: "/a", ContentPath: "/a", Size: 2000},
+		{Hash: "copyB", SavePath: "/b", ContentPath: "/b/01.mkv", Size: 1000},
+		{Hash: "packB", SavePath: "/b", ContentPath: "/b", Size: 2000},
+	}
+	files := map[string]qbt.TorrentFiles{
+		"source": {{Name: "01.mkv", Size: 1000}},
+		"copyA":  {{Name: "01.mkv", Size: 1000}},
+		"packA":  {{Name: "01.mkv", Size: 1000}, {Name: "02.mkv", Size: 1000}},
+		"copyB":  {{Name: "01.mkv", Size: 1000}},
+		"packB":  {{Name: "01.mkv", Size: 1000}, {Name: "02.mkv", Size: 1000}},
+	}
+	links := map[string][]string{"copyA": {"packA"}, "packA": {"copyA"}, "copyB": {"packB"}, "packB": {"copyB"}}
+	// All five torrents link one inode for 01.mkv.
+	id := hardlink.UnixFileID(1, 1)
+	hardlinks := &HardlinkIndex{
+		DeleteSafeSignatureByHash:  map[string]string{"source": "one", "copyA": "one", "copyB": "one"},
+		DeleteSafeGroupBySignature: map[string][]string{"one": {"source", "copyA", "copyB"}},
+		buildState: &hardlinkBuildState{torrentInfoByHash: map[string]*torrentFileInfo{
+			"source": {linkedFiles: []linkedFile{{path: "/s/01.mkv", fileID: id}}},
+			"copyA":  {linkedFiles: []linkedFile{{path: "/a/01.mkv", fileID: id}}},
+			"packA":  {linkedFiles: []linkedFile{{path: "/a/01.mkv", fileID: id}}},
+			"copyB":  {linkedFiles: []linkedFile{{path: "/b/01.mkv", fileID: id}}},
+			"packB":  {linkedFiles: []linkedFile{{path: "/b/01.mkv", fileID: id}}},
+		}},
+	}
+	rule := &models.Automation{
+		ID: 1, TrackerPattern: "*",
+		Conditions: &models.ActionConditions{Delete: &models.DeleteAction{
+			Enabled: true, Mode: DeleteModeWithFilesIncludeCrossSeeds, IncludeHardlinks: true,
+			Condition: &models.RuleCondition{Field: FieldFreeSpace, Operator: models.OperatorLessThan, Value: "1000"},
+		}},
+	}
+	type outcome struct {
+		selected []string
+		state    FreeSpaceSourceState
+	}
+	run := func(evalCtx *EvalContext, groups *crossSeedGroups) outcome {
+		evalCtx.hardlinkIndex = hardlinks
+		evalCtx.FreeSpaceStates = map[string]*FreeSpaceSourceState{GetFreeSpaceRuleKey(rule): {
+			FilesToClear: make(map[string]int64), CrossSeedHashesToClear: make(map[string]struct{}),
+		}}
+		svc := &Service{}
+		selection := svc.selectDeletions(t.Context(), 1, deletionSelectionInput{
+			rules: []*models.Automation{rule}, torrents: slices.Clone(torrents), evalCtx: evalCtx, crossSeeds: groups,
+			skip: func(hash string) bool { return hash != "source" },
+		})
+		return outcome{slices.Sorted(maps.Keys(selection.byHash)), *evalCtx.FreeSpaceStates[GetFreeSpaceRuleKey(rule)]}
+	}
+
+	evalCtx, matcher := openTestRunSession(t, torrents, links, files)
+	// The run reads the file lists of the hardlink groups for this rule.
+	evalCtx.crossSeeds.session.loadFiles(t.Context(), hardlinks)
+	scoped := run(evalCtx, evalCtx.crossSeeds)
+	require.Equal(t, []ResolveRequest{
+		{Hashes: []string{"source"}, Groups: true, OtherShared: true},
+		{Hashes: []string{"copyA", "copyB"}, Groups: true},
+	}, matcher.requests())
+
+	whole := &EvalContext{SameInstanceContentByHash: links, CrossSeedFilesByHash: files}
+	require.Equal(t, run(whole, buildCrossSeedGroups(torrents, whole)), scoped)
+	require.Equal(t, []string{"copyA", "copyB", "packA", "packB", "source"}, scoped.selected)
+	// The shared inode counts once, plus 02.mkv of each pack.
+	require.Equal(t, int64(3000), scoped.state.SpaceToClear)
 }
 
 // A and B pick X, X picks neither, and qBittorrent does not return the file
@@ -386,7 +532,7 @@ func TestRunSession_LaterAnswerFillsTheSameFilesMap(t *testing.T) {
 	require.Empty(t, reader.asked)
 
 	fetch := cachedTorrentFilesFetcher(held)
-	evalCtx.crossSeeds.resolveDeletes([]string{"a"}, nil, nil)
+	evalCtx.crossSeeds.resolveDeletes([]string{"a"}, nil, nil, true)
 	got, err := fetch(nil)
 	require.NoError(t, err)
 	require.Equal(t, files, got)
@@ -417,4 +563,190 @@ func TestRunSession_TagRuleWithoutCrossSeedsAsksNothing(t *testing.T) {
 	require.Equal(t, []ResolveRequest{{Hashes: []string{sessionA}, Groups: true, OtherShared: true}}, matcher.requests())
 	require.ElementsMatch(t, []string{sessionA, sessionC}, stub.writtenHashes()["delete"])
 	require.Empty(t, stub.writtenHashes()["tag"], "the tag rule matches no torrent, so each torrent runs the ownership check")
+}
+
+// A move asks once, before the rule loop, for the torrents whose move
+// condition matches and that are not at the target yet, and for the members
+// of their move GroupID. The plan step asks for nothing new, and the run plans
+// the moves that the groups of the whole library plan.
+func TestRunSession_MoveAsksOnlyTheMatchedTorrents(t *testing.T) {
+	t.Parallel()
+	// m1 and m1x share files. at is at the target, with its cross-seed atx.
+	// g2 shares the save path of m1, and files with g2x. px and py share files.
+	// m1, at and px carry the tag.
+	torrents := []qbt.Torrent{
+		{Hash: "m1", SavePath: "/old", ContentPath: "/old/m1.mkv", Tags: "mv"},
+		{Hash: "m1x", SavePath: "/old", ContentPath: "/old/m1x.mkv"},
+		{Hash: "at", SavePath: "/new", ContentPath: "/new/at.mkv", Tags: "mv"},
+		{Hash: "atx", SavePath: "/new", ContentPath: "/new/atx.mkv"},
+		{Hash: "g2", SavePath: "/old", ContentPath: "/old/g2.mkv"},
+		{Hash: "g2x", SavePath: "/x", ContentPath: "/x/g2.mkv"},
+		{Hash: "px", SavePath: "/p", ContentPath: "/p/p.mkv", Tags: "mv"},
+		{Hash: "py", SavePath: "/p", ContentPath: "/p/py.mkv"},
+	}
+	links := map[string][]string{
+		"m1": {"m1x"}, "m1x": {"m1"}, "at": {"atx"}, "atx": {"at"},
+		"g2": {"g2x"}, "g2x": {"g2"}, "px": {"py"}, "py": {"px"},
+	}
+	moveTo := func(groupID string) *models.Automation {
+		rule := &models.Automation{
+			ID: 1, Name: "move", TrackerPattern: "*", Enabled: true,
+			Conditions: &models.ActionConditions{Move: &models.MoveAction{Enabled: true, Path: "/new", GroupID: groupID, Condition: tagsContain("mv")}},
+		}
+		if groupID != "" {
+			rule.Conditions.Grouping = &models.GroupingConfig{Groups: []models.GroupDefinition{{ID: groupID, Keys: []string{"savePath"}}}}
+		}
+		return rule
+	}
+	tests := []struct {
+		name      string
+		rule      *models.Automation
+		wantAsk   []string
+		wantMoved []string
+	}{
+		{"cross-seeds move along", moveTo(""), []string{"m1", "px"}, []string{"m1", "m1x", "px", "py"}},
+		// g2x holds files of g2, so the group cannot move.
+		{"group ID members", moveTo("bysave"), []string{"m1", "m1x", "g2", "px", "py"}, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			plan := func(evalCtx *EvalContext, groups *crossSeedGroups) ([]string, ruleRunStats) {
+				run := slices.Clone(torrents)
+				stats := make(map[int]*ruleRunStats)
+				states := processTorrents(run, []*models.Automation{tt.rule}, evalCtx, groups, nil, nil, stats, nil)
+				torrentByHash := make(map[string]qbt.Torrent, len(run))
+				for _, torrent := range run {
+					torrentByHash[torrent.Hash] = torrent
+				}
+				p := (&Service{}).buildRunPlan(t.Context(), runPlanInput{
+					instanceID: 1, states: states, deletions: &deletionSelection{}, torrents: run, torrentByHash: torrentByHash,
+					ruleByID: map[int]*models.Automation{tt.rule.ID: tt.rule}, crossSeeds: groups, evalCtx: evalCtx,
+				})
+				return slices.Sorted(slices.Values(p.move.byTarget["/new"])), *stats[tt.rule.ID]
+			}
+
+			evalCtx, matcher := openTestRunSession(t, torrents, links, nil)
+			moved, stats := plan(evalCtx, evalCtx.crossSeeds)
+			asks := matcher.requests()
+			require.Len(t, asks, 1)
+			require.ElementsMatch(t, tt.wantAsk, asks[0].Hashes)
+			require.True(t, asks[0].Groups)
+			require.Equal(t, tt.wantMoved, moved)
+
+			whole := &EvalContext{SameInstanceContentByHash: links}
+			wholeMoved, wholeStats := plan(whole, buildCrossSeedGroups(torrents, whole))
+			require.Equal(t, wholeMoved, moved)
+			require.Equal(t, wholeStats, stats)
+		})
+	}
+}
+
+// A live run and a dry run move the cross-seed of a matched torrent with it,
+// and ask only for the matched torrent.
+func TestRunSession_MoveTakesTheCrossSeedsAlong(t *testing.T) {
+	for _, dryRun := range []bool{false, true} {
+		t.Run(fmt.Sprintf("dryRun=%t", dryRun), func(t *testing.T) {
+			svc, instanceID, stub, matcher := newRecordingStubService(t, map[string]string{sessionA: "mv"}, false)
+			rule := moveRule("")
+			rule.DryRun = dryRun
+			activities, err := svc.applyRulesForInstance(t.Context(), instanceID, true, []*models.Automation{rule}, dryRun)
+			require.NoError(t, err)
+			moved := stub.writtenHashes()["move"]
+			if dryRun {
+				require.Empty(t, moved)
+				moved = dryRunActivityHashes(t, svc, instanceID, activities)["move"]
+			}
+			require.Equal(t, []string{sessionA, sessionC}, moved)
+			require.Equal(t, []ResolveRequest{{Hashes: []string{sessionA}, Groups: true}}, matcher.requests())
+		})
+	}
+}
+
+// unknownSession answers every ask with the asked torrents as Unknown.
+type unknownSession struct{}
+
+func (unknownSession) OpenCrossMatchSession(context.Context, int, CrossMatchNeeds) (CrossMatchSession, error) {
+	return unknownSession{}, nil
+}
+
+func (unknownSession) Resolve(_ context.Context, req ResolveRequest) *CrossMatchResult {
+	unknown := make(map[string]struct{}, len(req.Hashes))
+	for _, hash := range req.Hashes {
+		unknown[hash] = struct{}{}
+	}
+	return &CrossMatchResult{SameInstanceUnknown: unknown}
+}
+
+// A move of a torrent that no ask covered reads its group state first, so a
+// torrent with an Unknown state and no group stays where it is.
+func TestRunSession_MoveMissReadsTheStateFirst(t *testing.T) {
+	t.Parallel()
+	torrent := qbt.Torrent{Hash: "t", SavePath: "/old", ContentPath: "/old/t.mkv"}
+	svc := &Service{crossMatcher: unknownSession{}}
+	evalCtx := &EvalContext{}
+	require.NoError(t, svc.openRunSession(t.Context(), 1, []qbt.Torrent{torrent}, RuleNeeds{CrossMatch: CrossMatchNeeds{SameContent: true}}, evalCtx))
+	rule := &models.Automation{ID: 1, Name: "move", TrackerPattern: "*", Enabled: true,
+		Conditions: &models.ActionConditions{Move: &models.MoveAction{Enabled: true, Path: "/new"}}}
+	state := &torrentDesiredState{hash: torrent.Hash}
+	stats := &ruleRunStats{}
+	evaluateMoveAction(rule, rule.Conditions.Move, torrent, evalCtx, evalCtx.crossSeeds, stats, state)
+	require.False(t, state.shouldMove)
+	require.Equal(t, 1, stats.MoveBlockedByCrossSeed)
+}
+
+// The read-ahead asks for the members of a move GroupID once, not once for
+// each matched member.
+func TestMoveAsks_GroupMembersOnce(t *testing.T) {
+	t.Parallel()
+	torrents := make([]qbt.Torrent, 0, 20)
+	for i := range 20 {
+		torrents = append(torrents, qbt.Torrent{Hash: fmt.Sprintf("h%02d", i), SavePath: "/old", ContentPath: fmt.Sprintf("/old/%02d.mkv", i), Tags: "mv"})
+	}
+	rule := &models.Automation{
+		ID: 1, Name: "move", TrackerPattern: "*", Enabled: true,
+		Conditions: &models.ActionConditions{
+			Move:     &models.MoveAction{Enabled: true, Path: "/new", GroupID: "bysave", Condition: tagsContain("mv")},
+			Grouping: &models.GroupingConfig{Groups: []models.GroupDefinition{{ID: "bysave", Keys: []string{"savePath"}}}},
+		},
+	}
+	evalCtx := &EvalContext{moveChecks: make(map[moveCheckKey]checkedMove)}
+	asked := make(map[askedMoveGroup]struct{})
+	hashes := make([]string, 0, 2*len(torrents))
+	for _, torrent := range torrents {
+		hashes = append(hashes, moveAsks(torrent, []*models.Automation{rule}, torrents, evalCtx, nil, nil, asked)...)
+	}
+	require.Len(t, hashes, 2*len(torrents))
+}
+
+// Two rules with one GroupID each ask for their own group, also when the keys
+// of both groups are the same text.
+func TestMoveAsks_GroupsOfEachRule(t *testing.T) {
+	t.Parallel()
+	// Under a, c1 and c2 share the content path /data/x. Under b, s1 and s2
+	// share the save path /data/x.
+	torrents := []qbt.Torrent{
+		{Hash: "c1", SavePath: "/c", ContentPath: "/data/x", Tags: "a"},
+		{Hash: "c2", SavePath: "/d", ContentPath: "/data/x"},
+		{Hash: "s1", SavePath: "/data/x", ContentPath: "/data/x/s1.mkv", Tags: "b"},
+		{Hash: "s2", SavePath: "/data/x", ContentPath: "/data/x/s2.mkv"},
+	}
+	moveBy := func(id int, tag, key string) *models.Automation {
+		return &models.Automation{
+			ID: id, Name: tag, TrackerPattern: "*", Enabled: true,
+			Conditions: &models.ActionConditions{
+				Move:     &models.MoveAction{Enabled: true, Path: "/new", GroupID: "g", Condition: tagsContain(tag)},
+				Grouping: &models.GroupingConfig{Groups: []models.GroupDefinition{{ID: "g", Keys: []string{key}}}},
+			},
+		}
+	}
+	rules := []*models.Automation{moveBy(1, "a", "contentPath"), moveBy(2, "b", "savePath")}
+	evalCtx := &EvalContext{moveChecks: make(map[moveCheckKey]checkedMove)}
+	asked := make(map[askedMoveGroup]struct{})
+	hashes := make([]string, 0, 2*len(torrents))
+	for _, torrent := range torrents {
+		hashes = append(hashes, moveAsks(torrent, rules, torrents, evalCtx, nil, nil, asked)...)
+	}
+	slices.Sort(hashes)
+	require.Equal(t, []string{"c1", "c2", "s1", "s2"}, slices.Compact(hashes))
 }

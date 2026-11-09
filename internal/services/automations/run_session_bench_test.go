@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
@@ -76,24 +77,26 @@ func benchRunService(b *testing.B, pairs int) (*Service, *models.Instance, *atom
 
 // BenchmarkRunSessionDeletionSelection measures what a run reads before its
 // actions: buildEvalContext, the load step and the Deletion selection. The
-// delete rule matches no torrent. With a move rule, the run reads the groups
-// of the whole library.
+// include rule matches no torrent. With a category rule that includes
+// cross-seeds, the run reads the groups of the whole library. The FREE_SPACE
+// rule claims most of the library.
 func BenchmarkRunSessionDeletionSelection(b *testing.B) {
-	previousLevel := zerolog.GlobalLevel()
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	b.Cleanup(func() { zerolog.SetGlobalLevel(previousLevel) })
+	quietBenchLogs(b)
 
 	include := deleteRule(DeleteModeWithFilesIncludeCrossSeeds, tagsContain("del"))
-	move := &models.Automation{
-		ID: 2, Name: "move", TrackerPattern: "*", Enabled: true, SortOrder: 2,
-		Conditions: &models.ActionConditions{Move: &models.MoveAction{Enabled: true, Path: "/data/new", Condition: tagsContain("mv")}},
+	category := &models.Automation{
+		ID: 2, Name: "category", TrackerPattern: "*", Enabled: true, SortOrder: 2,
+		Conditions: &models.ActionConditions{Category: &models.CategoryAction{Enabled: true, Category: "new", IncludeCrossSeeds: true, Condition: tagsContain("cat")}},
 	}
+	freeSpace := deleteRule(DeleteModeWithFilesIncludeCrossSeeds, &models.RuleCondition{Field: FieldFreeSpace, Operator: models.OperatorLessThan, Value: "6500000"})
 	for _, tc := range []struct {
-		name  string
-		rules []*models.Automation
+		name      string
+		rules     []*models.Automation
+		minDelete int
 	}{
-		{"include rule matches nothing", []*models.Automation{include}},
-		{"whole library with a move rule", []*models.Automation{include, move}},
+		{"include rule matches nothing", []*models.Automation{include}, 0},
+		{"whole library with a category rule", []*models.Automation{include, category}, 0},
+		{"free-space rule claims most of the library", []*models.Automation{freeSpace}, 2000},
 	} {
 		b.Run(tc.name, func(b *testing.B) {
 			svc, instance, fileReads := benchRunService(b, 1000)
@@ -110,14 +113,89 @@ func BenchmarkRunSessionDeletionSelection(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
+				// As applyRulesForInstance does, with the free space of the stub.
+				evalCtx.FreeSpaceStates = map[string]*FreeSpaceSourceState{GetFreeSpaceRuleKey(freeSpace): {
+					FreeSpace: 1000, FilesToClear: make(map[string]int64), CrossSeedHashesToClear: make(map[string]struct{}),
+				}}
 				groups := buildCrossSeedGroups(torrents, evalCtx)
 				svc.loadCrossSeedFiles(ctx, instance.ID, groups, evalCtx, nil)
 				selection := svc.selectDeletions(ctx, instance.ID, deletionSelectionInput{rules: tc.rules, torrents: torrents, evalCtx: evalCtx, crossSeeds: groups})
-				if len(selection.byHash) != 0 {
-					b.Fatalf("selected %d torrents, want none", len(selection.byHash))
+				if got := len(selection.byHash); got < tc.minDelete || tc.minDelete == 0 && got != 0 {
+					b.Fatalf("selected %d torrents, want %d or more (0 means none)", got, tc.minDelete)
 				}
 			}
 			b.ReportMetric(float64(fileReads.Load())/float64(b.N), "fileReads/op")
 		})
 	}
+}
+
+func quietBenchLogs(b *testing.B) {
+	previousLevel := zerolog.GlobalLevel()
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	b.Cleanup(func() { zerolog.SetGlobalLevel(previousLevel) })
+}
+
+// BenchmarkRunSessionMove measures a run with one move rule, from
+// buildEvalContext to the Run plan. In the first two cases the rule matches the
+// whole library, with every torrent still to move or with every torrent at the
+// target. In the last case the rule groups the whole library by save path, and
+// the 2000 Harbor.Watch triggers cannot move because the Quiet.Coast torrents
+// fail the condition.
+func BenchmarkRunSessionMove(b *testing.B) {
+	quietBenchLogs(b)
+	ratioAbove1 := &models.RuleCondition{Field: FieldRatio, Operator: models.OperatorGreaterThan, Value: "1"}
+	harbor := &models.RuleCondition{Field: FieldName, Operator: models.OperatorContains, Value: "Harbor"}
+	savePathGroup := &models.GroupingConfig{Groups: []models.GroupDefinition{{ID: "save_path", Keys: []string{groupKeySavePath}}}}
+	for _, tc := range []struct {
+		name      string
+		move      *models.MoveAction
+		grouping  *models.GroupingConfig
+		wantMoves int
+	}{
+		{"every torrent moves", &models.MoveAction{Enabled: true, Path: "/data/new", Condition: ratioAbove1}, nil, 3000},
+		{"every torrent at the target", &models.MoveAction{Enabled: true, Path: "/data", Condition: ratioAbove1}, nil, 0},
+		{"group that cannot move", &models.MoveAction{Enabled: true, Path: "/data/new", GroupID: "save_path", Condition: harbor}, savePathGroup, 0},
+	} {
+		b.Run(tc.name, func(b *testing.B) {
+			benchmarkMoveRun(b, &models.Automation{
+				ID: 2, Name: "move", TrackerPattern: "*", Enabled: true,
+				Conditions: &models.ActionConditions{Grouping: tc.grouping, Move: tc.move},
+			}, tc.wantMoves)
+		})
+	}
+}
+
+func benchmarkMoveRun(b *testing.B, move *models.Automation, wantMoves int) {
+	path := move.Conditions.Move.Path
+	rules := []*models.Automation{move}
+	svc, instance, fileReads := benchRunService(b, 1000)
+	ctx := b.Context()
+	needs := NeedsFor(rules)
+	fileReads.Store(0)
+	b.ReportAllocs()
+	for b.Loop() {
+		torrents, err := svc.syncManager.GetAllTorrents(ctx, instance.ID)
+		if err != nil || len(torrents) != 3000 {
+			b.Fatalf("got %d torrents: %v", len(torrents), err)
+		}
+		evalCtx, _, err := svc.buildEvalContext(ctx, instance.ID, instance, torrents, needs)
+		if err != nil {
+			b.Fatal(err)
+		}
+		groups := buildCrossSeedGroups(torrents, evalCtx)
+		states := make(map[string]*torrentDesiredState)
+		svc.buildAndExecuteBatches(instance.ID, rules, torrents, evalCtx, groups, nil, make(map[int]*ruleRunStats), states)
+		torrentByHash := make(map[string]qbt.Torrent, len(torrents))
+		for _, t := range torrents {
+			torrentByHash[t.Hash] = t
+		}
+		plan := svc.buildRunPlan(ctx, runPlanInput{
+			instanceID: instance.ID, states: states, deletions: &deletionSelection{}, torrents: torrents, torrentByHash: torrentByHash,
+			ruleByID: map[int]*models.Automation{move.ID: move}, crossSeeds: groups, evalCtx: evalCtx,
+		})
+		if got := len(plan.move.byTarget[path]); got != wantMoves {
+			b.Fatalf("planned %d moves, want %d", got, wantMoves)
+		}
+	}
+	b.ReportMetric(float64(fileReads.Load())/float64(b.N), "fileReads/op")
 }
