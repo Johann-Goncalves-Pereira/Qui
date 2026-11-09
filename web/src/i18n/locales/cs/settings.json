@@ -1016,7 +1016,7 @@
     "redDescription": "Použito pro redacted.sh hledání. Vložit k nahrazení; vymazat k odstranění.",
     "opsDescription": "Použito pro orpheus.network hledání. Vložit k nahrazení; vymazat k odstranění.",
     "save": "Uložit",
-    "companionTitle": "Doprovodný Docker Gazelle",
+    "companionTitle": "Doprovodný Podman Gazelle",
     "checking": "Kontrola...",
     "running": "Běží (:7001)",
     "stopped": "Zastaveno",
@@ -1030,7 +1030,7 @@
     "start": "Spustit Gazelle",
     "installAndRun": "Nainstalovat a spustit Gazelle",
     "companionDescription": "Nasadit místní stack trackeru OPSnet/Gazelle namapovaný na port 7001 s trvalým stavem v datovém adresáři desktopu.",
-    "initialInstallNotice": "Klonování repozitáře OPSnet/Gazelle a sestavování kontejnerů Docker Compose... při počáteční instalaci to může trvat několik minut."
+    "initialInstallNotice": "Klonování repozitáře OPSnet/Gazelle a sestavování kontejnerů Podman Compose... při počáteční instalaci to může trvat několik minut."
   },
   "searchCache": {
     "title": "Vyhledávací mezipaměť",

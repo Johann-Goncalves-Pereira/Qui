@@ -32,8 +32,8 @@
   "statusBar": {
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Qui 容器（{{state}}）連接埠 {{port}}。點擊以設定 Docker。",
-    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）連接埠 {{port}}。點擊以設定 Docker。",
+    "tooltipQui": "Qui 容器（{{state}}）連接埠 {{port}}。點擊以設定 Podman。",
+    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）連接埠 {{port}}。點擊以設定 Podman。",
     "copyright": "{{year}} autobrr",
     "serviceGazelleLabel": "gazelle:{{port}}",
     "tooltipGazelle": "Gazelle 配套服務（{{state}}）連接埠 {{port}}。點一下開啟 WebUI。"
@@ -41,11 +41,11 @@
   "docker": {
     "qui": {
       "title": "Qui 容器設定",
-      "description": "依部署文件，autobrr/qui 的官方 Docker 參數。"
+      "description": "依部署文件，autobrr/qui 的官方 Podman 參數。"
     },
     "qbit": {
       "title": "qBittorrent-nox 容器設定",
-      "description": "依部署文件，linuxserver/qbittorrent 的官方 Docker 參數。"
+      "description": "依部署文件，linuxserver/qbittorrent 的官方 Podman 參數。"
     },
     "state": {
       "running": "執行中"
@@ -55,7 +55,7 @@
       "qbitSaved": "已儲存 qBittorrent-nox 容器設定",
       "quiRestartStarted": "已開始重新啟動 Qui 容器",
       "qbitRestartStarted": "已開始重新啟動 qBittorrent-nox 容器",
-      "copyCommandSuccess": "已將 docker run 指令複製到剪貼簿",
+      "copyCommandSuccess": "已將 podman run 指令複製到剪貼簿",
       "saveFailed": "無法儲存設定",
       "restartFailed": "無法重新啟動容器",
       "genericSaveError": "儲存設定時發生錯誤",
@@ -64,7 +64,7 @@
     },
     "fields": {
       "hostWebUiPort": "主機 Web UI 連接埠",
-      "dockerImage": "Docker 映像",
+      "dockerImage": "Podman 映像",
       "volumeBindMounts": "磁碟區繫結掛載",
       "hostConfigDirQui": "主機設定目錄（/config）",
       "hostConfigDirQuiHelp": "存放 config.toml、qui.db 資料庫、圖示快取與執行時日誌。",
@@ -90,7 +90,7 @@
       "baseUrlHelp": "當 Qui 位於反向代理後時的可選公開 URL。",
       "bitTorrentPeerPort": "BitTorrent 對等連接埠",
       "peerPortHelp": "TCP 與 UDP 入站流量（預設：6881）。",
-      "dockerCommandPreview": "Docker 指令預覽",
+      "dockerCommandPreview": "Podman 指令預覽",
       "copy": "複製",
       "copied": "已複製",
       "quiImageHelp": "例如 qui-desktop:local 或 ghcr.io/autobrr/qui:latest",

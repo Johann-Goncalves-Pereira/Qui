@@ -56,14 +56,14 @@ export function useDockerServices() {
       qui: {
         name: "qui",
         state: "running",
-        status: "Running in Docker",
+        status: "Running in Podman",
         image: "qui-desktop:local",
         port: DEFAULT_QUI_PORT,
       },
       qbit: {
         name: "qbittorrent-nox",
         state: "running",
-        status: "Running in Docker",
+        status: "Running in Podman",
         image: "lscr.io/linuxserver/qbittorrent:latest",
         port: DEFAULT_QBIT_PORT,
       },

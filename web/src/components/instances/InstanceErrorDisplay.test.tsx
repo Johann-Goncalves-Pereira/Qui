@@ -34,7 +34,7 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
 
   it("renders actionable remediation guidance when instance has authentication errors in recentErrors", () => {
     const onEdit = vi.fn()
-    const mockInstance: InstanceResponse = {
+    const mockInstance = {
       id: 1,
       name: "Home",
       host: "http://host.docker.internal:8080",
@@ -54,7 +54,7 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
     render(
       <TooltipProvider>
         <InstanceErrorDisplay
-          instance={mockInstance}
+          instance={mockInstance as unknown as InstanceResponse}
           onEdit={onEdit}
           showEditButton={true}
           compact={true}
@@ -79,7 +79,7 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
   })
 
   it("renders guidance when extraErrorMessage from connection test contains an authentication failure", () => {
-    const mockInstance: InstanceResponse = {
+    const mockInstance = {
       id: 2,
       name: "Local Qbit",
       host: "http://localhost:8080",
@@ -91,7 +91,7 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
     render(
       <TooltipProvider>
         <InstanceErrorDisplay
-          instance={mockInstance}
+          instance={mockInstance as unknown as InstanceResponse}
           compact={true}
           extraErrorMessage="Test Connection Failed: error making request: qbit re-login"
         />
@@ -102,7 +102,7 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
   })
 
   it("does not render guidance when instance is connected and healthy", () => {
-    const mockInstance: InstanceResponse = {
+    const mockInstance = {
       id: 3,
       name: "Connected Client",
       host: "http://localhost:8080",
@@ -113,7 +113,10 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
 
     render(
       <TooltipProvider>
-        <InstanceErrorDisplay instance={mockInstance} compact={true} />
+        <InstanceErrorDisplay
+          instance={mockInstance as unknown as InstanceResponse}
+          compact={true}
+        />
       </TooltipProvider>
     )
 

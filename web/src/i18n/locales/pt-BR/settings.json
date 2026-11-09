@@ -1013,7 +1013,7 @@
     "redDescription": "Usado para pesquisas no redacted.sh. Cole para substituir; limpe para remover.",
     "opsDescription": "Usado para pesquisas no orpheus.network. Cole para substituir; limpe para remover.",
     "save": "Salvar",
-    "companionTitle": "Companheiro Docker Gazelle",
+    "companionTitle": "Companheiro Podman Gazelle",
     "checking": "Verificando...",
     "running": "Executando (:7001)",
     "stopped": "Parado",
@@ -1027,7 +1027,7 @@
     "start": "Iniciar Gazelle",
     "installAndRun": "Instalar e executar Gazelle",
     "companionDescription": "Implantar uma pilha de rastreador local OPSnet/Gazelle mapeada na porta 7001 com estado persistente no diretório de dados do desktop.",
-    "initialInstallNotice": "Clonando repositório OPSnet/Gazelle e construindo contêineres Docker Compose... isso pode levar vários minutos na instalação inicial."
+    "initialInstallNotice": "Clonando repositório OPSnet/Gazelle e construindo contêineres Podman Compose... isso pode levar vários minutos na instalação inicial."
   },
   "searchCache": {
     "title": "Cache de Busca",

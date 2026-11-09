@@ -103,7 +103,7 @@ describe("UpdateBanner desktop suppression", () => {
   })
 
   it("opens DesktopUpdateDialog when onShowUpdateDialog listener triggers (BR-desktop-44)", async () => {
-    let dialogCallback: ((info: unknown) => void) | null = null
+    let dialogCallback: any = null
     window.quiDesktop = {
       getAppVersion: () => "0.0.19",
       checkForUpdates: vi.fn().mockResolvedValue({

@@ -120,8 +120,8 @@ export function QuiDockerConfigDialog({
     }
   }
 
-  const dockerRunSnippet = [
-    "docker run -d",
+  const podmanRunSnippet = [
+    "podman run -d",
     "--name qui",
     `-p ${config.port}:7476`,
     `-v "${config.configPath}":/config`,
@@ -140,7 +140,7 @@ export function QuiDockerConfigDialog({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(dockerRunSnippet)
+      await navigator.clipboard.writeText(podmanRunSnippet)
       setCopied(true)
       toast.success(t("docker.toast.copyCommandSuccess"))
     } catch (err) {
@@ -423,7 +423,7 @@ export function QuiDockerConfigDialog({
               </Button>
             </div>
             <pre className="p-2.5 rounded bg-muted/60 text-[11px] font-mono whitespace-pre-wrap overflow-x-auto text-muted-foreground border border-border/40">
-              {dockerRunSnippet}
+              {podmanRunSnippet}
             </pre>
           </div>
         </div>

@@ -32,8 +32,8 @@
   "statusBar": {
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Qui 容器（{{state}}）端口 {{port}}。点击配置 Docker。",
-    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）端口 {{port}}。点击配置 Docker。",
+    "tooltipQui": "Qui 容器（{{state}}）端口 {{port}}。点击配置 Podman。",
+    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）端口 {{port}}。点击配置 Podman。",
     "copyright": "{{year}} autobrr",
     "serviceGazelleLabel": "gazelle:{{port}}",
     "tooltipGazelle": "Gazelle 配套服务（{{state}}）端口 {{port}}。点击打开 WebUI。"
@@ -41,11 +41,11 @@
   "docker": {
     "qui": {
       "title": "Qui 容器配置",
-      "description": "根据部署文档，autobrr/qui 的官方 Docker 参数。"
+      "description": "根据部署文档，autobrr/qui 的官方 Podman 参数。"
     },
     "qbit": {
       "title": "qBittorrent-nox 容器配置",
-      "description": "根据部署文档，linuxserver/qbittorrent 的官方 Docker 参数。"
+      "description": "根据部署文档，linuxserver/qbittorrent 的官方 Podman 参数。"
     },
     "state": {
       "running": "运行中"
@@ -55,7 +55,7 @@
       "qbitSaved": "qBittorrent-nox 容器配置已保存",
       "quiRestartStarted": "Qui 容器重启已开始",
       "qbitRestartStarted": "qBittorrent-nox 容器重启已开始",
-      "copyCommandSuccess": "已将 docker run 命令复制到剪贴板",
+      "copyCommandSuccess": "已将 podman run 命令复制到剪贴板",
       "saveFailed": "保存配置失败",
       "restartFailed": "重启容器失败",
       "genericSaveError": "保存配置时出错",
@@ -64,7 +64,7 @@
     },
     "fields": {
       "hostWebUiPort": "主机 Web UI 端口",
-      "dockerImage": "Docker 镜像",
+      "dockerImage": "Podman 镜像",
       "volumeBindMounts": "卷绑定挂载",
       "hostConfigDirQui": "主机配置目录（/config）",
       "hostConfigDirQuiHelp": "存放 config.toml、qui.db 数据库、图标缓存和运行日志。",
@@ -90,7 +90,7 @@
       "baseUrlHelp": "当 Qui 位于反向代理后的可选公开 URL。",
       "bitTorrentPeerPort": "BitTorrent 监听端口",
       "peerPortHelp": "TCP 与 UDP 入站流量（默认：6881）。",
-      "dockerCommandPreview": "Docker 命令预览",
+      "dockerCommandPreview": "Podman 命令预览",
       "copy": "复制",
       "copied": "已复制",
       "quiImageHelp": "例如 qui-desktop:local 或 ghcr.io/autobrr/qui:latest",

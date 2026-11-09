@@ -1013,7 +1013,7 @@
     "redDescription": "Es fa servir per a les consultes a redacted.sh. Enganxa-hi un valor per substituir-la; buida-la per eliminar-la.",
     "opsDescription": "Es fa servir per a les consultes a orpheus.network. Enganxa-hi un valor per substituir-la; buida-la per eliminar-la.",
     "save": "Desa",
-    "companionTitle": "Acompanyant Docker Gazelle",
+    "companionTitle": "Acompanyant Podman Gazelle",
     "checking": "Comprovant...",
     "running": "En execució (:7001)",
     "stopped": "Aturat",
@@ -1027,7 +1027,7 @@
     "start": "Inicia Gazelle",
     "installAndRun": "Instal·la i executa Gazelle",
     "companionDescription": "Desplega una pila de rastrejador local OPSnet/Gazelle assignada al port 7001 amb estat persistent al directori de dades de l'escriptori.",
-    "initialInstallNotice": "Clonant el repositori OPSnet/Gazelle i construint els contenidors Docker Compose... això pot trigar uns quants minuts en la instal·lació inicial."
+    "initialInstallNotice": "Clonant el repositori OPSnet/Gazelle i construint els contenidors Podman Compose... això pot trigar uns quants minuts en la instal·lació inicial."
   },
   "searchCache": {
     "title": "Memòria cau de cerca",
