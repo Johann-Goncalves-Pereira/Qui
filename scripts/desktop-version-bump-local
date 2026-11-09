@@ -136,6 +136,14 @@ else
 fi
 git push origin "v${NEW_VER}"
 
+# Build the fork Qui GUI container image for NEW_VER so local engines and release archives match NEW_VER.
+if [ -x "$ROOT/scripts/desktop-publish-qui-image" ] && [ "${QUI_SKIP_IMAGE_BUILD:-}" != "1" ]; then
+  echo "desktop-version-bump-local: building and refreshing container image for ${NEW_VER}..."
+  "$ROOT/scripts/desktop-publish-qui-image" || {
+    echo "desktop-version-bump-local: warning: desktop-publish-qui-image failed (proceeding with release packaging)" >&2
+  }
+fi
+
 # Create/refresh GitHub Release as Latest (assets if desktop/release/ has them).
 if [ -x "$ROOT/scripts/desktop-publish-release-local" ]; then
   "$ROOT/scripts/desktop-publish-release-local" || {

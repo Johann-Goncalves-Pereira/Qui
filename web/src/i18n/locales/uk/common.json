@@ -32,8 +32,8 @@
   "statusBar": {
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Контейнер Qui ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Docker.",
-    "tooltipQbit": "Контейнер qBittorrent-nox ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Docker.",
+    "tooltipQui": "Контейнер Qui ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Podman.",
+    "tooltipQbit": "Контейнер qBittorrent-nox ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Podman.",
     "copyright": "{{year}} autobrr",
     "serviceGazelleLabel": "gazelle:{{port}}",
     "tooltipGazelle": "Companion Gazelle ({{state}}) на порту {{port}}. Натисніть, щоб відкрити WebUI."
@@ -41,11 +41,11 @@
   "docker": {
     "qui": {
       "title": "Конфігурація контейнера Qui",
-      "description": "Офіційні параметри Docker для autobrr/qui згідно з документацією розгортання."
+      "description": "Офіційні параметри Podman для autobrr/qui згідно з документацією розгортання."
     },
     "qbit": {
       "title": "Конфігурація контейнера qBittorrent-nox",
-      "description": "Офіційні параметри Docker для linuxserver/qbittorrent згідно з документацією розгортання."
+      "description": "Офіційні параметри Podman для linuxserver/qbittorrent згідно з документацією розгортання."
     },
     "state": {
       "running": "Працює"
@@ -55,7 +55,7 @@
       "qbitSaved": "Конфігурацію контейнера qBittorrent-nox збережено",
       "quiRestartStarted": "Перезапуск контейнера Qui розпочато",
       "qbitRestartStarted": "Перезапуск контейнера qBittorrent-nox розпочато",
-      "copyCommandSuccess": "Команду docker run скопійовано в буфер обміну",
+      "copyCommandSuccess": "Команду podman run скопійовано в буфер обміну",
       "saveFailed": "Не вдалося зберегти конфігурацію",
       "restartFailed": "Не вдалося перезапустити контейнер",
       "genericSaveError": "Помилка збереження конфігурації",
@@ -64,7 +64,7 @@
     },
     "fields": {
       "hostWebUiPort": "Порт веб-інтерфейсу на хості",
-      "dockerImage": "Docker-образ",
+      "dockerImage": "Podman-образ",
       "volumeBindMounts": "Прив’язки томів (bind)",
       "hostConfigDirQui": "Каталог конфігурації хоста (/config)",
       "hostConfigDirQuiHelp": "Зберігає config.toml, базу qui.db, кеш іконок і журнали під час роботи.",
@@ -90,7 +90,7 @@
       "baseUrlHelp": "Необов’язкова публічна URL-адреса, коли Qui за зворотним проксі.",
       "bitTorrentPeerPort": "Пір-порт BitTorrent",
       "peerPortHelp": "Вхідний трафік TCP і UDP (типово: 6881).",
-      "dockerCommandPreview": "Попередній перегляд команди Docker",
+      "dockerCommandPreview": "Попередній перегляд команди Podman",
       "copy": "Копіювати",
       "copied": "Скопійовано",
       "quiImageHelp": "наприклад qui-desktop:local або ghcr.io/autobrr/qui:latest",

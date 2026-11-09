@@ -19,6 +19,16 @@ if ! git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
   exit 1
 fi
 
+ARCH="${QUI_IMAGE_ARCH:-arm64}"
+IMAGE_ARCHIVE="desktop/release/qui-desktop-image-${ARCH}.tar.gz"
+
+if [ ! -f "$IMAGE_ARCHIVE" ] && [ -x "$ROOT/scripts/desktop-publish-qui-image" ] && [ "${QUI_SKIP_IMAGE_BUILD:-}" != "1" ]; then
+  echo "desktop-publish-release-local: container image archive missing for ${VER}; building with desktop-publish-qui-image..."
+  "$ROOT/scripts/desktop-publish-qui-image" || {
+    echo "desktop-publish-release-local: warning: desktop-publish-qui-image failed" >&2
+  }
+fi
+
 if [ ! -f "desktop/release/Qui-${VER}-arm64.dmg" ]; then
   echo "desktop-publish-release-local: release DMG missing for ${VER}; packaging with pnpm --dir desktop package:mac:release..."
   pnpm --dir desktop package:mac:release

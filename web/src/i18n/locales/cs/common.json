@@ -32,8 +32,8 @@
   "statusBar": {
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Kontejner Qui ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Docker.",
-    "tooltipQbit": "Kontejner qBittorrent-nox ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Docker.",
+    "tooltipQui": "Kontejner Qui ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Podman.",
+    "tooltipQbit": "Kontejner qBittorrent-nox ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Podman.",
     "copyright": "{{year}} autobrr",
     "serviceGazelleLabel": "gazelle:{{port}}",
     "tooltipGazelle": "Gazelle companion ({{state}}) na portu {{port}}. Kliknutím otevřete WebUI."
@@ -41,11 +41,11 @@
   "docker": {
     "qui": {
       "title": "Konfigurace kontejneru Qui",
-      "description": "Oficiální parametry Dockeru pro autobrr/qui podle dokumentace nasazení."
+      "description": "Oficiální parametry Podmanu pro autobrr/qui podle dokumentace nasazení."
     },
     "qbit": {
       "title": "Konfigurace kontejneru qBittorrent-nox",
-      "description": "Oficiální parametry Dockeru pro linuxserver/qbittorrent podle dokumentace nasazení."
+      "description": "Oficiální parametry Podmanu pro linuxserver/qbittorrent podle dokumentace nasazení."
     },
     "state": {
       "running": "Běží"
@@ -55,7 +55,7 @@
       "qbitSaved": "Konfigurace kontejneru qBittorrent-nox uložena",
       "quiRestartStarted": "Restart kontejneru Qui zahájen",
       "qbitRestartStarted": "Restart kontejneru qBittorrent-nox zahájen",
-      "copyCommandSuccess": "Příkaz docker run zkopírován do schránky",
+      "copyCommandSuccess": "Příkaz podman run zkopírován do schránky",
       "saveFailed": "Uložení konfigurace selhalo",
       "restartFailed": "Restart kontejneru selhal",
       "genericSaveError": "Chyba při ukládání konfigurace",
@@ -64,7 +64,7 @@
     },
     "fields": {
       "hostWebUiPort": "Port webového rozhraní na hostiteli",
-      "dockerImage": "Docker image",
+      "dockerImage": "Podman image",
       "volumeBindMounts": "Bind mounty svazků",
       "hostConfigDirQui": "Konfigurační adresář hostitele (/config)",
       "hostConfigDirQuiHelp": "Ukládá config.toml, databázi qui.db, cache ikon a běhové logy.",
@@ -90,7 +90,7 @@
       "baseUrlHelp": "Volitelná veřejná URL, když Qui běží za reverzním proxy.",
       "bitTorrentPeerPort": "Port peerů BitTorrent",
       "peerPortHelp": "Příchozí provoz TCP a UDP (výchozí: 6881).",
-      "dockerCommandPreview": "Náhled příkazu Docker",
+      "dockerCommandPreview": "Náhled příkazu Podman",
       "copy": "Kopírovat",
       "copied": "Zkopírováno",
       "quiImageHelp": "např. qui-desktop:local nebo ghcr.io/autobrr/qui:latest",

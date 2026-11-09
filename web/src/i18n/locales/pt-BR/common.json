@@ -32,8 +32,8 @@
   "statusBar": {
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Contêiner Qui ({{state}}) na porta {{port}}. Clique para configurar o Docker.",
-    "tooltipQbit": "Contêiner qBittorrent-nox ({{state}}) na porta {{port}}. Clique para configurar o Docker.",
+    "tooltipQui": "Contêiner Qui ({{state}}) na porta {{port}}. Clique para configurar o Podman.",
+    "tooltipQbit": "Contêiner qBittorrent-nox ({{state}}) na porta {{port}}. Clique para configurar o Podman.",
     "copyright": "{{year}} autobrr",
     "serviceGazelleLabel": "gazelle:{{port}}",
     "tooltipGazelle": "Companheiro Gazelle ({{state}}) na porta {{port}}. Clique para abrir a WebUI."
@@ -41,11 +41,11 @@
   "docker": {
     "qui": {
       "title": "Configuração do contêiner Qui",
-      "description": "Parâmetros oficiais do Docker para autobrr/qui conforme a documentação de implantação."
+      "description": "Parâmetros oficiais do Podman para autobrr/qui conforme a documentação de implantação."
     },
     "qbit": {
       "title": "Configuração do contêiner qBittorrent-nox",
-      "description": "Parâmetros oficiais do Docker para linuxserver/qbittorrent conforme a documentação de implantação."
+      "description": "Parâmetros oficiais do Podman para linuxserver/qbittorrent conforme a documentação de implantação."
     },
     "state": {
       "running": "Em execução"
@@ -55,7 +55,7 @@
       "qbitSaved": "Configuração do contêiner qBittorrent-nox salva",
       "quiRestartStarted": "Reinício do contêiner Qui iniciado",
       "qbitRestartStarted": "Reinício do contêiner qBittorrent-nox iniciado",
-      "copyCommandSuccess": "Comando docker run copiado para a área de transferência",
+      "copyCommandSuccess": "Comando podman run copiado para a área de transferência",
       "saveFailed": "Falha ao salvar a configuração",
       "restartFailed": "Falha ao reiniciar o contêiner",
       "genericSaveError": "Erro ao salvar a configuração",
@@ -64,7 +64,7 @@
     },
     "fields": {
       "hostWebUiPort": "Porta da interface web no host",
-      "dockerImage": "Imagem Docker",
+      "dockerImage": "Imagem Podman",
       "volumeBindMounts": "Montagens de volume (bind)",
       "hostConfigDirQui": "Diretório de configuração no host (/config)",
       "hostConfigDirQuiHelp": "Armazena config.toml, banco qui.db, cache de ícones e logs em tempo de execução.",
@@ -90,7 +90,7 @@
       "baseUrlHelp": "URL pública opcional quando o Qui está atrás de um proxy reverso.",
       "bitTorrentPeerPort": "Porta peer BitTorrent",
       "peerPortHelp": "Tráfego TCP e UDP de entrada (padrão: 6881).",
-      "dockerCommandPreview": "Pré-visualização do comando Docker",
+      "dockerCommandPreview": "Pré-visualização do comando Podman",
       "copy": "Copiar",
       "copied": "Copiado",
       "quiImageHelp": "ex.: qui-desktop:local ou ghcr.io/autobrr/qui:latest",

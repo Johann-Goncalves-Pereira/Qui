@@ -33,19 +33,19 @@
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
     "serviceGazelleLabel": "gazelle:{{port}}",
-    "tooltipQui": "Qui container ({{state}}) on port {{port}}. Click to configure Docker settings.",
-    "tooltipQbit": "qBittorrent-nox container ({{state}}) on port {{port}}. Click to configure Docker settings.",
+    "tooltipQui": "Qui container ({{state}}) on port {{port}}. Click to configure Podman settings.",
+    "tooltipQbit": "qBittorrent-nox container ({{state}}) on port {{port}}. Click to configure Podman settings.",
     "tooltipGazelle": "Gazelle companion ({{state}}) on port {{port}}. Click to open WebUI.",
     "copyright": "{{year}} autobrr"
   },
   "docker": {
     "qui": {
       "title": "Qui Container Configuration",
-      "description": "Official Docker parameters for autobrr/qui based on the deployment documentation."
+      "description": "Official Podman parameters for autobrr/qui based on the deployment documentation."
     },
     "qbit": {
       "title": "qBittorrent-nox Container Configuration",
-      "description": "Official Docker parameters for linuxserver/qbittorrent based on the deployment documentation."
+      "description": "Official Podman parameters for linuxserver/qbittorrent based on the deployment documentation."
     },
     "state": {
       "running": "Running"
@@ -55,7 +55,7 @@
       "qbitSaved": "qBittorrent-nox container configuration saved",
       "quiRestartStarted": "Qui container restart initiated",
       "qbitRestartStarted": "qBittorrent-nox container restart initiated",
-      "copyCommandSuccess": "Copied docker run command to clipboard",
+      "copyCommandSuccess": "Copied podman run command to clipboard",
       "saveFailed": "Failed to save configuration",
       "restartFailed": "Failed to restart container",
       "genericSaveError": "Error saving configuration",
@@ -66,7 +66,7 @@
     },
     "fields": {
       "hostWebUiPort": "Host Web UI Port",
-      "dockerImage": "Docker Image",
+      "dockerImage": "Podman Image",
       "volumeBindMounts": "Volume Bind Mounts",
       "hostConfigDirQui": "Host Config Directory (/config)",
       "hostConfigDirQuiHelp": "Stores config.toml, qui.db database, icon cache, and runtime logs.",
@@ -92,7 +92,7 @@
       "baseUrlHelp": "Optional public URL when Qui sits behind a reverse proxy.",
       "bitTorrentPeerPort": "BitTorrent Peer Port",
       "peerPortHelp": "TCP & UDP incoming traffic (default: 6881).",
-      "dockerCommandPreview": "Docker Command Preview",
+      "dockerCommandPreview": "Podman Command Preview",
       "webUiCredentials": "WebUI Administrator Credentials",
       "webUiUsername": "Username",
       "webUiPassword": "Password",

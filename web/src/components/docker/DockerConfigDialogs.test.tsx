@@ -91,6 +91,8 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     render(<QuiDockerConfigDialog open={true} onOpenChange={() => {}} />)
 
     expect(screen.getByText("Qui Container Configuration")).toBeDefined()
+    expect(screen.getByText("Podman Command Preview")).toBeDefined()
+    expect(screen.getByText(/podman run -d/)).toBeDefined()
     expect(screen.getByLabelText("Host Web UI Port")).toBeDefined()
     expect(screen.getByLabelText("Host Config Directory (/config)")).toBeDefined()
     expect(screen.getByLabelText("Host Data Directory (/data)")).toBeDefined()
@@ -111,6 +113,8 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     render(<QBitDockerConfigDialog open={true} onOpenChange={() => {}} />)
 
     expect(screen.getByText("qBittorrent-nox Container Configuration")).toBeDefined()
+    expect(screen.getByText("Podman Command Preview")).toBeDefined()
+    expect(screen.getByText(/podman run -d/)).toBeDefined()
     expect(screen.getByLabelText("Host Web UI Port")).toBeDefined()
     expect(screen.getByLabelText("BitTorrent Peer Port")).toBeDefined()
     expect(screen.getByLabelText("Host Config Directory (/config)")).toBeDefined()

@@ -48,7 +48,7 @@ describe("GazelleDockerControl (BR-desktop-15)", () => {
       render(<GazelleDockerControl />)
     })
 
-    expect(screen.getByText("Gazelle Docker Companion")).toBeDefined()
+    expect(screen.getByText("Gazelle Podman Companion")).toBeDefined()
     expect(screen.getByText("Not Installed")).toBeDefined()
 
     const installButton = screen.getByRole("button", { name: /install & run gazelle/i })

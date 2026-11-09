@@ -32,8 +32,8 @@
   "statusBar": {
     "serviceQuiLabel": "qui:{{port}}",
     "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Qui 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Docker 설정을 구성합니다.",
-    "tooltipQbit": "qBittorrent-nox 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Docker 설정을 구성합니다.",
+    "tooltipQui": "Qui 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Podman 설정을 구성합니다.",
+    "tooltipQbit": "qBittorrent-nox 컨테이너({{state}}) 포트 {{port}}. 클릭하여 Podman 설정을 구성합니다.",
     "copyright": "{{year}} autobrr",
     "serviceGazelleLabel": "gazelle:{{port}}",
     "tooltipGazelle": "Gazelle 컴패니언 ({{state}}), 포트 {{port}}. 클릭하여 WebUI 열기."
@@ -41,11 +41,11 @@
   "docker": {
     "qui": {
       "title": "Qui 컨테이너 구성",
-      "description": "배포 문서에 따른 autobrr/qui의 공식 Docker 매개변수입니다."
+      "description": "배포 문서에 따른 autobrr/qui의 공식 Podman 매개변수입니다."
     },
     "qbit": {
       "title": "qBittorrent-nox 컨테이너 구성",
-      "description": "배포 문서에 따른 linuxserver/qbittorrent의 공식 Docker 매개변수입니다."
+      "description": "배포 문서에 따른 linuxserver/qbittorrent의 공식 Podman 매개변수입니다."
     },
     "state": {
       "running": "실행 중"
@@ -55,7 +55,7 @@
       "qbitSaved": "qBittorrent-nox 컨테이너 구성이 저장되었습니다",
       "quiRestartStarted": "Qui 컨테이너 재시작이 시작되었습니다",
       "qbitRestartStarted": "qBittorrent-nox 컨테이너 재시작이 시작되었습니다",
-      "copyCommandSuccess": "docker run 명령이 클립보드에 복사되었습니다",
+      "copyCommandSuccess": "podman run 명령이 클립보드에 복사되었습니다",
       "saveFailed": "구성을 저장하지 못했습니다",
       "restartFailed": "컨테이너를 다시 시작하지 못했습니다",
       "genericSaveError": "구성 저장 중 오류가 발생했습니다",
@@ -64,7 +64,7 @@
     },
     "fields": {
       "hostWebUiPort": "호스트 웹 UI 포트",
-      "dockerImage": "Docker 이미지",
+      "dockerImage": "Podman 이미지",
       "volumeBindMounts": "볼륨 바인드 마운트",
       "hostConfigDirQui": "호스트 구성 디렉터리 (/config)",
       "hostConfigDirQuiHelp": "config.toml, qui.db 데이터베이스, 아이콘 캐시 및 런타임 로그를 저장합니다.",
@@ -90,7 +90,7 @@
       "baseUrlHelp": "Qui가 역방향 프록시 뒤에 있을 때 선택적 공개 URL입니다.",
       "bitTorrentPeerPort": "BitTorrent 피어 포트",
       "peerPortHelp": "TCP 및 UDP 수신 트래픽(기본값: 6881).",
-      "dockerCommandPreview": "Docker 명령 미리보기",
+      "dockerCommandPreview": "Podman 명령 미리보기",
       "copy": "복사",
       "copied": "복사됨",
       "quiImageHelp": "예: qui-desktop:local 또는 ghcr.io/autobrr/qui:latest",

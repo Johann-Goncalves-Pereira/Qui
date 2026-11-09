@@ -1019,7 +1019,7 @@
     "redDescription": "Використовується для пошуку на redacted.sh. Вставте для заміни; очистіть для видалення.",
     "opsDescription": "Використовується для пошуку на orpheus.network. Вставте для заміни; очистіть для видалення.",
     "save": "Зберегти",
-    "companionTitle": "Docker-супутник Gazelle",
+    "companionTitle": "Podman-супутник Gazelle",
     "checking": "Перевірка...",
     "running": "Працює (:7001)",
     "stopped": "Зупинено",
@@ -1033,7 +1033,7 @@
     "start": "Запустити Gazelle",
     "installAndRun": "Встановити та запустити Gazelle",
     "companionDescription": "Розгорнути локальний стек трекера OPSnet/Gazelle на порту 7001 зі збереженням стану в каталозі даних десктопу.",
-    "initialInstallNotice": "Клонування репозиторію OPSnet/Gazelle та збирання контейнерів Docker Compose... це може зайняти кілька хвилин під час першого встановлення."
+    "initialInstallNotice": "Клонування репозиторію OPSnet/Gazelle та збирання контейнерів Podman Compose... це може зайняти кілька хвилин під час першого встановлення."
   },
   "searchCache": {
     "title": "Кеш пошуку",

@@ -165,8 +165,8 @@ export function QBitDockerConfigDialog({
     }
   }
 
-  const dockerRunSnippet = [
-    "docker run -d",
+  const podmanRunSnippet = [
+    "podman run -d",
     "--name qbittorrent-nox",
     `-p ${config.port}:8080`,
     `-p ${config.peerPort}:6881/tcp`,
@@ -185,7 +185,7 @@ export function QBitDockerConfigDialog({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(dockerRunSnippet)
+      await navigator.clipboard.writeText(podmanRunSnippet)
       setCopied(true)
       toast.success(t("docker.toast.copyCommandSuccess"))
     } catch (err) {
@@ -557,7 +557,7 @@ export function QBitDockerConfigDialog({
               </Button>
             </div>
             <pre className="p-2.5 rounded bg-muted/60 text-[11px] font-mono whitespace-pre-wrap overflow-x-auto text-muted-foreground border border-border/40">
-              {dockerRunSnippet}
+              {podmanRunSnippet}
             </pre>
           </div>
         </div>

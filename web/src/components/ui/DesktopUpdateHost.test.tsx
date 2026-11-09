@@ -42,7 +42,7 @@ describe("DesktopUpdateHost (BR-web-17)", () => {
   })
 
   it("subscribes to onShowContainerUpdateDialog and opens ContainerUpdateDialog on all routes", async () => {
-    let containerCallback: ((details: unknown) => void) | null = null
+    let containerCallback: any = null
 
     window.quiDesktop = {
       onShowContainerUpdateDialog: vi.fn().mockImplementation((cb) => {
@@ -66,7 +66,7 @@ describe("DesktopUpdateHost (BR-web-17)", () => {
   })
 
   it("subscribes to onShowUpdateDialog and opens DesktopUpdateDialog when UpdateBanner is unmounted (e.g. on /setup or /login)", async () => {
-    let appCallback: ((info: unknown) => void) | null = null
+    let appCallback: any = null
 
     window.quiDesktop = {
       onShowUpdateDialog: vi.fn().mockImplementation((cb) => {
@@ -91,7 +91,7 @@ describe("DesktopUpdateHost (BR-web-17)", () => {
   })
 
   it("does not duplicate DesktopUpdateDialog if UpdateBanner is already mounted in sidebar", () => {
-    let appCallback: ((info: unknown) => void) | null = null
+    let appCallback: any = null
 
     setUpdateBannerMounted(true)
 
@@ -114,7 +114,7 @@ describe("DesktopUpdateHost (BR-web-17)", () => {
   })
 
   it("subscribes to onUpdateStatus and triggers in-app toast notifications", () => {
-    let statusCallback: ((status: unknown) => void) | null = null
+    let statusCallback: any = null
 
     window.quiDesktop = {
       onUpdateStatus: vi.fn().mockImplementation((cb) => {
