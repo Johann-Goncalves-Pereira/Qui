@@ -57,8 +57,26 @@ GOOS=linux GOARCH="$ARCH" CGO_ENABLED=0 go build \
 cp .dockerignore .dockerignore.publish-bak
 grep -v '^qui$' .dockerignore.publish-bak | grep -v '^qui\.exe$' > .dockerignore || true
 
-echo "desktop-publish-qui-image: docker build -t ${LATEST_TAG} -f ${DOCKERFILE}"
-docker build \
+CONTAINER_CLI="${QUI_CONTAINER_CLI:-}"
+if [ -z "$CONTAINER_CLI" ]; then
+  if command -v podman >/dev/null 2>&1; then
+    CONTAINER_CLI="podman"
+  elif command -v docker >/dev/null 2>&1; then
+    CONTAINER_CLI="docker"
+  else
+    echo "desktop-publish-qui-image: neither podman nor docker found" >&2
+    exit 1
+  fi
+fi
+
+BUILD_EXTRA_ARGS=()
+if [ "$CONTAINER_CLI" = "podman" ]; then
+  BUILD_EXTRA_ARGS+=(--format docker)
+fi
+
+echo "desktop-publish-qui-image: ${CONTAINER_CLI} build -t ${LATEST_TAG} -f ${DOCKERFILE}"
+"$CONTAINER_CLI" build \
+  "${BUILD_EXTRA_ARGS[@]}" \
   -t "$LATEST_TAG" \
   -t "$VER_TAG" \
   -t "$LOCAL_TAG" \
@@ -72,19 +90,19 @@ docker build \
 
 mkdir -p desktop/release
 ARCHIVE="desktop/release/qui-desktop-image-${ARCH}.tar.gz"
-echo "desktop-publish-qui-image: saving ${ARCHIVE} (GitHub Releases docker-load fallback)"
-docker save "$LOCAL_TAG" "$VER_TAG" | gzip -c > "$ARCHIVE"
+echo "desktop-publish-qui-image: saving ${ARCHIVE} (GitHub Releases container-load fallback with podman save / docker save)"
+"$CONTAINER_CLI" save "$LOCAL_TAG" "$VER_TAG" | gzip -c > "$ARCHIVE"
 
 if [ "${QUI_SKIP_IMAGE_PUSH:-}" = "1" ]; then
   echo "desktop-publish-qui-image: skip push (QUI_SKIP_IMAGE_PUSH=1); tags: ${LATEST_TAG} ${VER_TAG} ${LOCAL_TAG}; archive ${ARCHIVE}"
   exit 0
 fi
 
-echo "desktop-publish-qui-image: pushing ${LATEST_TAG} and ${VER_TAG}"
-if ! docker push "$LATEST_TAG"; then
+echo "desktop-publish-qui-image: pushing ${LATEST_TAG} and ${VER_TAG} (podman push / docker push)"
+if ! "$CONTAINER_CLI" push "$LATEST_TAG"; then
   echo "desktop-publish-qui-image: GHCR push failed (need write:packages). Archive ready for Releases: ${ARCHIVE}" >&2
   exit 0
 fi
-docker push "$VER_TAG"
+"$CONTAINER_CLI" push "$VER_TAG"
 
 echo "desktop-publish-qui-image: published ${LATEST_TAG} (+ ${VER_TAG}); local alias ${LOCAL_TAG}; archive ${ARCHIVE}"
