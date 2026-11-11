@@ -208,7 +208,7 @@ Older rules can use a second field named **Trackers (All)**. It now behaves the 
 | --- | --- |
 | Hardlink Scope | `none`, `torrents_only`, `inside_qbittorrent`, or `outside_qbittorrent` (requires local filesystem access, see [Hardlink detection](#hardlink-detection)) |
 | Hardlink Scope (Cross-Instance) | `none`, `torrents_only`, `inside_qbittorrent`, or `outside_qbittorrent` across all instances (requires local filesystem access) |
-| Has Missing Files | Boolean: a completed torrent has files missing on disk (requires local filesystem access) |
+| Has Missing Files | Boolean: a completed torrent has files missing on disk (requires local filesystem access or [SSH access](./ssh-access.md)) |
 | Has Skipped Files | Boolean: one or more files are set to `Do not download`. qui reads file priorities from its files cache, so a priority change made outside qui can take up to 5 minutes to reach this field |
 
 ### State values
@@ -597,7 +597,7 @@ If you enable "Include hardlinked copies" (available only with `deleteWithFilesI
 
 qui follows both hardlinks and shared file paths until it finds every affected torrent. If a hardlinked episode shares its path with a season pack, qui includes the pack and its other cross-seeds. If a file check fails, qui skips the entire deletion group.
 
-- **Requires**: You must enable Local Filesystem Access on the instance.
+- **Requires**: You must enable Local Filesystem Access on the instance. The option is not available on a [remote instance](./ssh-access.md).
 - **Safe scope**: qui includes only hardlinks fully contained within qBittorrent's torrent set. qui never follows hardlinks to files outside qBittorrent (for example, your media library).
 - **Preview**: The preview marks hardlink-expanded torrents as "Cross-seed (hardlinked)".
 - **Free Space projection**: If you use Free Space conditions, qui deduplicates hardlink groups in the space projection. Torrents that share the same physical files count once.
@@ -875,7 +875,7 @@ qui keeps the hardlink data of each instance for up to 10 minutes. Rules, previe
 
 - When a torrent is added, removed, or moved, qui reads that torrent and the torrents that share its files again at the next rule run.
 - A change only on disk, such as a library file that Sonarr or Radarr deletes after an upgrade, shows when qui reads all torrents again. That happens at the first rule run after the data is 10 minutes old. With the default interval of 15 minutes, every run reads all torrents again. Rules with shorter intervals, previews, and dry runs on the same instance can add up to 10 minutes.
-- A file list from qBittorrent can be up to 1 hour old. After a rename or a file priority change made outside qui, the scope of that torrent can stay unknown for up to 1 hour. The same changes made in qui refresh the file list at once, and the scope changes when qui reads all torrents again.
+- qui reuses a file list from qBittorrent until qBittorrent reports a new size or a new root folder for the torrent, and for at most 24 hours. A rename of the root folder, or of the file of a single-file torrent, shows when qui reads all torrents again. A rename of a file inside a folder, made outside qui and the qui proxy, changes neither value. After such a rename, the scope of that torrent can stay unknown or wrong for up to 24 hours. A rename made in qui or through the qui proxy refreshes the file list at once. The scope changes when qui reads all torrents again.
 
 The check before deletion (see above) reads the files of the torrent again and holds any torrent whose scope changed. For `HARDLINK_SCOPE_CROSS`, it does not read the files of other instances again. A change on another instance shows when qui reads all torrents again.
 
@@ -1130,7 +1130,7 @@ The `Has Missing Files` field detects whether any file of a completed torrent is
 - If **any** file is missing from its expected path, this condition returns `true`.
 
 :::note
-Requires "Local filesystem access" enabled on the instance.
+Requires filesystem access on the instance: "Local filesystem access", or [SSH access](./ssh-access.md) for a remote instance. On a remote instance, qui looks for the files on the remote machine. If the connection drops during the check, the torrents that qui did not check stay unknown until the next run.
 :::
 
 ## Important behavior
@@ -1268,13 +1268,13 @@ By default, Free Space uses qBittorrent's reported free space, based on its defa
 | Path on server | Reads free space from a specific filesystem path |
 
 :::note
-Path on server requires "Local Filesystem Access" enabled on the instance.
+Path on server requires filesystem access on the instance: "Local Filesystem Access", or [SSH access](./ssh-access.md) for a remote instance. With SSH access, qui reads the free space on the remote machine, and the server must report free space (see [Read the test result](./ssh-access.md#read-the-test-result)). If qui cannot reach the remote machine, the run fails and sends a notification. qui does not use the value from qBittorrent instead, because that value can come from a different disk.
 :::
 
 If you want to manage multiple disks, create one workflow per disk and set a different Path on server for each workflow.
 
 :::note
-qui does not support Path on server on Windows. The UI disables the option and switches legacy workflows back to the default when you open them.
+When qui runs on Windows, Path on server works only for a remote instance. For an instance with local access, the UI disables the option and switches legacy workflows back to the default when you open them.
 :::
 
 ### Batching
@@ -1359,6 +1359,14 @@ Remove torrents the tracker no longer recognizes:
 - Tracker: `*`
 - Condition: `Unregistered is true`
 - Action: Delete (keep files)
+
+To see these torrents without a rule, select the **Unregistered** status filter in the sidebar.
+
+qui sets **Unregistered** when no tracker of the torrent works and the message of a failed tracker has a known phrase, for example "unregistered" or "torrent not found". The torrent must be 1 hour old or more. A message that names the passkey or the torrent pass, or says "User does not exist", does not count. qui reads the tracker messages again every 60 seconds, and a rule acts on the first match.
+
+A torrent with two trackers can match while it still works. If one tracker says unregistered and the other tracker is down, the torrent matches until the other tracker works again. On qBittorrent 5.1, the torrent can also match for a short time while the working tracker sends an announce.
+
+Run a dry run before you turn on the rule.
 
 ### Maintain minimum free space
 

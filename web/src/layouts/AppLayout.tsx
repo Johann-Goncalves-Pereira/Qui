@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next"
 import { Suspense, useEffect } from "react"
 import { MobileScrollProvider, useMobileScroll } from "@/contexts/MobileScrollContext"
 import { TorrentSelectionProvider } from "@/contexts/TorrentSelectionContext"
+import { BulkActionProvider } from "@/components/torrents/bulk-actions/BulkActionProvider"
 import { useCustomThemes } from "@/hooks/useCustomThemes"
 import { ViewTransitionBoundary } from "@/components/transitions/ViewTransitionBoundary"
 import { LoadingOverlay } from "@/components/ui/LoadingOverlay"
@@ -107,9 +108,11 @@ export function AppLayout() {
   return (
     <LayoutRouteProvider>
       <TorrentSelectionProvider>
-        <MobileScrollProvider>
-          <AppLayoutContent />
-        </MobileScrollProvider>
+        <BulkActionProvider>
+          <MobileScrollProvider>
+            <AppLayoutContent />
+          </MobileScrollProvider>
+        </BulkActionProvider>
       </TorrentSelectionProvider>
     </LayoutRouteProvider>
   )

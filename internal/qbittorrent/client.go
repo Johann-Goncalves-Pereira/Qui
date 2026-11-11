@@ -187,6 +187,7 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 
 	syncOpts.OnError = client.handleSyncManagerError
 	syncOpts.BeforeFullUpdate = client.refreshCapabilitiesBeforeFullUpdate
+	syncOpts.OnTorrentsLeftOut = client.handleTorrentsLeftOut
 
 	client.syncManager = qbtClient.NewSyncManager(syncOpts)
 	// The tracker manager did not exist during the capability refresh above.
@@ -284,6 +285,14 @@ func (c *Client) handleSyncManagerError(err error) {
 	log.Warn().Err(err).Int("instanceID", c.instanceID).Msg("Sync manager error received, marking client as unhealthy")
 
 	c.dispatchSyncError(err)
+}
+
+// Before 5.3.0rc1, qBittorrent sends such a diff after it lost a sync response.
+func (c *Client) handleTorrentsLeftOut(hashes []string) {
+	log.Warn().
+		Int("instanceID", c.instanceID).
+		Int("torrents", len(hashes)).
+		Msg("qBittorrent sent new torrents with missing fields, waiting for the next full sync update")
 }
 
 // isContextStopped recognizes explicit context cancellation even after retry wrappers flatten the sentinel.
@@ -496,6 +505,17 @@ func (c *Client) getTorrentsByHashes(hashes []string) []qbt.Torrent {
 	}
 
 	return syncManager.GetTorrents(qbt.TorrentFilterOptions{Hashes: hashes})
+}
+
+// getTorrentsByHashesUnchecked returns the maindata entries of the hashes,
+// visiting only those, and never starts a sync.
+func (c *Client) getTorrentsByHashesUnchecked(hashes []string) []qbt.Torrent {
+	syncManager := c.GetSyncManager()
+	if syncManager == nil {
+		return nil
+	}
+
+	return syncManager.GetTorrentsUnchecked(qbt.TorrentFilterOptions{Hashes: hashes})
 }
 
 func (c *Client) HealthCheck(ctx context.Context) error {
