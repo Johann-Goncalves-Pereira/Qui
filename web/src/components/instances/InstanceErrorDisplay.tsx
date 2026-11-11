@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/tooltip"
 import { formatErrorMessage } from "@/lib/format-error-message"
 import type { InstanceResponse } from "@/types"
-import { AlertCircle, ChevronDown, Edit, KeyRound, XCircle } from "lucide-react"
+import { AlertCircle, Check, ChevronDown, Copy, Edit, KeyRound, XCircle } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
+import { useDockerServices } from "@/hooks/useDockerServices"
+import { toast } from "sonner"
 
 interface InstanceErrorDisplayProps {
   instance: InstanceResponse
@@ -53,6 +55,29 @@ export function InstanceErrorDisplay({
   const [isDecryptionOpen, setIsDecryptionOpen] = useState(compact)
   const [isRecentErrorsOpen, setIsRecentErrorsOpen] = useState(compact)
   const { formatTimestamp } = useDateTimeFormatters()
+  const { getQBitConfig } = useDockerServices()
+  const [copiedContainerPass, setCopiedContainerPass] = useState(false)
+  const [isCopyingPass, setIsCopyingPass] = useState(false)
+
+  const handleCopyContainerPass = async () => {
+    try {
+      setIsCopyingPass(true)
+      const qbitConfig = await getQBitConfig()
+      if (qbitConfig.password) {
+        await navigator.clipboard.writeText(qbitConfig.password)
+        setCopiedContainerPass(true)
+        toast.success(t("errorDisplay.copiedContainerPassword"))
+        setTimeout(() => setCopiedContainerPass(false), 2000)
+      } else {
+        toast.error(t("errorDisplay.noContainerPasswordFound"))
+      }
+    } catch (err) {
+      console.error("[InstanceErrorDisplay] copy container password failed:", err)
+      toast.error(t("errorDisplay.failedToCopyPassword"))
+    } finally {
+      setIsCopyingPass(false)
+    }
+  }
 
   const hasAuthError =
     !instance.connected &&
@@ -83,17 +108,36 @@ export function InstanceErrorDisplay({
           <span>{t("errorDisplay.authGuideStep2")}</span>
         </div>
       </div>
-      {showEditButton && onEdit && (
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
         <Button
-          onClick={onEdit}
+          type="button"
+          onClick={() => void handleCopyContainerPass()}
           size="sm"
           variant="outline"
-          className="mt-2.5 h-7 px-3 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
+          disabled={isCopyingPass}
+          className="h-7 px-3 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
         >
-          <Edit className="mr-1.5 h-3 w-3" />
-          {t("errorDisplay.configureCredentials")}
+          {copiedContainerPass ? (
+            <Check className="mr-1.5 h-3 w-3 text-emerald-400" />
+          ) : (
+            <Copy className="mr-1.5 h-3 w-3" />
+          )}
+          {copiedContainerPass
+            ? t("errorDisplay.copiedPassword")
+            : t("errorDisplay.copyContainerPassword")}
         </Button>
-      )}
+        {showEditButton && onEdit && (
+          <Button
+            onClick={onEdit}
+            size="sm"
+            variant="outline"
+            className="h-7 px-3 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
+          >
+            <Edit className="mr-1.5 h-3 w-3" />
+            {t("errorDisplay.configureCredentials")}
+          </Button>
+        )}
+      </div>
     </div>
   ) : null
 

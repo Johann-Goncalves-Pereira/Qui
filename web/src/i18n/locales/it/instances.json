@@ -56,7 +56,12 @@
     "passwordRequired": "Password obbligatoria",
     "decryptionDescription": "Impossibile decifrare la password salvata. Di solito accade quando il segreto della sessione è cambiato.",
     "reenterPassword": "Inserisci di nuovo la password",
-    "recentErrors": "Errori recenti ({{count}})"
+    "recentErrors": "Errori recenti ({{count}})",
+    "copyContainerPassword": "Copy Container Password",
+    "copiedPassword": "Password Copied",
+    "copiedContainerPassword": "Container password copied to clipboard",
+    "noContainerPasswordFound": "No temporary password detected in container logs",
+    "failedToCopyPassword": "Failed to copy password"
   },
   "form": {
     "labels": {

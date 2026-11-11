@@ -56,7 +56,12 @@
     "passwordRequired": "Mot de passe requis",
     "decryptionDescription": "Impossible de déchiffrer le mot de passe sauvegardé. Cela arrive généralement lorsque le secret de session a changé.",
     "reenterPassword": "Ré-entrez le mot de passe",
-    "recentErrors": "Erreurs récentes ({{count}})"
+    "recentErrors": "Erreurs récentes ({{count}})",
+    "copyContainerPassword": "Copy Container Password",
+    "copiedPassword": "Password Copied",
+    "copiedContainerPassword": "Container password copied to clipboard",
+    "noContainerPasswordFound": "No temporary password detected in container logs",
+    "failedToCopyPassword": "Failed to copy password"
   },
   "form": {
     "labels": {

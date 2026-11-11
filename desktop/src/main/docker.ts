@@ -33,6 +33,7 @@ import {
 	VPN_IMAGE,
 } from '../shared/constants.js'
 import {
+	isQuiForkImage,
 	quiDesktopImageArchiveUrl,
 	quiEmbeddedImageArchiveRelativePath,
 } from '../shared/qui-image.js'
@@ -567,6 +568,13 @@ export class DockerManager {
 			// missing locally
 		}
 
+		// Third-party images (such as qBittorrent or Gazelle) must only be pulled from their registry,
+		// never retagged from local qui-desktop or embedded Qui release bundles.
+		if (!isQuiForkImage(image)) {
+			await this.executor.exec('docker', ['pull', image])
+			return
+		}
+
 		// First priority for packaged app: load embedded image archive if bundled
 		if (this.resourcesPath) {
 			const embeddedArchive = path.join(
@@ -686,7 +694,7 @@ export class DockerManager {
 			const { stdout: logs } = await this.executor.exec('docker', [
 				'logs',
 				'--tail',
-				'200',
+				'1000',
 				QBIT_CONTAINER_NAME,
 			])
 			const creds = parseQBitCredentialsFromLogs(logs)

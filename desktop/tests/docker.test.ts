@@ -421,7 +421,7 @@ describe('DockerManager', () => {
 			]),
 			stderr: '',
 		}
-		mock.responses[`docker logs --tail 200 ${QBIT_CONTAINER_NAME}`] = {
+		mock.responses[`docker logs --tail 1000 ${QBIT_CONTAINER_NAME}`] = {
 			stdout:
 				'The WebUI administrator username is: admin\nA temporary password is provided for this session: secretSessionKey123\n',
 			stderr: '',
@@ -889,5 +889,56 @@ describe('DockerManager', () => {
 					c.args[2] === 'ghcr.io/johann-goncalves-pereira/qui:0.0.9',
 			),
 		).toBe(true)
+	})
+
+	it('pullIfMissing pulls third-party images directly without retagging qui-desktop:local (BR-desktop-43)', async () => {
+		const mock = new MockDockerExecutor()
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (args[0] === 'image' && args[1] === 'inspect') {
+				throw new Error('No such image')
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const manager = new DockerManager(
+			mock,
+			() => {},
+			QUI_IMAGE_RELEASE,
+			() => true,
+			undefined,
+			undefined,
+			'arm64',
+			'/Applications/Qui.app/Contents/Resources',
+		)
+
+		await manager.applyQBitConfig({
+			port: 8080,
+			peerPort: 6881,
+			configPath: '/qbit/config',
+			downloadsPath: '/qbit/downloads',
+			restartPolicy: 'unless-stopped',
+			image: 'lscr.io/linuxserver/qbittorrent:latest',
+		})
+
+		// Must pull qBittorrent directly
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'pull' &&
+					c.args[1] === 'lscr.io/linuxserver/qbittorrent:latest',
+			),
+		).toBe(true)
+
+		// Must NEVER load qui embedded archive or retag qui-desktop:local to qbittorrent
+		expect(
+			mock.executedCommands.some(
+				c =>
+					c.command === 'docker' &&
+					c.args[0] === 'tag' &&
+					c.args[2] === 'lscr.io/linuxserver/qbittorrent:latest',
+			),
+		).toBe(false)
 	})
 })

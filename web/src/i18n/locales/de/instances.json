@@ -56,7 +56,12 @@
     "passwordRequired": "Passwort erforderlich",
     "decryptionDescription": "Das gespeicherte Passwort kann nicht entschlüsselt werden. Das passiert üblicherweise, wenn sich das Session-Secret geändert hat.",
     "reenterPassword": "Passwort erneut eingeben",
-    "recentErrors": "Letzte Fehler ({{count}})"
+    "recentErrors": "Letzte Fehler ({{count}})",
+    "copyContainerPassword": "Copy Container Password",
+    "copiedPassword": "Password Copied",
+    "copiedContainerPassword": "Container password copied to clipboard",
+    "noContainerPasswordFound": "No temporary password detected in container logs",
+    "failedToCopyPassword": "Failed to copy password"
   },
   "form": {
     "labels": {

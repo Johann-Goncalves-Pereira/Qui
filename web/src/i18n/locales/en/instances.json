@@ -61,7 +61,12 @@
     "authGuideDescription": "Modern qBittorrent (v4.6.1+) generates an administrator password on initial start and rejects unauthenticated connections.",
     "authGuideStep1": "Click the qbittorrent:8080 service badge in the bottom status bar footer to copy the container's generated password.",
     "authGuideStep2": "Edit this instance, set qBittorrent Authentication to Username / Password (default username: admin), paste the password, and save.",
-    "configureCredentials": "Configure Instance Credentials"
+    "configureCredentials": "Configure Instance Credentials",
+    "copyContainerPassword": "Copy Container Password",
+    "copiedPassword": "Password Copied",
+    "copiedContainerPassword": "Container password copied to clipboard",
+    "noContainerPasswordFound": "No temporary password detected in container logs",
+    "failedToCopyPassword": "Failed to copy password"
   },
   "form": {
     "labels": {

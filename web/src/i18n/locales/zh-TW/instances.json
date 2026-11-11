@@ -56,7 +56,12 @@
     "passwordRequired": "需要密碼",
     "decryptionDescription": "無法解密已儲存的密碼。這通常是因為工作階段金鑰已更改。",
     "reenterPassword": "重新輸入密碼",
-    "recentErrors": "近期錯誤（{{count}}）"
+    "recentErrors": "近期錯誤（{{count}}）",
+    "copyContainerPassword": "Copy Container Password",
+    "copiedPassword": "Password Copied",
+    "copiedContainerPassword": "Container password copied to clipboard",
+    "noContainerPasswordFound": "No temporary password detected in container logs",
+    "failedToCopyPassword": "Failed to copy password"
   },
   "form": {
     "labels": {

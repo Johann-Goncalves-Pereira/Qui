@@ -56,7 +56,12 @@
     "passwordRequired": "Heslo je povinné",
     "decryptionDescription": "Nepodařilo se dešifrovat uložené heslo. To obvykle nastane, když se změní session secret.",
     "reenterPassword": "Znovu zadat heslo",
-    "recentErrors": "Poslední Chyby ({{count}})"
+    "recentErrors": "Poslední Chyby ({{count}})",
+    "copyContainerPassword": "Copy Container Password",
+    "copiedPassword": "Password Copied",
+    "copiedContainerPassword": "Container password copied to clipboard",
+    "noContainerPasswordFound": "No temporary password detected in container logs",
+    "failedToCopyPassword": "Failed to copy password"
   },
   "form": {
     "labels": {
