@@ -139,9 +139,8 @@ export function Header({
   const { state: layoutRouteState } = useLayoutRoute()
   const spreadsheetDisguise = useSpreadsheetDisguise()
 
-  const { selection, dispatch: dispatchSelection } = useTorrentSelectionContext()
+  const { selection } = useTorrentSelectionContext()
   const selectionSummary = useTorrentSelectionSummary()
-  const clearSelection = useCallback(() => dispatchSelection({ type: "clear" }), [dispatchSelection])
 
   const selectedInstanceId = layoutRouteState.instanceId
   const isInstanceRoute = selectedInstanceId !== null
@@ -607,10 +606,7 @@ export function Header({
             <div className="sm:w-full sm:basis-full lg:basis-auto lg:w-auto sm:order-5 lg:order-none flex justify-center lg:justify-start lg:ml-2 animate-in fade-in duration-400 ease-out motion-reduce:animate-none motion-reduce:duration-0">
               <TorrentManagementBar
                 instanceId={selectedInstanceId ?? undefined}
-                instanceIds={isAllInstancesRoute && normalizedUnifiedInstanceIds.length > 0 ? normalizedUnifiedInstanceIds : undefined}
                 actionTarget={selectionSummary.actionTarget}
-                totalSelectionSize={selectionSummary.selectedTotalSize}
-                onComplete={clearSelection}
               />
             </div>
           )}

@@ -348,36 +348,41 @@ export function QBitDockerConfigDialog({
                         <span>{isPasswordRevealed ? t("docker.fields.hide") : t("docker.fields.show")}</span>
                       </Button>
                     )}
-                    {config.password && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-foreground"
-                        onClick={() => void handleCopyPass()}
-                      >
-                        {copiedPass ? (
-                          <Check className="h-3 w-3 text-emerald-500" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                        {copiedPass ? t("docker.fields.copied") : t("docker.fields.copy")}
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={!config.password}
+                      className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+                      onClick={() => void handleCopyPass()}
+                      title={config.password ? t("docker.fields.copy") : t("docker.fields.noPasswordDetected")}
+                    >
+                      {copiedPass ? (
+                        <Check className="h-3 w-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                      {copiedPass ? t("docker.fields.copied") : t("docker.fields.copy")}
+                    </Button>
                   </div>
                 </div>
                 <div className="relative">
                   <Input
                     id="qbit-webui-pass"
                     readOnly
-                    type={isPasswordRevealed ? "text" : "password"}
-                    value={config.password || t("docker.fields.noPasswordDetected")}
+                    type={config.password ? (isPasswordRevealed ? "text" : "password") : "text"}
+                    value={config.password || ""}
+                    placeholder={t("docker.fields.noPasswordDetected")}
                     onClick={() => {
                       if (config.password) {
                         setIsPasswordRevealed((prev) => !prev)
                       }
                     }}
-                    className={`h-8 text-xs font-mono bg-background/50 cursor-pointer select-none transition-all duration-200 ${
+                    className={`h-8 text-xs font-mono bg-background/50 ${
+                      config.password
+                        ? `cursor-pointer ${isPasswordRevealed ? "select-all" : "select-none"}`
+                        : "cursor-default text-muted-foreground"
+                    } transition-all duration-200 ${
                       !isPasswordRevealed && config.password ? "blur-[3px] hover:blur-none" : ""
                     }`}
                     title={

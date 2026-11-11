@@ -3,12 +3,24 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { initI18n } from "@/i18n"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { InstanceResponse } from "@/types"
 import { InstanceErrorDisplay, isQBitAuthError } from "./InstanceErrorDisplay"
+
+const mockGetQBitConfig = vi.fn().mockResolvedValue({
+  username: "admin",
+  password: "temporaryPassword123",
+  isTemporaryPassword: true,
+})
+
+vi.mock("@/hooks/useDockerServices", () => ({
+  useDockerServices: () => ({
+    getQBitConfig: mockGetQBitConfig,
+  }),
+}))
 
 describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
   beforeEach(async () => {
@@ -32,7 +44,7 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
     expect(isQBitAuthError(undefined, undefined)).toBe(false)
   })
 
-  it("renders actionable remediation guidance when instance has authentication errors in recentErrors", () => {
+  it("renders actionable remediation guidance when instance has authentication errors in recentErrors", async () => {
     const onEdit = vi.fn()
     const mockInstance: InstanceResponse = {
       id: 1,
@@ -76,6 +88,20 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
     const editBtn = screen.getByRole("button", { name: /Configure Instance Credentials/i })
     fireEvent.click(editBtn)
     expect(onEdit).toHaveBeenCalledTimes(1)
+
+    // Copy container password button copies password to clipboard
+    const clipboardWriteMock = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: clipboardWriteMock,
+      },
+    })
+    const copyPassBtn = screen.getByRole("button", { name: /Copy Container Password/i })
+    await act(async () => {
+      fireEvent.click(copyPassBtn)
+    })
+    expect(mockGetQBitConfig).toHaveBeenCalled()
+    expect(clipboardWriteMock).toHaveBeenCalledWith("temporaryPassword123")
   })
 
   it("renders guidance when extraErrorMessage from connection test contains an authentication failure", () => {

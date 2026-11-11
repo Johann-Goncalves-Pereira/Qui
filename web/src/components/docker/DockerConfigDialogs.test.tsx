@@ -171,4 +171,40 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     })
     expect(clipboardWriteMock).toHaveBeenCalledWith("temporaryPassword123")
   })
+
+  it("renders QBitDockerConfigDialog without password masking when no password is detected in logs", async () => {
+    mockGetQBitConfig.mockResolvedValueOnce({
+      port: 8080,
+      peerPort: 6881,
+      configPath: "/host/qbit",
+      downloadsPath: "/host/downloads",
+      puid: "1000",
+      pgid: "1000",
+      umask: "022",
+      tz: "UTC",
+      restartPolicy: "unless-stopped",
+      image: "lscr.io/linuxserver/qbittorrent:latest",
+      username: "admin",
+      password: "",
+      isTemporaryPassword: false,
+    })
+
+    render(<QBitDockerConfigDialog open={true} onOpenChange={() => {}} />)
+
+    expect(await screen.findByText("WebUI Administrator Credentials")).toBeDefined()
+
+    const passInput = screen.getByLabelText("Password") as HTMLInputElement
+    expect(passInput.type).toBe("text")
+    expect(passInput.value).toBe("")
+    expect(passInput.placeholder).toContain("No password detected in logs")
+    expect(passInput.className).not.toContain("blur-[3px]")
+
+    // Reveal button should not be present
+    expect(screen.queryByRole("button", { name: /Show/i })).toBeNull()
+
+    // Second Copy button (for password) should be disabled
+    const copyButtons = screen.getAllByRole("button", { name: /Copy/i })
+    expect(copyButtons[1]).toBeDefined()
+    expect((copyButtons[1] as HTMLButtonElement).disabled).toBe(true)
+  })
 })

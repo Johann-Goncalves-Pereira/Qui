@@ -23,7 +23,9 @@
 
 import { TorrentTableOptimized } from "@/components/torrents/TorrentTableOptimized"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { TorrentSelectionProvider } from "@/contexts/TorrentSelectionContext"
+import { TorrentSelectionProvider, useTorrentSelectionSummary } from "@/contexts/TorrentSelectionContext"
+import { BulkActionProvider } from "@/components/torrents/bulk-actions/BulkActionProvider"
+import { useBulkActions } from "@/components/torrents/bulk-actions/bulk-actions-context"
 import { usePersistedColumnFilters } from "@/hooks/usePersistedColumnFilters"
 import { usePersistedColumnSorting } from "@/hooks/usePersistedColumnSorting"
 import { api } from "@/lib/api"
@@ -45,8 +47,6 @@ const scenario = vi.hoisted(() => ({
   totalCount: 3,
   // The loaded rows; undefined means `torrents`.
   rows: undefined as Torrent[] | undefined,
-  renameDialogOpen: false,
-  deleteDialogOpen: false,
   totalSize: 0,
   copyGroupsReady: undefined as boolean | undefined,
   // The options that the table last gave the list hook.
@@ -223,37 +223,6 @@ vi.mock("@/hooks/useTorrentsList", () => {
   }
 })
 
-// The action hook that drives dialog state (all dialogs closed). Every handler
-// is the same spy, so a test can read the Action target that an action got.
-const actionHandler = vi.hoisted(() => vi.fn())
-vi.mock("@/hooks/useTorrentActions", () => {
-  const noop = actionHandler
-  const actions = new Proxy(
-    {
-      blockCrossSeeds: false,
-      deleteCrossSeeds: false,
-      deleteFiles: false,
-      isDeleteFilesLocked: false,
-      pendingTmmEnable: false,
-      isPending: false,
-    } as Record<string, unknown>,
-    {
-      // Unknown dialog flags read as falsy; unknown handlers read as no-ops.
-      get(target, prop: string) {
-        if (prop in target) return target[prop]
-        if (prop === "showRenameTorrentDialog") return scenario.renameDialogOpen
-        if (prop === "showDeleteDialog") return scenario.deleteDialogOpen
-        if (prop.startsWith("show")) return false
-        return noop
-      },
-    }
-  )
-  return {
-    TORRENT_ACTIONS: { DELETE: "delete" },
-    useTorrentActions: () => actions,
-  }
-})
-
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -270,21 +239,36 @@ function checkedRows(container: HTMLElement) {
   return torrents.map(t => t.name).filter(name => isRowChecked(container, name))
 }
 
-// Opens the menu of the row and clicks Pause. Returns the ticked hashes of the Action target, undefined in Select all mode.
+// The Action target that the table publishes to the bulk action module.
+let publishedTarget: ActionTarget | undefined
+let bulkPick: ReturnType<typeof useBulkActions>["pick"] = () => {}
+function PublishedTargetProbe() {
+  publishedTarget = useTorrentSelectionSummary()?.actionTarget
+  bulkPick = useBulkActions().pick
+  return null
+}
+
+// Opens the menu of the row and clicks Pause. Returns the ticked hashes of the request, undefined in Select all mode.
 async function pauseFromMenu(container: HTMLElement, name: string, findByRole: (role: string, options: { name: RegExp }) => Promise<HTMLElement>) {
   fireEvent.contextMenu(within(container).getByText(name))
   fireEvent.click(await findByRole("menuitem", { name: /^contextMenu\.pause/ }))
-  await waitFor(() => expect(actionHandler).toHaveBeenCalled())
-  return (actionHandler.mock.calls[0][1] as { hashes?: string[] }).hashes
+  await waitFor(() => expect(api.bulkAction).toHaveBeenCalled())
+  const [, body] = vi.mocked(api.bulkAction).mock.calls[0]
+  return body.selectAll ? undefined : body.hashes
 }
 
 function renderTable(props: Partial<ComponentProps<typeof TorrentTableOptimized>> = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <TorrentSelectionProvider>
-        <TooltipProvider>{children}</TooltipProvider>
-      </TorrentSelectionProvider>
+      <TooltipProvider>
+        <TorrentSelectionProvider>
+          <BulkActionProvider>
+            <PublishedTargetProbe />
+            {children}
+          </BulkActionProvider>
+        </TorrentSelectionProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   )
   return render(<TorrentTableOptimized instanceId={1} filters={makeFilters()} {...props} />, { wrapper })
@@ -297,7 +281,6 @@ describe("TorrentTableOptimized smoke", () => {
     scenario.isCrossSeedFiltering = false
     scenario.totalCount = torrents.length
     scenario.rows = undefined
-    scenario.renameDialogOpen = false
   })
 
   it("renders a row for each torrent", () => {
@@ -531,8 +514,6 @@ describe("TorrentTableOptimized Copy groups", () => {
     scenario.routeSearch = ""
     scenario.isCrossSeedFiltering = false
     scenario.rows = undefined
-    scenario.renameDialogOpen = false
-    scenario.deleteDialogOpen = false
     scenario.totalSize = 0
     scenario.copyGroupsReady = undefined
   })
@@ -635,8 +616,7 @@ describe("TorrentTableOptimized Copy groups", () => {
       expect(onTorrentSelect).toHaveBeenLastCalledWith(rows[0])
 
       fireEvent.contextMenu(within(view.container).getByText("Alpha Copy Of Delta"))
-      scenario.renameDialogOpen = true
-      view.showRows(rows)
+      act(() => bulkPick({ action: "renameTorrent" }))
 
       const input = await view.findByDisplayValue("Delta Release")
       expect((input as HTMLInputElement).value).toBe("Delta Release")
@@ -706,42 +686,26 @@ describe("TorrentTableOptimized Copy groups", () => {
     expect(container.textContent).not.toBe(seedingText)
   })
 
-  describe("the tooltip of the pill", () => {
+  it("shows no tooltip on the pill on a device that can hover", () => {
     // jsdom has no matchMedia; without one, the device counts as one that cannot hover.
-    function setCanHover(canHover: boolean) {
-      window.matchMedia = ((query: string) => ({
-        matches: canHover && query === "(hover: hover)",
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-      })) as unknown as typeof window.matchMedia
-    }
-
-    afterEach(() => {
-      delete (window as { matchMedia?: unknown }).matchMedia
-    })
-
-    it("names the pill on a device that can hover", async () => {
-      setCanHover(true)
-      const { container, findByRole } = renderGroups(copyGroupRows())
+    window.matchMedia = ((query: string) => ({
+      matches: query === "(hover: hover)",
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    })) as unknown as typeof window.matchMedia
+    try {
+      const { container, queryByRole } = renderGroups(copyGroupRows())
 
       // A keyboard user tabs to the pill.
       fireEvent.keyDown(pills(container)[0], { key: "Tab" })
       act(() => pills(container)[0].focus())
 
-      expect((await findByRole("tooltip")).textContent).toContain("copyGroups.copies {\"count\":2,\"name\":\"Delta Release\"}")
-    })
-
-    it("stays closed on a tap on a touch screen, which only opens the group", () => {
-      setCanHover(false)
-      const { container, queryByRole } = renderGroups(copyGroupRows())
-
-      fireEvent.pointerDown(pills(container)[0], { pointerType: "touch" })
-      fireEvent.click(pills(container)[0])
-
-      expect(pills(container)[0].getAttribute("aria-expanded")).toBe("true")
+      expect(pills(container)[0].getAttribute("aria-label")).toContain("copyGroups.copies {\"count\":2,\"name\":\"Delta Release\"}")
       expect(queryByRole("tooltip")).toBeNull()
-    })
+    } finally {
+      delete (window as { matchMedia?: unknown }).matchMedia
+    }
   })
 
   // regression: #3922
@@ -759,7 +723,7 @@ describe("TorrentTableOptimized Copy groups", () => {
   })
 
   describe("selection", () => {
-    const actionTargetOf = (call = 0) => actionHandler.mock.calls[call][1] as ActionTarget
+    const actionTargetOf = () => publishedTarget!
     const headerCheckbox = (container: HTMLElement) => container.querySelector("[role=\"checkbox\"]") as HTMLElement
     const pillText = (container: HTMLElement) => pills(container)[0].textContent
 
@@ -852,7 +816,7 @@ describe("TorrentTableOptimized Copy groups", () => {
         await pauseFromMenu(container, "Echo Release", findByRole)
         const target = actionTargetOf()
         unmount()
-        actionHandler.mockClear()
+        vi.mocked(api.bulkAction).mockClear()
         return target.kind === "selectAll" ? target.selectAll : undefined
       }
       const flat = await selectAllRequest(copyGroupRows().map(({ copy_group: _, ...row }) => row as Torrent))
@@ -882,8 +846,8 @@ describe("TorrentTableOptimized Copy groups", () => {
       })
       const view = renderGroups(copyGroupRows())
       fireEvent.click(within(view.container).getByText("Delta Release"), { ctrlKey: true })
-      scenario.deleteDialogOpen = true
-      view.showRows(copyGroupRows())
+      fireEvent.contextMenu(within(view.container).getByText("Delta Release"))
+      fireEvent.click(await view.findByRole("menuitem", { name: /^contextMenu\.delete/ }))
 
       fireEvent.click(await view.findByRole("button", { name: "crossSeedWarning.idle.check" }))
       fireEvent.click(await view.findByText("crossSeedWarning.showAffected"))
@@ -975,18 +939,23 @@ describe("TorrentTableOptimized Group copies switch", () => {
     expect(container.textContent?.includes("copyGroups.grouping")).toBe(shown)
   })
 
-  it.each([
-    ["on a phone", () => {
-      window.matchMedia = ((query: string) => ({
-        matches: query === "(max-width: 767px)",
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-      })) as unknown as typeof window.matchMedia
-    }],
-    ["in the demo", () => { scenario.isDemo = true }],
-  ])("asks for no groups and shows no switch %s", async (_, setUp) => {
-    setUp()
+  // A phone reaches this table in the Unified view.
+  it("asks for groups and shows the switch on a phone", async () => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === "(max-width: 767px)",
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    })) as unknown as typeof window.matchMedia
+    localStorage.setItem(GROUP_COPIES_KEY, "true")
+    const view = renderTable()
+
+    expect(scenario.listOptions?.groupCopies).toBe(true)
+    expect((await listMenuItem(view, "menuitemcheckbox", "copyGroups.groupCopies")).getAttribute("aria-checked")).toBe("true")
+  })
+
+  it("asks for no groups and shows no switch in the demo", async () => {
+    scenario.isDemo = true
     localStorage.setItem(GROUP_COPIES_KEY, "true")
     const view = renderTable()
 

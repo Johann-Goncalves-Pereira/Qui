@@ -92,3 +92,14 @@ export function resolveQuiImage(options: ResolveQuiImageOptions): string {
 	}
 	return getVersionedQuiImage(options.version)
 }
+
+/** Returns true if the image is a Qui fork image rather than a third-party companion image. */
+export function isQuiForkImage(image: string): boolean {
+	return (
+		image === QUI_IMAGE_LOCAL ||
+		image.startsWith(QUI_IMAGE_BASE) ||
+		image.startsWith('ghcr.io/autobrr/qui') ||
+		image.includes('/qui:') ||
+		image.endsWith('/qui')
+	)
+}
