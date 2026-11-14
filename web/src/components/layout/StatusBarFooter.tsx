@@ -11,9 +11,9 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { QBitDockerConfigDialog } from "@/components/docker/QBitDockerConfigDialog"
-import { QuiDockerConfigDialog } from "@/components/docker/QuiDockerConfigDialog"
-import { useDockerServices } from "@/hooks/useDockerServices"
+import { QBitPodmanConfigDialog } from "@/components/podman/QBitPodmanConfigDialog"
+import { QuiPodmanConfigDialog } from "@/components/podman/QuiPodmanConfigDialog"
+import { usePodmanServices } from "@/hooks/usePodmanServices"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
 import { getAppVersion } from "@/lib/build-info"
 import { cn } from "@/lib/utils"
@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next"
 
 export function StatusBarFooter() {
   const { t, i18n } = useTranslation("common")
-  const { statuses } = useDockerServices()
+  const { statuses } = usePodmanServices()
   const { isFooterVisible } = useMobileScroll()
 
   const [quiDialogOpen, setQuiDialogOpen] = useState(false)
@@ -41,7 +41,7 @@ export function StatusBarFooter() {
           isFooterVisible ? "mb-[calc(4rem+env(safe-area-inset-bottom))] lg:mb-0" : "mb-0"
         )}
       >
-        {/* Left: Docker Services Status & Config Triggers */}
+        {/* Left: Podman Services Status & Config Triggers */}
         <div className="flex items-center gap-1.5 min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -203,12 +203,12 @@ export function StatusBarFooter() {
         </div>
       </footer>
 
-      {/* Docker Configuration Modals */}
-      <QuiDockerConfigDialog
+      {/* Podman Configuration Modals */}
+      <QuiPodmanConfigDialog
         open={quiDialogOpen}
         onOpenChange={setQuiDialogOpen}
       />
-      <QBitDockerConfigDialog
+      <QBitPodmanConfigDialog
         open={qbitDialogOpen}
         onOpenChange={setQbitDialogOpen}
       />

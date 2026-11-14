@@ -21,31 +21,31 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { type QBitContainerConfig, useDockerServices } from "@/hooks/useDockerServices"
+import { type QBitContainerConfig, usePodmanServices } from "@/hooks/usePodmanServices"
 import type { TFunction } from "i18next"
 import { Check, Copy, Eye, EyeOff, Info, KeyRound, Loader2, RotateCw } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-interface QBitDockerConfigDialogProps {
+interface QBitPodmanConfigDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 function containerStateLabel(state: string, t: TFunction<"common">): string {
-  const key = `docker.state.${state}` as const
+  const key = `podman.state.${state}` as const
   const translated = t(key)
   return translated === key ? state : translated
 }
 
-export function QBitDockerConfigDialog({
+export function QBitPodmanConfigDialog({
   open,
   onOpenChange,
-}: QBitDockerConfigDialogProps) {
+}: QBitPodmanConfigDialogProps) {
   const { t } = useTranslation("common")
   const { getQBitConfig, saveQBitConfig, restartContainer, statuses } =
-    useDockerServices()
+    usePodmanServices()
 
   const [config, setConfig] = useState<QBitContainerConfig>({
     port: 8080,
@@ -105,10 +105,10 @@ export function QBitDockerConfigDialog({
     try {
       await navigator.clipboard.writeText(user)
       setCopiedUser(true)
-      toast.success(t("docker.toast.copiedUsername") || "Username copied to clipboard")
+      toast.success(t("podman.toast.copiedUsername") || "Username copied to clipboard")
     } catch (err) {
-      console.error("[QBitDockerConfigDialog] copy user failed:", err)
-      toast.error(t("docker.toast.copyCommandFailed"))
+      console.error("[QBitPodmanConfigDialog] copy user failed:", err)
+      toast.error(t("podman.toast.copyCommandFailed"))
     }
   }
 
@@ -119,10 +119,10 @@ export function QBitDockerConfigDialog({
     try {
       await navigator.clipboard.writeText(config.password)
       setCopiedPass(true)
-      toast.success(t("docker.toast.copiedPassword") || "Password copied to clipboard")
+      toast.success(t("podman.toast.copiedPassword") || "Password copied to clipboard")
     } catch (err) {
-      console.error("[QBitDockerConfigDialog] copy pass failed:", err)
-      toast.error(t("docker.toast.copyCommandFailed"))
+      console.error("[QBitPodmanConfigDialog] copy pass failed:", err)
+      toast.error(t("podman.toast.copyCommandFailed"))
     }
   }
 
@@ -131,14 +131,14 @@ export function QBitDockerConfigDialog({
       setIsSaving(true)
       const res = await saveQBitConfig(config)
       if (res.success) {
-        toast.success(t("docker.toast.qbitSaved"))
+        toast.success(t("podman.toast.qbitSaved"))
         onOpenChange(false)
       } else {
-        toast.error(res.error || t("docker.toast.saveFailed"))
+        toast.error(res.error || t("podman.toast.saveFailed"))
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("docker.toast.genericSaveError")
+        err instanceof Error ? err.message : t("podman.toast.genericSaveError")
       )
     } finally {
       setIsSaving(false)
@@ -150,23 +150,23 @@ export function QBitDockerConfigDialog({
       setIsRestarting(true)
       const res = await restartContainer("qbittorrent-nox")
       if (res.success) {
-        toast.success(t("docker.toast.qbitRestartStarted"))
+        toast.success(t("podman.toast.qbitRestartStarted"))
       } else {
-        toast.error(res.error || t("docker.toast.restartFailed"))
+        toast.error(res.error || t("podman.toast.restartFailed"))
       }
     } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
-          : t("docker.toast.genericRestartError")
+          : t("podman.toast.genericRestartError")
       )
     } finally {
       setIsRestarting(false)
     }
   }
 
-  const dockerRunSnippet = [
-    "docker run -d",
+  const podmanRunSnippet = [
+    "podman run -d",
     "--name qbittorrent-nox",
     `-p ${config.port}:8080`,
     `-p ${config.peerPort}:6881/tcp`,
@@ -185,12 +185,12 @@ export function QBitDockerConfigDialog({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(dockerRunSnippet)
+      await navigator.clipboard.writeText(podmanRunSnippet)
       setCopied(true)
-      toast.success(t("docker.toast.copyCommandSuccess"))
+      toast.success(t("podman.toast.copyCommandSuccess"))
     } catch (err) {
-      console.error("[QBitDockerConfigDialog] clipboard write failed:", err)
-      toast.error(t("docker.toast.copyCommandFailed"))
+      console.error("[QBitPodmanConfigDialog] clipboard write failed:", err)
+      toast.error(t("podman.toast.copyCommandFailed"))
     }
   }
 
@@ -200,7 +200,7 @@ export function QBitDockerConfigDialog({
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-              <span>{t("docker.qbit.title")}</span>
+              <span>{t("podman.qbit.title")}</span>
               <span
                 className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                   statuses.qbit.state === "running"
@@ -214,7 +214,7 @@ export function QBitDockerConfigDialog({
           </div>
           <DialogDescription className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
             <Info className="h-3.5 w-3.5 flex-shrink-0" />
-            {t("docker.qbit.description")}
+            {t("podman.qbit.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -222,7 +222,7 @@ export function QBitDockerConfigDialog({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="qbit-port" className="text-xs font-medium">
-                {t("docker.fields.hostWebUiPort")}
+                {t("podman.fields.hostWebUiPort")}
               </Label>
               <Input
                 id="qbit-port"
@@ -237,13 +237,13 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.qbitPortMappedHelp")}
+                {t("podman.fields.qbitPortMappedHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qbit-peer-port" className="text-xs font-medium">
-                {t("docker.fields.bitTorrentPeerPort")}
+                {t("podman.fields.bitTorrentPeerPort")}
               </Label>
               <Input
                 id="qbit-peer-port"
@@ -258,13 +258,13 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.peerPortHelp")}
+                {t("podman.fields.peerPortHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qbit-image" className="text-xs font-medium">
-                {t("docker.fields.dockerImage")}
+                {t("podman.fields.podmanImage")}
               </Label>
               <Input
                 id="qbit-image"
@@ -275,7 +275,7 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.qbitImageHelp")}
+                {t("podman.fields.qbitImageHelp")}
               </p>
             </div>
           </div>
@@ -285,11 +285,11 @@ export function QBitDockerConfigDialog({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                 <KeyRound className="h-3.5 w-3.5 text-primary" />
-                <span>{t("docker.fields.webUiCredentials")}</span>
+                <span>{t("podman.fields.webUiCredentials")}</span>
               </div>
               {config.isTemporaryPassword && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/15 text-amber-500 border border-amber-500/20">
-                  {t("docker.fields.temporarySessionPassword")}
+                  {t("podman.fields.temporarySessionPassword")}
                 </span>
               )}
             </div>
@@ -298,7 +298,7 @@ export function QBitDockerConfigDialog({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="qbit-webui-user" className="text-xs">
-                    {t("docker.fields.webUiUsername")}
+                    {t("podman.fields.webUiUsername")}
                   </Label>
                   <Button
                     type="button"
@@ -312,7 +312,7 @@ export function QBitDockerConfigDialog({
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
-                    {copiedUser ? t("docker.fields.copied") : t("docker.fields.copy")}
+                    {copiedUser ? t("podman.fields.copied") : t("podman.fields.copy")}
                   </Button>
                 </div>
                 <Input
@@ -321,14 +321,14 @@ export function QBitDockerConfigDialog({
                   value={config.username || "admin"}
                   className="h-8 text-xs font-mono bg-background/50 cursor-pointer"
                   onClick={() => void handleCopyUser()}
-                  title={t("docker.fields.clickToCopy")}
+                  title={t("podman.fields.clickToCopy")}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="qbit-webui-pass" className="text-xs">
-                    {t("docker.fields.webUiPassword")}
+                    {t("podman.fields.webUiPassword")}
                   </Label>
                   <div className="flex items-center gap-1">
                     {config.password && (
@@ -338,14 +338,14 @@ export function QBitDockerConfigDialog({
                         size="sm"
                         className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-foreground"
                         onClick={() => setIsPasswordRevealed((prev) => !prev)}
-                        title={isPasswordRevealed ? t("docker.fields.hide") : t("docker.fields.show")}
+                        title={isPasswordRevealed ? t("podman.fields.hide") : t("podman.fields.show")}
                       >
                         {isPasswordRevealed ? (
                           <EyeOff className="h-3 w-3" />
                         ) : (
                           <Eye className="h-3 w-3" />
                         )}
-                        <span>{isPasswordRevealed ? t("docker.fields.hide") : t("docker.fields.show")}</span>
+                        <span>{isPasswordRevealed ? t("podman.fields.hide") : t("podman.fields.show")}</span>
                       </Button>
                     )}
                     <Button
@@ -355,14 +355,14 @@ export function QBitDockerConfigDialog({
                       disabled={!config.password}
                       className="h-5 text-[10px] gap-1 px-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
                       onClick={() => void handleCopyPass()}
-                      title={config.password ? t("docker.fields.copy") : t("docker.fields.noPasswordDetected")}
+                      title={config.password ? t("podman.fields.copy") : t("podman.fields.noPasswordDetected")}
                     >
                       {copiedPass ? (
                         <Check className="h-3 w-3 text-emerald-500" />
                       ) : (
                         <Copy className="h-3 w-3" />
                       )}
-                      {copiedPass ? t("docker.fields.copied") : t("docker.fields.copy")}
+                      {copiedPass ? t("podman.fields.copied") : t("podman.fields.copy")}
                     </Button>
                   </div>
                 </div>
@@ -372,7 +372,7 @@ export function QBitDockerConfigDialog({
                     readOnly
                     type={config.password ? (isPasswordRevealed ? "text" : "password") : "text"}
                     value={config.password || ""}
-                    placeholder={t("docker.fields.noPasswordDetected")}
+                    placeholder={t("podman.fields.noPasswordDetected")}
                     onClick={() => {
                       if (config.password) {
                         setIsPasswordRevealed((prev) => !prev)
@@ -387,8 +387,8 @@ export function QBitDockerConfigDialog({
                     }`}
                     title={
                       config.password
-                        ? (isPasswordRevealed ? t("docker.fields.hide") : t("docker.fields.show"))
-                        : t("docker.fields.noPasswordDetected")
+                        ? (isPasswordRevealed ? t("podman.fields.hide") : t("podman.fields.show"))
+                        : t("podman.fields.noPasswordDetected")
                     }
                   />
                 </div>
@@ -397,19 +397,19 @@ export function QBitDockerConfigDialog({
 
             <p className="text-[11px] text-muted-foreground">
               {config.password
-                ? t("docker.fields.webUiCredentialsHelp")
-                : t("docker.fields.webUiCredentialsManualHelp")}
+                ? t("podman.fields.webUiCredentialsHelp")
+                : t("podman.fields.webUiCredentialsManualHelp")}
             </p>
           </div>
 
           <div className="space-y-3 rounded-lg border border-border/50 p-3 bg-muted/20">
             <div className="text-xs font-medium text-foreground">
-              {t("docker.fields.volumeBindMounts")}
+              {t("podman.fields.volumeBindMounts")}
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qbit-config-path" className="text-xs">
-                {t("docker.fields.hostConfigDirQbit")}
+                {t("podman.fields.hostConfigDirQbit")}
               </Label>
               <Input
                 id="qbit-config-path"
@@ -420,13 +420,13 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.hostConfigDirQbitHelp")}
+                {t("podman.fields.hostConfigDirQbitHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qbit-downloads-path" className="text-xs">
-                {t("docker.fields.hostDownloadsDir")}
+                {t("podman.fields.hostDownloadsDir")}
               </Label>
               <Input
                 id="qbit-downloads-path"
@@ -437,7 +437,7 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.hostDownloadsHelp")}
+                {t("podman.fields.hostDownloadsHelp")}
               </p>
             </div>
           </div>
@@ -445,7 +445,7 @@ export function QBitDockerConfigDialog({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="qbit-puid" className="text-xs">
-                {t("docker.fields.puid")}
+                {t("podman.fields.puid")}
               </Label>
               <Input
                 id="qbit-puid"
@@ -456,13 +456,13 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.puidHelp")}
+                {t("podman.fields.puidHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qbit-pgid" className="text-xs">
-                {t("docker.fields.pgid")}
+                {t("podman.fields.pgid")}
               </Label>
               <Input
                 id="qbit-pgid"
@@ -473,13 +473,13 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.pgidHelp")}
+                {t("podman.fields.pgidHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qbit-umask" className="text-xs">
-                {t("docker.fields.umask")}
+                {t("podman.fields.umask")}
               </Label>
               <Input
                 id="qbit-umask"
@@ -490,7 +490,7 @@ export function QBitDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.umaskHelpQbit")}
+                {t("podman.fields.umaskHelpQbit")}
               </p>
             </div>
           </div>
@@ -498,7 +498,7 @@ export function QBitDockerConfigDialog({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="qbit-restart" className="text-xs">
-                {t("docker.fields.restartPolicy")}
+                {t("podman.fields.restartPolicy")}
               </Label>
               <Select
                 value={config.restartPolicy || "unless-stopped"}
@@ -508,21 +508,21 @@ export function QBitDockerConfigDialog({
               >
                 <SelectTrigger id="qbit-restart" className="h-8 text-xs">
                   <SelectValue
-                    placeholder={t("docker.fields.restartPolicyPlaceholder")}
+                    placeholder={t("podman.fields.restartPolicyPlaceholder")}
                   />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unless-stopped">
-                    {t("docker.fields.restartPolicyOption.unlessStopped")}
+                    {t("podman.fields.restartPolicyOption.unlessStopped")}
                   </SelectItem>
                   <SelectItem value="always">
-                    {t("docker.fields.restartPolicyOption.always")}
+                    {t("podman.fields.restartPolicyOption.always")}
                   </SelectItem>
                   <SelectItem value="on-failure">
-                    {t("docker.fields.restartPolicyOption.onFailure")}
+                    {t("podman.fields.restartPolicyOption.onFailure")}
                   </SelectItem>
                   <SelectItem value="no">
-                    {t("docker.fields.restartPolicyOption.no")}
+                    {t("podman.fields.restartPolicyOption.no")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -530,7 +530,7 @@ export function QBitDockerConfigDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="qbit-tz" className="text-xs">
-                {t("docker.fields.timezone")}
+                {t("podman.fields.timezone")}
               </Label>
               <Input
                 id="qbit-tz"
@@ -544,7 +544,7 @@ export function QBitDockerConfigDialog({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium">
-                {t("docker.fields.dockerCommandPreview")}
+                {t("podman.fields.podmanCommandPreview")}
               </Label>
               <Button
                 type="button"
@@ -558,11 +558,11 @@ export function QBitDockerConfigDialog({
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}
-                {copied ? t("docker.fields.copied") : t("docker.fields.copy")}
+                {copied ? t("podman.fields.copied") : t("podman.fields.copy")}
               </Button>
             </div>
             <pre className="p-2.5 rounded bg-muted/60 text-[11px] font-mono whitespace-pre-wrap overflow-x-auto text-muted-foreground border border-border/40">
-              {dockerRunSnippet}
+              {podmanRunSnippet}
             </pre>
           </div>
         </div>
@@ -581,7 +581,7 @@ export function QBitDockerConfigDialog({
             ) : (
               <RotateCw className="h-3.5 w-3.5" />
             )}
-            {t("docker.actions.restartContainer")}
+            {t("podman.actions.restartContainer")}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -592,7 +592,7 @@ export function QBitDockerConfigDialog({
               onClick={() => onOpenChange(false)}
               className="text-xs"
             >
-              {t("docker.actions.cancel")}
+              {t("podman.actions.cancel")}
             </Button>
             <Button
               type="button"
@@ -602,7 +602,7 @@ export function QBitDockerConfigDialog({
               className="text-xs"
             >
               {isSaving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              {t("docker.actions.saveApply")}
+              {t("podman.actions.saveApply")}
             </Button>
           </div>
         </DialogFooter>

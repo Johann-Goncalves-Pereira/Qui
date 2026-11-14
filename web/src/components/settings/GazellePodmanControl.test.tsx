@@ -6,9 +6,9 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import "@/i18n"
-import { GazelleDockerControl } from "./GazelleDockerControl"
+import { GazellePodmanControl } from "./GazellePodmanControl"
 
-describe("GazelleDockerControl (BR-desktop-15)", () => {
+describe("GazellePodmanControl (BR-desktop-15)", () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
@@ -17,7 +17,7 @@ describe("GazelleDockerControl (BR-desktop-15)", () => {
 
   it("renders null when window.quiDesktop is undefined (standalone browser fallback)", () => {
     delete (window as unknown as { quiDesktop?: unknown }).quiDesktop
-    const { container } = render(<GazelleDockerControl />)
+    const { container } = render(<GazellePodmanControl />)
     expect(container.firstChild).toBeNull()
   })
 
@@ -45,10 +45,10 @@ describe("GazelleDockerControl (BR-desktop-15)", () => {
     }
 
     await act(async () => {
-      render(<GazelleDockerControl />)
+      render(<GazellePodmanControl />)
     })
 
-    expect(screen.getByText("Gazelle Docker Companion")).toBeDefined()
+    expect(screen.getByText("Gazelle Podman Companion")).toBeDefined()
     expect(screen.getByText("Not Installed")).toBeDefined()
 
     const installButton = screen.getByRole("button", { name: /install & run gazelle/i })
@@ -96,7 +96,7 @@ describe("GazelleDockerControl (BR-desktop-15)", () => {
     }
 
     await act(async () => {
-      render(<GazelleDockerControl />)
+      render(<GazellePodmanControl />)
     })
 
     expect(screen.getByText("Running (:7001)")).toBeDefined()

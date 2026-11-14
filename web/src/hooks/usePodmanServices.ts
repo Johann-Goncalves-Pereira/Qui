@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 
-export interface DockerContainerStatus {
+export interface PodmanContainerStatus {
   name: string
   state: "running" | "stopped" | "not_found" | string
   status: string
@@ -46,24 +46,24 @@ export interface QBitContainerConfig {
 const DEFAULT_QUI_PORT = 7476
 const DEFAULT_QBIT_PORT = 8080
 
-export function useDockerServices() {
+export function usePodmanServices() {
   const [statuses, setStatuses] = useState<{
-    qui: DockerContainerStatus
-    qbit: DockerContainerStatus
-    gazelle?: DockerContainerStatus | null
+    qui: PodmanContainerStatus
+    qbit: PodmanContainerStatus
+    gazelle?: PodmanContainerStatus | null
   }>(() => {
     return {
       qui: {
         name: "qui",
         state: "running",
-        status: "Running in Docker",
+        status: "Running in Podman",
         image: "qui-desktop:local",
         port: DEFAULT_QUI_PORT,
       },
       qbit: {
         name: "qbittorrent-nox",
         state: "running",
-        status: "Running in Docker",
+        status: "Running in Podman",
         image: "lscr.io/linuxserver/qbittorrent:latest",
         port: DEFAULT_QBIT_PORT,
       },
@@ -74,14 +74,14 @@ export function useDockerServices() {
   const [isLoading, setIsLoading] = useState(false)
 
   const refreshStatus = useCallback(async () => {
-    if (typeof window === "undefined" || !window.quiDesktop?.getDockerStatus) {
+    if (typeof window === "undefined" || !window.quiDesktop?.getPodmanStatus) {
       return
     }
     try {
       setIsLoading(true)
-      const res = await window.quiDesktop.getDockerStatus()
+      const res = await window.quiDesktop.getPodmanStatus()
       if (res?.qui && res?.qbit) {
-        let gazelleStatus: DockerContainerStatus | null = (res as { gazelle?: DockerContainerStatus }).gazelle ?? null
+        let gazelleStatus: PodmanContainerStatus | null = (res as { gazelle?: PodmanContainerStatus }).gazelle ?? null
         if (!gazelleStatus && window.quiDesktop?.gazelle?.getStatus) {
           try {
             gazelleStatus = await window.quiDesktop.gazelle.getStatus()
@@ -96,7 +96,7 @@ export function useDockerServices() {
         })
       }
     } catch (err) {
-      console.error("[useDockerServices] getDockerStatus failed:", err)
+      console.error("[usePodmanServices] getPodmanStatus failed:", err)
     } finally {
       setIsLoading(false)
     }
@@ -115,7 +115,7 @@ export function useDockerServices() {
       try {
         return await window.quiDesktop.getQuiConfig()
       } catch (err) {
-        console.error("[useDockerServices] getQuiConfig failed:", err)
+        console.error("[usePodmanServices] getQuiConfig failed:", err)
       }
     }
     const currentPort = typeof window !== "undefined" && window.location.port
@@ -141,7 +141,7 @@ export function useDockerServices() {
       try {
         return await window.quiDesktop.getQBitConfig()
       } catch (err) {
-        console.error("[useDockerServices] getQBitConfig failed:", err)
+        console.error("[usePodmanServices] getQBitConfig failed:", err)
       }
     }
     return {
@@ -166,7 +166,7 @@ export function useDockerServices() {
         void refreshStatus()
         return res
       }
-      // Running inside standard docker container: update local status
+      // Running inside standard container: update local status
       setStatuses(prev => ({
         ...prev,
         qui: {

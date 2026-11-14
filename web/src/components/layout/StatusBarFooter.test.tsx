@@ -97,7 +97,7 @@ describe("StatusBarFooter component (BR-web-03, BR-web-07)", () => {
   it("renders Gazelle container indicator when companion is running and launches WebUI on click (BR-web-14)", async () => {
     const openWebUiMock = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal("quiDesktop", {
-      getDockerStatus: vi.fn().mockResolvedValue({
+      getPodmanStatus: vi.fn().mockResolvedValue({
         qui: { name: "qui", state: "running", status: "running", image: "qui-desktop:local", port: 7476 },
         qbit: { name: "qbittorrent-nox", state: "running", status: "running", image: "qbittorrent", port: 8080 },
         gazelle: { name: "gazelle", state: "running", status: "running", image: "gazelle-desktop:local", port: 7001 },

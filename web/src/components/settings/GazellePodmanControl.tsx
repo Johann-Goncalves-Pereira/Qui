@@ -10,7 +10,7 @@ import { ExternalLink, Loader2, Play, RotateCw, Server, Square } from "lucide-re
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-interface DockerContainerStatus {
+interface PodmanContainerStatus {
   name: string
   state: "running" | "stopped" | "not_found" | "unknown"
   status: string
@@ -18,18 +18,18 @@ interface DockerContainerStatus {
   port: number
 }
 
-export function GazelleDockerControl() {
+export function GazellePodmanControl() {
   const isDesktop = typeof window !== "undefined" && Boolean(window.quiDesktop?.gazelle)
   if (!isDesktop) {
     return null
   }
 
-  return <GazelleDockerControlInner />
+  return <GazellePodmanControlInner />
 }
 
-function GazelleDockerControlInner() {
+function GazellePodmanControlInner() {
   const { t } = useTranslation("settings")
-  const [status, setStatus] = useState<DockerContainerStatus | null>(null)
+  const [status, setStatus] = useState<PodmanContainerStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionPending, setActionPending] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
