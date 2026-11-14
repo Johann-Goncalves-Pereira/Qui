@@ -22,6 +22,7 @@ import { BulkActionProvider } from "@/components/torrents/bulk-actions/BulkActio
 import { useCustomThemes } from "@/hooks/useCustomThemes"
 import { ViewTransitionBoundary } from "@/components/transitions/ViewTransitionBoundary"
 import { LoadingOverlay } from "@/components/ui/LoadingOverlay"
+import { DatabaseShrinkProvider } from "@/components/database/DatabaseShrinkProvider"
 
 function AppLayoutContent() {
   const { t } = useTranslation("common")
@@ -110,7 +111,9 @@ export function AppLayout() {
       <TorrentSelectionProvider>
         <BulkActionProvider>
           <MobileScrollProvider>
-            <AppLayoutContent />
+            <DatabaseShrinkProvider>
+              <AppLayoutContent />
+            </DatabaseShrinkProvider>
           </MobileScrollProvider>
         </BulkActionProvider>
       </TorrentSelectionProvider>

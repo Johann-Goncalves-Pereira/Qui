@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"fmt"
 	"net/http"
@@ -32,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/autobrr/qui/internal/models"
+	"github.com/autobrr/qui/internal/qbittorrent/syncowner"
 )
 
 func TestNormalizeConnectionStatus(t *testing.T) {
@@ -184,7 +186,7 @@ func TestTrackerMappingFromMainData(t *testing.T) {
 		},
 	}
 
-	mapping := sm.trackerMappingFromMainData(torrents, mainData)
+	mapping := sm.trackerMappingFromMainData(torrentRefs(torrents), mainData)
 	require.Equal(t, map[string]map[string]struct{}{
 		"hash-a":     {"tracker-a.example": {}},
 		"hash-multi": {"multi-one.example": {}, "multi-two.example": {}},
@@ -210,11 +212,11 @@ func TestStoreTrackerMappingKeepsGenerationWhenUnchanged(t *testing.T) {
 	mainData := &qbt.MainData{Trackers: map[string][]string{"https://current.example/announce": {"current-hash"}}}
 	torrents := []qbt.Torrent{{Hash: "current-hash"}}
 
-	require.True(t, sm.storeTrackerMapping(7, sm.trackerMappingFromMainData(torrents, mainData)))
+	require.True(t, sm.storeTrackerMapping(7, sm.trackerMappingFromMainData(torrentRefs(torrents), mainData)))
 	require.Equal(t, map[string]map[string]struct{}{"current.example": {"current-hash": {}}}, sm.getValidatedTrackerMapping(7).DomainToHashes)
 
 	gen := sm.trackerMappingGen.Load()
-	require.False(t, sm.storeTrackerMapping(7, sm.trackerMappingFromMainData(torrents, mainData)))
+	require.False(t, sm.storeTrackerMapping(7, sm.trackerMappingFromMainData(torrentRefs(torrents), mainData)))
 	require.Equal(t, gen, sm.trackerMappingGen.Load(), "an unchanged mapping keeps cached counts valid")
 }
 
@@ -252,7 +254,7 @@ func TestTrackerMappingFromMainDataDropsStaleDomainsFromCountsAndFilters(t *test
 		},
 	}
 
-	sm.storeTrackerMapping(7, sm.trackerMappingFromMainData(torrents, mainData))
+	sm.storeTrackerMapping(7, sm.trackerMappingFromMainData(torrentRefs(torrents), mainData))
 
 	mapping := sm.getValidatedTrackerMapping(7)
 	require.NotNil(t, mapping)
@@ -260,15 +262,9 @@ func TestTrackerMappingFromMainDataDropsStaleDomainsFromCountsAndFilters(t *test
 	require.NotContains(t, mapping.DomainToHashes, "stale.example")
 	require.NotContains(t, mapping.HashToDomains, "old-hash")
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, mainData, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), mainData, false, false)
 	require.Equal(t, 1, counts.Trackers["current.example"])
 	require.NotContains(t, counts.Trackers, "stale.example")
-	require.Equal(t, TrackerTransferStats{
-		Uploaded:   20,
-		Downloaded: 30,
-		TotalSize:  100,
-		Count:      1,
-	}, counts.TrackerTransfers["current.example"])
 
 	staleFiltered := listRows(sm, client, torrents, FilterOptions{Trackers: []string{"stale.example"}}, mainData, false, nil)
 	require.Empty(t, staleFiltered)
@@ -301,7 +297,7 @@ func TestCalculateCountsFromTorrentsWithTrackersIgnoresHealthCacheWhenUnsupporte
 		{Hash: "hash-a", Tracker: "https://tracker.example/announce"},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, nil, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), nil, false, false)
 
 	require.Zero(t, counts.Status["unregistered"])
 	require.Zero(t, counts.Status["tracker_down"])
@@ -334,10 +330,9 @@ func TestCalculateCountsFromTorrentsWithTrackersClearsAllExcludedValidatedDomain
 		{Hash: "hash-a", Tracker: "https://new.example/announce"},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, nil, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), nil, false, false)
 
 	require.NotContains(t, counts.Trackers, "stale.example")
-	require.NotContains(t, counts.TrackerTransfers, "stale.example")
 	require.Nil(t, client.getTrackerExclusionsCopy())
 
 	filtered := listRows(sm, client, torrents, FilterOptions{Trackers: []string{"stale.example"}}, nil, false, nil)
@@ -372,10 +367,9 @@ func TestCalculateCountsFromTorrentsWithTrackersPreservesPartiallyLiveValidatedD
 		{Hash: "hash-b", Tracker: "https://tracker.example/announce", Uploaded: 100, Downloaded: 200, Size: 300, ContentPath: "b"},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, nil, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), nil, false, false)
 
 	require.Equal(t, 1, counts.Trackers["tracker.example"])
-	require.Equal(t, TrackerTransferStats{Uploaded: 100, Downloaded: 200, TotalSize: 300, Count: 1}, counts.TrackerTransfers["tracker.example"])
 	exclusions := client.getTrackerExclusionsCopy()
 	require.Contains(t, exclusions, "tracker.example")
 	require.Contains(t, exclusions["tracker.example"], "hash-a")
@@ -407,40 +401,10 @@ func TestCalculateCountsFromTorrentsWithTrackersPreservesValidatedCountsWithoutE
 		{Hash: "hash-b", Tracker: "https://tracker.example/announce", Uploaded: 100, Downloaded: 200, Size: 300, ContentPath: "same-path"},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, nil, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), nil, false, false)
 
 	require.Equal(t, 2, counts.Trackers["tracker.example"])
-	require.Equal(t, TrackerTransferStats{Uploaded: 110, Downloaded: 220, TotalSize: 300, Count: 2}, counts.TrackerTransfers["tracker.example"])
 	require.Nil(t, client.getTrackerExclusionsCopy())
-}
-
-func TestCalculateCountsFromTorrentsWithTrackersDoesNotDeduplicateEmptyContentPath(t *testing.T) {
-	t.Parallel()
-
-	sm := &SyncManager{
-		validatedTrackerMapping: map[int]*ValidatedTrackerMapping{
-			7: {
-				HashToDomains: map[string]map[string]struct{}{
-					"hash-a": {"tracker.example": {}},
-					"hash-b": {"tracker.example": {}},
-				},
-				DomainToHashes: map[string]map[string]struct{}{
-					"tracker.example": {"hash-a": {}, "hash-b": {}},
-				},
-				UpdatedAt: time.Now(),
-			},
-		},
-	}
-	client := &Client{instanceID: 7}
-	torrents := []qbt.Torrent{
-		{Hash: "hash-a", Tracker: "https://tracker.example/announce", Uploaded: 10, Downloaded: 20, Size: 30},
-		{Hash: "hash-b", Tracker: "https://tracker.example/announce", Uploaded: 100, Downloaded: 200, Size: 300},
-	}
-
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, nil, false, false)
-
-	require.Equal(t, 2, counts.Trackers["tracker.example"])
-	require.Equal(t, TrackerTransferStats{Uploaded: 110, Downloaded: 220, TotalSize: 330, Count: 2}, counts.TrackerTransfers["tracker.example"])
 }
 
 func TestCalculateCountsFromTorrentsWithTrackersClearsAllExcludedFallbackDomain(t *testing.T) {
@@ -462,10 +426,9 @@ func TestCalculateCountsFromTorrentsWithTrackersClearsAllExcludedFallbackDomain(
 		},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, mainData, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), mainData, false, false)
 
 	require.NotContains(t, counts.Trackers, "stale.example")
-	require.NotContains(t, counts.TrackerTransfers, "stale.example")
 	require.Nil(t, client.getTrackerExclusionsCopy())
 
 	filtered := listRows(sm, client, torrents, FilterOptions{Trackers: []string{"stale.example"}}, mainData, false, nil)
@@ -488,17 +451,10 @@ func TestFallbackTrackerCountsOmitPseudoTrackersAndPreserveUnknown(t *testing.T)
 		},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, mainData, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), mainData, false, false)
 
 	require.Equal(t, 1, counts.Trackers[""], "a pseudo tracker with a tracker count of 0 is in No tracker")
-	require.NotContains(t, counts.TrackerTransfers, "")
 	require.Equal(t, 1, counts.Trackers["Unknown"])
-	require.Equal(t, TrackerTransferStats{
-		Uploaded:   100,
-		Downloaded: 200,
-		TotalSize:  300,
-		Count:      1,
-	}, counts.TrackerTransfers["Unknown"])
 }
 
 func TestTrackerFiltersDoNotTreatPseudoTrackersAsUnknown(t *testing.T) {
@@ -854,7 +810,7 @@ func TestWaitForPostAddRecheckReadyChecksSyncThatEndsAtTheDeadline(t *testing.T)
 func TestPostAddRecheckReadyRejectsMissingTorrent(t *testing.T) {
 	t.Parallel()
 
-	ready := postAddRecheckReady(map[string]qbt.Torrent{}, []string{"abc"})
+	ready := postAddRecheckReady(torrentMapIndex{}, []string{"abc"})
 
 	require.False(t, ready)
 }
@@ -1308,7 +1264,7 @@ func TestResolveTorrentByVariantHash(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			torrent, found := resolveTorrentByVariantHash(torrentMap, tc.inputHash)
+			torrent, found := resolveTorrentByVariantHash(torrentMapIndex(torrentMap), tc.inputHash)
 
 			require.Equal(t, tc.expectFound, found, "found mismatch")
 
@@ -1425,11 +1381,11 @@ type scriptedTorrentFilesClient struct {
 	calls     map[string]int
 }
 
-func (*scriptedTorrentFilesClient) getTorrentsByHashes([]string) []qbt.Torrent {
+func (*scriptedTorrentFilesClient) getTorrentsByHashes([]string) []*qbt.Torrent {
 	return nil
 }
 
-func (c *scriptedTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []qbt.Torrent {
+func (c *scriptedTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []*qbt.Torrent {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return maindataEntries(hashes, c.responses)
@@ -1437,15 +1393,15 @@ func (c *scriptedTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []strin
 
 // maindataEntries returns a bare maindata entry for each requested hash that
 // the fake serves. Maindata keys hashes in lowercase, as qBittorrent does.
-func maindataEntries[V any](hashes []string, served map[string]V) []qbt.Torrent {
+func maindataEntries[V any](hashes []string, served map[string]V) []*qbt.Torrent {
 	lower := make(map[string]struct{}, len(served))
 	for hash := range served {
 		lower[canonicalizeHash(hash)] = struct{}{}
 	}
-	var torrents []qbt.Torrent
+	var torrents []*qbt.Torrent
 	for _, hash := range hashes {
 		if _, ok := lower[hash]; ok {
-			torrents = append(torrents, qbt.Torrent{Hash: hash})
+			torrents = append(torrents, &qbt.Torrent{Hash: hash})
 		}
 	}
 	return torrents
@@ -1486,13 +1442,17 @@ func (c *scriptedTorrentFilesClient) callCount(hash string) int {
 	return c.calls[hash]
 }
 
-func (c *stubTorrentFilesClient) getTorrentsByHashes(hashes []string) []qbt.Torrent {
+func (c *stubTorrentFilesClient) getTorrentsByHashes(hashes []string) []*qbt.Torrent {
 	copied := append([]string(nil), hashes...)
 	c.requestedHashes = append(c.requestedHashes, copied)
-	return c.torrents
+	refs := make([]*qbt.Torrent, len(c.torrents))
+	for i := range c.torrents {
+		refs[i] = &c.torrents[i]
+	}
+	return refs
 }
 
-func (c *stubTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []qbt.Torrent {
+func (c *stubTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []*qbt.Torrent {
 	return maindataEntries(hashes, c.filesByHash)
 }
 
@@ -1515,7 +1475,7 @@ type sliceReusingTorrentFilesClient struct {
 	fileRequests    []string
 }
 
-func (c *sliceReusingTorrentFilesClient) getTorrentsByHashes(hashes []string) []qbt.Torrent {
+func (c *sliceReusingTorrentFilesClient) getTorrentsByHashes(hashes []string) []*qbt.Torrent {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	copied := append([]string(nil), hashes...)
@@ -1523,7 +1483,7 @@ func (c *sliceReusingTorrentFilesClient) getTorrentsByHashes(hashes []string) []
 	return nil
 }
 
-func (c *sliceReusingTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []qbt.Torrent {
+func (c *sliceReusingTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []*qbt.Torrent {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return maindataEntries(hashes, c.labels)
@@ -1674,9 +1634,9 @@ type stubTorrentLookup struct {
 	torrents map[string]qbt.Torrent
 }
 
-func (s *stubTorrentLookup) GetTorrent(hash string) (qbt.Torrent, bool) {
+func (s *stubTorrentLookup) Torrent(hash string) (*qbt.Torrent, bool) {
 	torrent, ok := s.torrents[hash]
-	return torrent, ok
+	return &torrent, ok
 }
 
 type bulkActionRetrySyncer struct {
@@ -1711,26 +1671,47 @@ func (s *bulkActionRetrySyncer) Sync(ctx context.Context) error {
 	return s.syncErr
 }
 
-func (s *bulkActionRetrySyncer) GetTorrentMap(qbt.TorrentFilterOptions) map[string]qbt.Torrent {
+func (s *bulkActionRetrySyncer) snapshot() torrentIndex {
 	s.mapCalls++
 	if s.currentMap != nil || s.mapsAfterSync != nil {
-		return s.currentMap
+		return torrentMapIndex(s.currentMap)
 	}
 	if len(s.maps) == 0 {
-		return nil
+		return torrentMapIndex(nil)
 	}
 	index := s.mapCalls - 1
 	if index >= len(s.maps) {
 		index = len(s.maps) - 1
 	}
-	return s.maps[index]
+	return torrentMapIndex(s.maps[index])
 }
 
-func resolveBulkActionRetryTestHashes(hashes []string) func(map[string]qbt.Torrent) (int, int) {
-	return func(torrents map[string]qbt.Torrent) (int, int) {
+// torrentMapIndex is a torrentIndex over torrents keyed by hash. Each read
+// returns a copy, so a test map never changes.
+type torrentMapIndex map[string]qbt.Torrent
+
+func (m torrentMapIndex) Torrent(hash string) (*qbt.Torrent, bool) {
+	t, ok := m[hash]
+	return &t, ok
+}
+
+func (m torrentMapIndex) Matching(match func(*qbt.Torrent) bool) []*qbt.Torrent {
+	var refs []*qbt.Torrent
+	for _, t := range m {
+		if match(&t) {
+			refs = append(refs, &t)
+		}
+	}
+	return refs
+}
+
+func (m torrentMapIndex) Len() int { return len(m) }
+
+func resolveBulkActionRetryTestHashes(hashes []string) func(torrentIndex) (int, int) {
+	return func(torrents torrentIndex) (int, int) {
 		resolved := 0
 		for _, hash := range hashes {
-			if _, ok := torrents[hash]; ok {
+			if _, ok := torrents.Torrent(hash); ok {
 				resolved++
 			}
 		}
@@ -1771,7 +1752,7 @@ func TestSortTorrentsByTracker_WithCustomDisplayNames(t *testing.T) {
 		{Hash: "hash5", Tracker: "", Name: "Torrent E"},
 	}
 
-	sm.sortTorrents(torrents, "tracker", false, false, nil)
+	sortTorrentValues(sm, torrents, "tracker", false, false, nil)
 
 	// Expected order (ascending):
 	// 1. "another tracker" (another.tracker.org)
@@ -1787,7 +1768,7 @@ func TestSortTorrentsByTracker_WithCustomDisplayNames(t *testing.T) {
 	require.Equal(t, "hash5", torrents[4].Hash, "Empty tracker should be last")
 
 	// Test descending order - note: torrents without trackers always sort to end (hasDomain check is not reversed)
-	sm.sortTorrents(torrents, "tracker", true, false, nil)
+	sortTorrentValues(sm, torrents, "tracker", true, false, nil)
 
 	require.Equal(t, "hash2", torrents[0].Hash, "Unknown tracker should be first in desc (z > u > m > a)")
 	require.Equal(t, "hash3", torrents[1].Hash, "My Tracker (tracker2) should be second in desc")
@@ -1816,7 +1797,7 @@ func TestSortTorrentsByTracker_MergedDomainsStayTogether(t *testing.T) {
 		{Hash: "hash4", Tracker: "https://other.site.net/announce", Name: "From Other"},
 	}
 
-	sm.sortTorrents(torrents, "tracker", false, false, nil)
+	sortTorrentValues(sm, torrents, "tracker", false, false, nil)
 
 	// "other.site.net" (o) comes before "private tracker" (p) alphabetically
 	// Within "Private Tracker" group, domains are sorted alphabetically (backup < new < old)
@@ -1838,7 +1819,7 @@ func TestSortTorrentsByTracker_NoCustomizations(t *testing.T) {
 		{Hash: "hash3", Tracker: "https://mango.com/announce", Name: "Torrent C"},
 	}
 
-	sm.sortTorrents(torrents, "tracker", false, false, nil)
+	sortTorrentValues(sm, torrents, "tracker", false, false, nil)
 
 	// Should sort by domain alphabetically
 	require.Equal(t, "hash2", torrents[0].Hash, "apple.com should be first")
@@ -1862,7 +1843,7 @@ func TestSortTorrentsByTracker_EqualKeysKeepInputOrder(t *testing.T) {
 	}
 	torrents = append(torrents, qbt.Torrent{Hash: "hash1", Tracker: "https://apple.com/announce", Name: "has-tracker"})
 
-	sm.sortTorrents(torrents, "tracker", false, false, nil)
+	sortTorrentValues(sm, torrents, "tracker", false, false, nil)
 
 	require.Equal(t, "has-tracker", torrents[0].Name, "the row with a tracker sorts ahead of the pending ones")
 	for i := range pending {
@@ -2092,7 +2073,7 @@ func TestSortTorrentsByTimestamp_Tiebreaker(t *testing.T) {
 	}
 
 	// Ascending: state priority (downloading < uploading < paused), then name, then hash
-	sm.sortTorrents(torrents, "last_activity", false, false, nil)
+	sortTorrentValues(sm, torrents, "last_activity", false, false, nil)
 
 	// Downloading has lower priority than uploading, which has lower than paused
 	// hash2 and hash4 both downloading with name "Apple", sorted by hash
@@ -2103,7 +2084,7 @@ func TestSortTorrentsByTimestamp_Tiebreaker(t *testing.T) {
 
 	// Descending: same fallback order (state priority, name A-Z, hash)
 	// All have same timestamp, so order is identical to ascending
-	sm.sortTorrents(torrents, "last_activity", true, false, nil)
+	sortTorrentValues(sm, torrents, "last_activity", true, false, nil)
 
 	require.Equal(t, "hash2", torrents[0].Hash, "downloading 'Apple' first by state")
 	require.Equal(t, "hash4", torrents[1].Hash, "downloading 'Apple' second by hash")
@@ -2123,14 +2104,14 @@ func TestSortTorrentsByTimestamp_ZeroSortsNaturally(t *testing.T) {
 	}
 
 	// Ascending (oldest first): 0 at start as it's the smallest value
-	sm.sortTorrents(torrents, "last_activity", false, false, nil)
+	sortTorrentValues(sm, torrents, "last_activity", false, false, nil)
 
 	require.Equal(t, "hash2", torrents[0].Hash, "0 (no activity) should be at start for ascending")
 	require.Equal(t, "hash1", torrents[1].Hash, "1000 should be second")
 	require.Equal(t, "hash3", torrents[2].Hash, "2000 should be last")
 
 	// Descending (newest first): 0 at end as it's the smallest value
-	sm.sortTorrents(torrents, "last_activity", true, false, nil)
+	sortTorrentValues(sm, torrents, "last_activity", true, false, nil)
 
 	require.Equal(t, "hash3", torrents[0].Hash, "2000 should be first for descending")
 	require.Equal(t, "hash1", torrents[1].Hash, "1000 should be second")
@@ -2149,14 +2130,14 @@ func TestSortTorrentsByTimestamp_NegativeOneSortsNaturally(t *testing.T) {
 	}
 
 	// Ascending: -1 at start as it's the smallest value
-	sm.sortTorrents(torrents, "completion_on", false, false, nil)
+	sortTorrentValues(sm, torrents, "completion_on", false, false, nil)
 
 	require.Equal(t, "hash2", torrents[0].Hash, "-1 (never completed) should be at start for ascending")
 	require.Equal(t, "hash1", torrents[1].Hash, "the early completion should be second")
 	require.Equal(t, "hash3", torrents[2].Hash, "the late completion should be last")
 
 	// Descending: -1 at end as it's the smallest value
-	sm.sortTorrents(torrents, "completion_on", true, false, nil)
+	sortTorrentValues(sm, torrents, "completion_on", true, false, nil)
 
 	require.Equal(t, "hash3", torrents[0].Hash, "the late completion should be first for descending")
 	require.Equal(t, "hash1", torrents[1].Hash, "the early completion should be second")
@@ -2178,7 +2159,7 @@ func TestSortTorrentsByTimestamp_TruncationGroupsSameInterval(t *testing.T) {
 
 	// Ascending: bucket 1 (61, 119) before bucket 2 (120)
 	// Within bucket 1: falls back to state priority (downloading < uploading)
-	sm.sortTorrents(torrents, "last_activity", false, false, nil)
+	sortTorrentValues(sm, torrents, "last_activity", false, false, nil)
 
 	require.Equal(t, "hash3", torrents[0].Hash, "bucket 1: downloading 'Mango' first by state")
 	require.Equal(t, "hash2", torrents[1].Hash, "bucket 1: uploading 'Apple' second by state")
@@ -2186,7 +2167,7 @@ func TestSortTorrentsByTimestamp_TruncationGroupsSameInterval(t *testing.T) {
 
 	// Descending: bucket 2 (120) before bucket 1 (61, 119)
 	// Within bucket 1: same fallback order (state priority, name A-Z)
-	sm.sortTorrents(torrents, "last_activity", true, false, nil)
+	sortTorrentValues(sm, torrents, "last_activity", true, false, nil)
 
 	require.Equal(t, "hash1", torrents[0].Hash, "bucket 2: paused 'Zebra' first")
 	require.Equal(t, "hash3", torrents[1].Hash, "bucket 1: downloading 'Mango' by state")
@@ -2250,7 +2231,7 @@ func TestSortTorrentsByTimestampTiebreak(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Feed both orderings so the assertion cannot pass by luck.
 			for _, torrents := range [][]qbt.Torrent{{tt.a, tt.b}, {tt.b, tt.a}} {
-				sm.sortTorrents(torrents, "added_on", false, false, nil)
+				sortTorrentValues(sm, torrents, "added_on", false, false, nil)
 
 				first := tt.a.Hash
 				if tt.expected > 0 {
@@ -2393,7 +2374,7 @@ func TestDebouncedSyncFetchesFreshDataAfterCollapsingOntoInFlightSync(t *testing
 	// A go-qbittorrent sync manager starts a cache goroutine that never ends,
 	// so it must not start inside the bubble.
 	qbtClient := qbt.NewClient(qbt.Config{Host: "http://qbt.example.invalid"})
-	qbtSync := qbtClient.NewSyncManager(qbt.DefaultSyncOptions())
+	qbtSync := syncowner.New(qbtClient, qbt.DefaultSyncOptions())
 
 	synctest.Test(t, func(t *testing.T) {
 		var maindataCalls atomic.Int32
@@ -2430,7 +2411,7 @@ func TestDebouncedSyncFetchesFreshDataAfterCollapsingOntoInFlightSync(t *testing
 		leaderDone := make(chan struct{})
 		go func() {
 			defer close(leaderDone)
-			_ = client.GetSyncManager().Sync(context.Background())
+			_ = client.SyncOwner().Sync(context.Background())
 		}()
 
 		<-firstSyncStarted
@@ -2598,7 +2579,7 @@ func TestListTorrentsCarriesNoPreferences(t *testing.T) {
 	client := &Client{
 		Client:      qbtClient,
 		instanceID:  inst.ID,
-		syncManager: qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager: syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 	}
 	client.updateHealthStatus(true)
 	require.NoError(t, client.syncManager.Sync(ctx))
@@ -2658,7 +2639,7 @@ func TestListTorrentsSearchKeepsWholeLibraryCounts(t *testing.T) {
 	client := &Client{
 		Client:      qbtClient,
 		instanceID:  inst.ID,
-		syncManager: qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager: syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 	}
 	client.updateHealthStatus(true)
 	require.NoError(t, client.syncManager.Sync(ctx))
@@ -2723,7 +2704,7 @@ func TestListTorrentsSummaryOmitsRows(t *testing.T) {
 	client := &Client{
 		Client:      qbtClient,
 		instanceID:  inst.ID,
-		syncManager: qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager: syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 	}
 	client.updateHealthStatus(true)
 	require.NoError(t, client.syncManager.Sync(ctx))
@@ -2753,7 +2734,7 @@ func TestTrackerHealthRefreshLevel(t *testing.T) {
 	require.Equal(t, zerolog.WarnLevel, trackerHealthRefreshLevel(trackerHealthRefreshSlow))
 }
 
-// Totals accumulate per domain, so one domain must not bleed into the next.
+// Counts accumulate per domain, so one domain must not bleed into the next.
 func TestTrackerDomainCountsKeepDomainsSeparate(t *testing.T) {
 	t.Parallel()
 
@@ -2776,20 +2757,9 @@ func TestTrackerDomainCountsKeepDomainsSeparate(t *testing.T) {
 		{Hash: "hash-c", ContentPath: "/data/c", Size: 20, Uploaded: 1, Downloaded: 1},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, nil, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), nil, false, false)
 
-	require.Equal(t, TrackerTransferStats{
-		Uploaded:   17,
-		Downloaded: 6,
-		TotalSize:  160,
-		Count:      2,
-	}, counts.TrackerTransfers["one.example"])
-	require.Equal(t, TrackerTransferStats{
-		Uploaded:   1,
-		Downloaded: 1,
-		TotalSize:  20,
-		Count:      1,
-	}, counts.TrackerTransfers["two.example"])
+	require.Equal(t, map[string]int{"one.example": 2, "two.example": 1}, counts.Trackers)
 }
 
 func TestTrackerDomainCountsDedupeSharedDomainFromMainData(t *testing.T) {
@@ -2808,14 +2778,9 @@ func TestTrackerDomainCountsDedupeSharedDomainFromMainData(t *testing.T) {
 		},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, mainData, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), mainData, false, false)
 
 	require.Equal(t, 1, counts.Trackers["dupe.example"])
-	require.Equal(t, TrackerTransferStats{
-		Uploaded:  9,
-		TotalSize: 50,
-		Count:     1,
-	}, counts.TrackerTransfers["dupe.example"])
 }
 
 // Category and tag counts share one accumulator per key, so this pins the whole
@@ -2916,7 +2881,7 @@ func TestCategoryAndTagCountsFromTorrents(t *testing.T) {
 			t.Parallel()
 
 			sm := &SyncManager{}
-			counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, tt.torrents, nil, false, tt.useSubcategories)
+			counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, torrentRefs(tt.torrents), nil, false, tt.useSubcategories)
 
 			require.Equal(t, tt.wantCategories, counts.Categories)
 			require.Equal(t, tt.wantCategorySize, counts.CategorySizes)
@@ -2941,14 +2906,14 @@ func TestSizeTotalsDoNotDependOnTorrentOrder(t *testing.T) {
 	reversed := []qbt.Torrent{torrents[2], torrents[1], torrents[0]}
 
 	sm := &SyncManager{}
-	forward := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, torrents, nil, false, false)
-	backward := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, reversed, nil, false, false)
+	forward := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, torrentRefs(torrents), nil, false, false)
+	backward := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, torrentRefs(reversed), nil, false, false)
 
 	require.Equal(t, forward.CategorySizes, backward.CategorySizes)
 	require.Equal(t, forward.TagSizes, backward.TagSizes)
 
-	forwardStats := sm.calculateStats(torrents)
-	backwardStats := sm.calculateStats(reversed)
+	forwardStats := sm.calculateStats(torrentRefs(torrents), nil)
+	backwardStats := sm.calculateStats(torrentRefs(reversed), nil)
 
 	require.Equal(t, forwardStats.TotalSize, backwardStats.TotalSize)
 	require.Equal(t, forwardStats.TotalSeedingSize, backwardStats.TotalSeedingSize)
@@ -2968,7 +2933,7 @@ func TestFindSharedContentPaths(t *testing.T) {
 
 	// The first torrent of a shared path must be marked too, not only the later
 	// ones, or its size would be added twice.
-	require.Equal(t, []bool{true, false, true, true, true, true}, findSharedContentPaths(torrents))
+	require.Equal(t, []bool{true, false, true, true, true, true}, findSharedContentPaths(torrentRefs(torrents)))
 	require.Empty(t, findSharedContentPaths(nil))
 }
 
@@ -2988,7 +2953,7 @@ func TestStatusCountsExpandFromStates(t *testing.T) {
 		{Hash: "g", State: qbt.TorrentStateCheckingUp, Progress: 1},
 	}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, torrents, nil, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), nil, torrentRefs(torrents), nil, false, false)
 
 	require.Equal(t, map[string]int{
 		"all": 7, "completed": 5,
@@ -3002,12 +2967,12 @@ func TestStatusCountsExpandFromStates(t *testing.T) {
 }
 
 // staticTorrents adapts a fixed library to the materializer cachedCountsForRequest takes.
-func staticTorrents(torrents []qbt.Torrent) func() []qbt.Torrent {
-	return func() []qbt.Torrent { return torrents }
+func staticTorrents(torrents []qbt.Torrent) func() []*qbt.Torrent {
+	return func() []*qbt.Torrent { return torrentRefs(torrents) }
 }
 
-// A cache hit must not materialize the library. The clone is the most expensive
-// part of a cached request, and stream ticks run one per group every two seconds.
+// A cache hit must not materialize the library: stream ticks run one per group
+// every two seconds.
 func TestCachedCountsHitSkipsLibraryMaterialization(t *testing.T) {
 	t.Parallel()
 
@@ -3019,9 +2984,9 @@ func TestCachedCountsHitSkipsLibraryMaterialization(t *testing.T) {
 
 	torrents := []qbt.Torrent{{Hash: "aaa", Name: "One", State: qbt.TorrentStateDownloading, Size: 100}}
 	calls := 0
-	materialize := func() []qbt.Torrent {
+	materialize := func() []*qbt.Torrent {
 		calls++
-		return torrents
+		return torrentRefs(torrents)
 	}
 
 	sm.cachedCountsForRequest(context.Background(), client, client.countsGen.Load(), materialize, nil, false, false)
@@ -3164,9 +3129,9 @@ func TestCachedCountsDoNotCrossTrackerHealthSupport(t *testing.T) {
 	require.Equal(t, 0, unsupported.Status["tracker_error"])
 }
 
-// A torrent that an empty mapping does not place gets its domain from its
-// primary tracker.
-func TestEmptyAuthoritativeMappingDoesNotFallBackToMainData(t *testing.T) {
+// A torrent that an empty mapping does not place gets its domains from the
+// steps after the mapping.
+func TestEmptyAuthoritativeMappingPlacesTorrentsByTheLaterSteps(t *testing.T) {
 	t.Parallel()
 
 	sm := &SyncManager{
@@ -3186,10 +3151,9 @@ func TestEmptyAuthoritativeMappingDoesNotFallBackToMainData(t *testing.T) {
 		"https://tracker.example/announce": {"hash-a"},
 	}}
 
-	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrents, mainData, false, false)
+	counts := sm.calculateCountsFromTorrentsWithTrackers(context.Background(), client, torrentRefs(torrents), mainData, false, false)
 
 	require.Equal(t, map[string]int{"tracker.example": 1}, counts.Trackers)
-	require.Equal(t, TrackerTransferStats{TotalSize: 10, Count: 1}, counts.TrackerTransfers["tracker.example"])
 }
 
 // TestGetAuthoritativeDomainToHashesMemoizesPerGeneration pins the per-generation
@@ -3263,7 +3227,7 @@ func TestListTorrentsSingleHashSkipsLibraryCopy(t *testing.T) {
 	client := &Client{
 		Client:      qbtClient,
 		instanceID:  inst.ID,
-		syncManager: qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager: syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 	}
 	client.updateHealthStatus(true)
 	require.NoError(t, client.syncManager.Sync(ctx))
@@ -3324,11 +3288,33 @@ func TestListTorrentsSingleHashSkipsLibraryCopy(t *testing.T) {
 	require.Less(t, hashBytes*10, exprBytes, "a single-hash request must allocate far less than the library scan")
 }
 
-// Orphan scan deletes files that no torrent claims, so it must see a torrent
-// added after the last sync, even when its read joins a sync already in flight
-// that returns an older snapshot.
-func TestGetTorrentsFreshSeesTorrentAddedDuringInFlightSync(t *testing.T) {
+// Orphan scan deletes files that no torrent claims, and a torrent-added
+// notification reads the new torrents again by hash, so both reads must see a
+// torrent added after the last sync, even when the read joins a sync already
+// in flight that returns an older snapshot.
+func TestGetTorrentRefsFreshSeesTorrentAddedDuringInFlightSync(t *testing.T) {
 	t.Parallel()
+
+	for name, filter := range map[string]TorrentRefFilter{
+		"all":     {},
+		"by hash": {Hashes: []string{"aa11", "bb22"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			testFreshReadSeesTorrentAddedDuringInFlightSync(t, func(ctx context.Context, sm *SyncManager) ([]string, error) {
+				torrents, err := sm.GetTorrentRefsFresh(ctx, 1, filter)
+				hashes := make([]string, 0, len(torrents))
+				for _, torrent := range torrents {
+					hashes = append(hashes, torrent.Hash)
+				}
+				return hashes, err
+			})
+		})
+	}
+}
+
+func testFreshReadSeesTorrentAddedDuringInFlightSync(t *testing.T, read func(ctx context.Context, sm *SyncManager) ([]string, error)) {
+	t.Helper()
 
 	// The go-qbittorrent and qui sync managers start cache goroutines that never
 	// end, so they must not start inside the bubble.
@@ -3336,7 +3322,7 @@ func TestGetTorrentsFreshSeesTorrentAddedDuringInFlightSync(t *testing.T) {
 	client := &Client{
 		Client:      qbtClient,
 		instanceID:  1,
-		syncManager: qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager: syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 	}
 	client.updateHealthStatus(true)
 	sm := NewSyncManager(&ClientPool{clients: map[int]*Client{1: client}}, nil)
@@ -3374,13 +3360,13 @@ func TestGetTorrentsFreshSeesTorrentAddedDuringInFlightSync(t *testing.T) {
 		<-leaderReceived
 
 		type result struct {
-			torrents []qbt.Torrent
-			err      error
+			hashes []string
+			err    error
 		}
 		readDone := make(chan result, 1)
 		go func() {
-			torrents, err := sm.GetTorrentsFresh(ctx, 1, qbt.TorrentFilterOptions{})
-			readDone <- result{torrents, err}
+			hashes, err := read(ctx, sm)
+			readDone <- result{hashes, err}
 		}()
 		// Let the read join the blocked leader before it returns.
 		synctest.Wait()
@@ -3389,17 +3375,31 @@ func TestGetTorrentsFreshSeesTorrentAddedDuringInFlightSync(t *testing.T) {
 		require.NoError(t, <-leaderDone)
 		res := <-readDone
 		require.NoError(t, res.err)
-		hashes := make([]string, 0, len(res.torrents))
-		for _, torrent := range res.torrents {
-			hashes = append(hashes, torrent.Hash)
-		}
-		require.ElementsMatch(t, []string{"aa11", "bb22"}, hashes)
+		require.ElementsMatch(t, []string{"aa11", "bb22"}, res.hashes)
 	})
 }
 
-// Automation rules delete on what GetAllTorrents returns, so a pass must not
+// Reannounce writes the trackers into the torrent that HasTorrentByAnyHash
+// returns, so the read must not return the shared torrent of the Sync snapshot.
+func TestHasTorrentByAnyHashReturnsPrivateCopy(t *testing.T) {
+	t.Parallel()
+
+	client, _, sm, _ := newSyncedStubClient(t, "2.15.1")
+	require.NoError(t, client.SyncOwner().Sync(t.Context()))
+
+	found, ok, err := sm.HasTorrentByAnyHash(t.Context(), 1, []string{hashA})
+	require.NoError(t, err)
+	require.True(t, ok)
+	found.Name = "Changed"
+
+	shared, ok := client.SyncOwner().SnapshotUnchecked().Torrent(hashA)
+	require.True(t, ok)
+	require.Equal(t, "Show.S01E01-GRP", shared.Name)
+}
+
+// Automation rules delete on what GetAllTorrentRefs returns, so a pass must not
 // evaluate a snapshot older than the window a torrent response counts as fresh.
-func TestGetAllTorrentsRefreshesOnlyPastTheFreshWindow(t *testing.T) {
+func TestGetAllTorrentRefsRefreshesOnlyPastTheFreshWindow(t *testing.T) {
 	t.Parallel()
 
 	// The go-qbittorrent and qui sync managers start cache goroutines that never
@@ -3408,7 +3408,7 @@ func TestGetAllTorrentsRefreshesOnlyPastTheFreshWindow(t *testing.T) {
 	client := &Client{
 		Client:            qbtClient,
 		instanceID:        1,
-		syncManager:       qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager:       syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 		optimisticUpdates: ttlcache.New[string, *OptimisticTorrentUpdate](),
 	}
 	client.updateHealthStatus(true)
@@ -3434,7 +3434,7 @@ func TestGetAllTorrentsRefreshesOnlyPastTheFreshWindow(t *testing.T) {
 		ctx := t.Context()
 		require.NoError(t, client.syncManager.Sync(ctx))
 
-		torrents, err := syncManager.GetAllTorrents(ctx, 1)
+		torrents, err := syncManager.GetAllTorrentRefs(ctx, 1)
 		require.NoError(t, err)
 		require.Len(t, torrents, 1)
 		require.Equal(t, "keep", torrents[0].Tags)
@@ -3442,7 +3442,7 @@ func TestGetAllTorrentsRefreshesOnlyPastTheFreshWindow(t *testing.T) {
 
 		time.Sleep(torrentResponseFreshWindow + 100*time.Millisecond)
 
-		torrents, err = syncManager.GetAllTorrents(ctx, 1)
+		torrents, err = syncManager.GetAllTorrentRefs(ctx, 1)
 		require.NoError(t, err)
 		require.Len(t, torrents, 1)
 		require.Empty(t, torrents[0].Tags, "a stale cache must be refreshed before the rule reads it")
@@ -3485,7 +3485,7 @@ func TestAddTagsSyncsWhenTheHashIsMissingFromTheCache(t *testing.T) {
 	client := &Client{
 		Client:            qbtClient,
 		instanceID:        inst.ID,
-		syncManager:       qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager:       syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 		optimisticUpdates: ttlcache.New[string, *OptimisticTorrentUpdate](),
 	}
 	client.updateHealthStatus(true)
@@ -3535,7 +3535,7 @@ func TestSetTagsFallbackRemovesTagsAddedSinceTheLastSync(t *testing.T) {
 	client := &Client{
 		Client:            qbtClient,
 		instanceID:        inst.ID,
-		syncManager:       qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager:       syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 		optimisticUpdates: ttlcache.New[string, *OptimisticTorrentUpdate](),
 	}
 	client.updateHealthStatus(true)
@@ -3566,7 +3566,7 @@ func TestResumeWhenCompletePollersShareSync(t *testing.T) {
 	client := &Client{
 		Client:      qbtClient,
 		instanceID:  1,
-		syncManager: qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager: syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 	}
 	client.updateHealthStatus(true)
 	sm := NewSyncManager(&ClientPool{clients: map[int]*Client{1: client}}, nil)
@@ -3626,7 +3626,7 @@ func TestResumeWhenCompleteNeedsTwoSyncs(t *testing.T) {
 	client := &Client{
 		Client:            qbtClient,
 		instanceID:        1,
-		syncManager:       qbtClient.NewSyncManager(qbt.DefaultSyncOptions()),
+		syncManager:       syncowner.New(qbtClient, qbt.DefaultSyncOptions()),
 		optimisticUpdates: ttlcache.New[string, *OptimisticTorrentUpdate](ttlcache.SetDefaultTTL(30 * time.Second)),
 	}
 	client.updateHealthStatus(true)
@@ -3677,9 +3677,9 @@ type blockingTorrentFilesClient struct {
 	after func()
 }
 
-func (*blockingTorrentFilesClient) getTorrentsByHashes([]string) []qbt.Torrent { return nil }
+func (*blockingTorrentFilesClient) getTorrentsByHashes([]string) []*qbt.Torrent { return nil }
 
-func (c *blockingTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []qbt.Torrent {
+func (c *blockingTorrentFilesClient) getTorrentsByHashesUnchecked(hashes []string) []*qbt.Torrent {
 	return maindataEntries(hashes, map[string]struct{}{c.done: {}})
 }
 
@@ -3757,4 +3757,113 @@ func TestInvalidateFileCacheNotifiesAfterFilesAreGone(t *testing.T) {
 	require.NoError(t, sm.InvalidateFileCache(t.Context(), 3, "abc"))
 
 	require.False(t, cachedAtNotify, "a read that starts after the notify must not find the old file list")
+}
+
+// regression: #2523
+func TestSetRSSRuleMirrorsTorrentParamsOntoLegacyFields(t *testing.T) {
+	tests := []struct {
+		name string
+		rule qbt.RSSAutoDownloadRule
+		want map[string]any
+	}{
+		{
+			name: "new values replace stale legacy values",
+			rule: qbt.RSSAutoDownloadRule{
+				TorrentParams: &qbt.RSSRuleTorrentParams{
+					Category:      "tv-new",
+					SavePath:      "/data/new",
+					ContentLayout: "NoSubfolder",
+					Stopped:       new(true),
+				},
+				AssignedCategory:     "tv-old",
+				SavePath:             "/data/old",
+				TorrentContentLayout: "Subfolder",
+				AddPaused:            new(false),
+			},
+			want: map[string]any{
+				"assignedCategory":     "tv-new",
+				"savePath":             "/data/new",
+				"torrentContentLayout": "NoSubfolder",
+				"addPaused":            true,
+			},
+		},
+		{
+			name: "cleared values clear stale legacy values",
+			rule: qbt.RSSAutoDownloadRule{
+				TorrentParams:        &qbt.RSSRuleTorrentParams{},
+				AssignedCategory:     "tv-old",
+				SavePath:             "/data/old",
+				TorrentContentLayout: "Subfolder",
+				AddPaused:            new(true),
+			},
+			want: map[string]any{},
+		},
+		{
+			name: "unchanged values stay",
+			rule: qbt.RSSAutoDownloadRule{
+				MustContain: "edited",
+				TorrentParams: &qbt.RSSRuleTorrentParams{
+					Category:      "tv",
+					SavePath:      "/data/tv",
+					ContentLayout: "Original",
+					Stopped:       new(true),
+				},
+				AssignedCategory:     "tv",
+				SavePath:             "/data/tv",
+				TorrentContentLayout: "Original",
+				AddPaused:            new(true),
+			},
+			want: map[string]any{
+				"assignedCategory":     "tv",
+				"savePath":             "/data/tv",
+				"torrentContentLayout": "Original",
+				"addPaused":            true,
+			},
+		},
+		{
+			name: "legacy-only rule keeps its legacy values",
+			rule: qbt.RSSAutoDownloadRule{
+				AssignedCategory:     "tv",
+				SavePath:             "/data/tv",
+				TorrentContentLayout: "Original",
+				AddPaused:            new(true),
+			},
+			want: map[string]any{
+				"assignedCategory":     "tv",
+				"savePath":             "/data/tv",
+				"torrentContentLayout": "Original",
+				"addPaused":            true,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var ruleDef string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api/v2/rss/setRule" {
+					t.Errorf("unexpected request: %s", r.URL)
+					http.NotFound(w, r)
+					return
+				}
+				ruleDef = r.FormValue("ruleDef")
+			}))
+			defer srv.Close()
+
+			client := &Client{Client: qbt.NewClient(qbt.Config{Host: srv.URL, APIKey: "test-key"}), isHealthy: true}
+			sm := &SyncManager{clientPool: &ClientPool{clients: map[int]*Client{1: client}}}
+
+			require.NoError(t, sm.SetRSSRule(t.Context(), 1, "rule", tt.rule))
+
+			var sent map[string]any
+			require.NoError(t, jsonv2.Unmarshal([]byte(ruleDef), &sent))
+			got := map[string]any{}
+			for _, key := range []string{"assignedCategory", "savePath", "torrentContentLayout", "addPaused"} {
+				if v, ok := sent[key]; ok {
+					got[key] = v
+				}
+			}
+			require.Equal(t, tt.want, got)
+		})
+	}
 }

@@ -22,9 +22,11 @@ import { supportedLanguages, languageNames, changeLanguage, type AppLanguage } f
 import { ExternalProgramsManager } from "@/components/settings/ExternalProgramsManager"
 import { LogSettingsPanel } from "@/components/settings/LogSettingsPanel"
 import { NotificationsManager } from "@/components/settings/NotificationsManager"
+import { TrackerCustomizationsManager } from "@/components/settings/TrackerCustomizationsManager"
 import { InstallUpdateButton } from "@/components/settings/InstallUpdateButton"
 import { RestartButton } from "@/components/settings/RestartButton"
 import { RestartOverlay } from "@/components/settings/RestartOverlay"
+import { StatisticsSettingsCard } from "@/components/settings/StatisticsSettingsCard"
 import { LicenseManager } from "@/components/themes/LicenseManager.tsx"
 import { ThemeSelector } from "@/components/themes/ThemeSelector"
 import { CopyButton } from "@/components/ui/copy-button"
@@ -942,6 +944,10 @@ export function Settings({ search, onSearchChange }: SettingsProps) {
           </>
         )}
 
+        {activeTab === "trackers" && (
+          <TrackerCustomizationsManager />
+        )}
+
         {activeTab === "search-cache" && (
           <TorznabSearchCachePanel />
         )}
@@ -1055,6 +1061,10 @@ export function Settings({ search, onSearchChange }: SettingsProps) {
               </CardContent>
             </Card>
           </>
+        )}
+
+        {activeTab === "statistics" && (
+          <StatisticsSettingsCard />
         )}
 
         {activeTab === "themes" && (

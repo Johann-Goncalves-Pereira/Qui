@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	qbt "github.com/autobrr/go-qbittorrent"
+
+	"github.com/autobrr/qui/internal/trackergroup"
 )
 
 // The torrent list query module decides the rows and the sidebar counts of the
@@ -117,18 +119,22 @@ type trackerURLDomain struct{ domain, url string }
 // trackerResolver gives the Trackers of a torrent from the first step that
 // gives a result:
 //  1. The tracker mapping entry for the torrent, less the tracker exclusions.
-//  2. The primary tracker, if it is not blank and not a pseudo tracker label.
-//  3. Else the entries for the torrent in the tracker list of the sync data,
-//     less the tracker exclusions.
+//  2. The entries for the torrent in the tracker list of the sync data, less
+//     the tracker exclusions, when the torrent has no primary tracker or the
+//     list holds the domain of the primary tracker. The mapping is built from
+//     this list, so a torrent gets the same Trackers before the mapping holds
+//     it. A list without the primary tracker is older than a tracker edit.
+//  3. Else the primary tracker, if it is not blank and not a pseudo tracker
+//     label.
 //  4. Else, with a tracker count of 0, No tracker.
 //
 // A torrent that gets no result is in no tracker row until the next sync.
 type trackerResolver struct {
 	trackerSources
-	// want limits the index of step 3 to some hashes. Nil indexes each hash.
+	// want limits the index of step 2 to some hashes. Nil indexes each hash.
 	want func(hash string) bool
 	// mainDataByHash is the tracker list of the sync data, by torrent. It is
-	// built at the first torrent that needs step 3.
+	// built at the first torrent that needs step 2.
 	mainDataByHash map[string][]trackerURLDomain
 }
 
@@ -136,7 +142,7 @@ func newTrackerResolver(src trackerSources, want func(hash string) bool) *tracke
 	return &trackerResolver{trackerSources: src, want: want}
 }
 
-// mainDataEntries returns the entries of step 3 for hash.
+// mainDataEntries returns the entries of step 2 for hash.
 func (r *trackerResolver) mainDataEntries(hash string) []trackerURLDomain {
 	if r.mainData == nil {
 		return nil
@@ -167,29 +173,41 @@ func (src trackerSources) excluded(domain, hash string) bool {
 	return skip
 }
 
-// needsMainData reports whether step 3 reads the sync data for t.
-func needsMainData(t *qbt.Torrent) bool {
-	primary := strings.TrimSpace(t.Tracker)
-	return primary == "" || IsPseudoTrackerLabel(primary)
+// mapped reports whether step 1 gives a result for hash.
+func (src trackerSources) mapped(hash string) bool {
+	for domain := range src.mapping[hash] {
+		if !src.excluded(domain, hash) {
+			return true
+		}
+	}
+	return false
 }
 
 // fallback runs steps 2 to 4 for a torrent that the mapping does not place. It
 // calls visit for each domain and reports whether the torrent is in No tracker.
 func (r *trackerResolver) fallback(t *qbt.Torrent, visit func(domain, url string)) (noTracker bool) {
-	if !needsMainData(t) {
-		if domain := r.extractDomain(t.Tracker); domain != "" && !r.excluded(domain, t.Hash) {
-			visit(domain, t.Tracker)
+	entries := r.mainDataEntries(t.Hash)
+	visitEntries := func() (found bool) {
+		for _, entry := range entries {
+			if !r.excluded(entry.domain, t.Hash) {
+				found = true
+				visit(entry.domain, entry.url)
+			}
 		}
+		return found
+	}
+	if primary := strings.TrimSpace(t.Tracker); primary == "" || IsPseudoTrackerLabel(primary) {
+		return !visitEntries() && t.TrackersCount == 0
+	}
+	domain := r.extractDomain(t.Tracker)
+	if slices.ContainsFunc(entries, func(e trackerURLDomain) bool { return e.domain == domain }) {
+		visitEntries()
 		return false
 	}
-	found := false
-	for _, entry := range r.mainDataEntries(t.Hash) {
-		if !r.excluded(entry.domain, t.Hash) {
-			found = true
-			visit(entry.domain, entry.url)
-		}
+	if domain != "" && !r.excluded(domain, t.Hash) {
+		visit(domain, t.Tracker)
 	}
-	return !found && t.TrackersCount == 0
+	return false
 }
 
 // inAny reports whether one of the Trackers of t is in set. The key "" is No
@@ -291,7 +309,19 @@ func newTorrentListRule(filters FilterOptions, health *TrackerHealthSnapshot, us
 	}
 
 	if hasTrackerFilter(filters) {
-		r.tracker = newTrackerResolver(trackers, nil)
+		var want func(hash string) bool
+		switch {
+		case trackers.mapping == nil:
+		case len(trackers.exclusions) == 0:
+			// The mapping holds no hash with an empty set of domains.
+			want = func(hash string) bool {
+				_, ok := trackers.mapping[hash]
+				return !ok
+			}
+		default:
+			want = func(hash string) bool { return !trackers.mapped(hash) }
+		}
+		r.tracker = newTrackerResolver(trackers, want)
 	}
 	return r
 }
@@ -387,7 +417,7 @@ func (r *torrentListRule) match(t *qbt.Torrent) bool {
 // tracker mapping by domain, nil when no mapping exists yet. health is nil when
 // the instance has no tracker health.
 type torrentCountsInput struct {
-	torrents         []qbt.Torrent
+	torrents         []*qbt.Torrent
 	useSubcategories bool
 	health           *TrackerHealthSnapshot
 	domainToHashes   map[string]map[string]struct{}
@@ -419,14 +449,13 @@ var countedStatuses = func() []string {
 func countTorrents(in torrentCountsInput) torrentCountsResult {
 	torrents := in.torrents
 	counts := &TorrentCounts{
-		Status:           make(map[string]int, len(countedStatuses)),
-		Categories:       make(map[string]int),
-		CategorySizes:    make(map[string]int64),
-		Tags:             make(map[string]int),
-		TagSizes:         make(map[string]int64),
-		Trackers:         make(map[string]int),
-		TrackerTransfers: make(map[string]TrackerTransferStats),
-		Total:            len(torrents),
+		Status:        make(map[string]int, len(countedStatuses)),
+		Categories:    make(map[string]int),
+		CategorySizes: make(map[string]int64),
+		Tags:          make(map[string]int),
+		TagSizes:      make(map[string]int64),
+		Trackers:      make(map[string]int),
+		Total:         len(torrents),
 	}
 	sharedContentPaths := findSharedContentPaths(torrents)
 
@@ -434,7 +463,7 @@ func countTorrents(in torrentCountsInput) torrentCountsResult {
 	categoryStats := make(map[string]*countWithSize)
 	tagStats := make(map[string]*countWithSize)
 	for i := range torrents {
-		t := &torrents[i]
+		t := torrents[i]
 		byState[t.State]++
 		addStat(categoryStats, t.Category, t, sharedContentPaths[i])
 		tagged := false
@@ -478,7 +507,7 @@ func countTorrents(in torrentCountsInput) torrentCountsResult {
 	}
 
 	result := torrentCountsResult{counts: counts}
-	countTrackers(in, sharedContentPaths, &result)
+	countTrackers(in, &result)
 	return result
 }
 
@@ -499,54 +528,56 @@ func addSubcategoriesToParents(counts *TorrentCounts) {
 }
 
 // countTrackers adds the tracker counts with the steps of trackerResolver.
-// Step 1 reads the mapping by domain, and steps 2 to 4 run only on the
-// torrents that step 1 does not place.
-func countTrackers(in torrentCountsInput, sharedContentPaths []bool, result *torrentCountsResult) {
-	torrents := in.torrents
-	stats := make(map[string]*trackerDomainStats)
-	add := func(domain string, i int) {
-		s := stats[domain]
-		if s == nil {
-			s = &trackerDomainStats{}
-			stats[domain] = s
+func countTrackers(in torrentCountsInput, result *torrentCountsResult) {
+	resolveTrackers(in, func(_ int, domain, url string) {
+		result.counts.Trackers[domain]++
+		if url == "" {
+			return
 		}
-		s.add(&torrents[i], sharedContentPaths[i])
-	}
-
-	placed := placeMappedTorrents(in, add)
-	need := make(map[string]struct{})
-	for i := range torrents {
-		if !placed[i] && needsMainData(&torrents[i]) {
-			need[torrents[i].Hash] = struct{}{}
+		if result.icons == nil {
+			result.icons = make(map[string]string)
 		}
-	}
-	resolver := newTrackerResolver(in.trackers, func(hash string) bool {
-		_, ok := need[hash]
-		return ok
+		if _, ok := result.icons[domain]; !ok && domain != "Unknown" {
+			result.icons[domain] = url
+		}
+	}, func(int) {
+		result.counts.Trackers[""]++
 	})
+
+	reportEmptiedDomains(in, result)
+}
+
+// resolveTrackers runs the steps of trackerResolver for each torrent. Step 1
+// reads the mapping by domain, and steps 2 to 4 run only on the torrents that
+// step 1 does not place. It calls visit for each domain of torrent i, with the
+// URL that gave the domain, or "" when step 1 gave it. It calls noTracker for a
+// torrent in No tracker.
+func resolveTrackers(in torrentCountsInput, visit func(i int, domain, url string), noTracker func(i int)) {
+	torrents := in.torrents
+	placed := placeMappedTorrents(in, func(domain string, i int) { visit(i, domain, "") })
+	// Without a mapping, no torrent is placed, so each hash is needed.
+	var want func(hash string) bool
+	if in.domainToHashes != nil {
+		need := make(map[string]struct{})
+		for i := range torrents {
+			if !placed[i] {
+				need[torrents[i].Hash] = struct{}{}
+			}
+		}
+		want = func(hash string) bool {
+			_, ok := need[hash]
+			return ok
+		}
+	}
+	resolver := newTrackerResolver(in.trackers, want)
 	for i := range torrents {
 		if placed[i] {
 			continue
 		}
-		noTracker := resolver.fallback(&torrents[i], func(domain, url string) {
-			add(domain, i)
-			if result.icons == nil {
-				result.icons = make(map[string]string)
-			}
-			if _, ok := result.icons[domain]; !ok && domain != "Unknown" {
-				result.icons[domain] = url
-			}
-		})
-		if noTracker {
-			result.counts.Trackers[""]++
+		if resolver.fallback(torrents[i], func(domain, url string) { visit(i, domain, url) }) {
+			noTracker(i)
 		}
 	}
-
-	for domain, s := range stats {
-		result.counts.Trackers[domain] = s.sum.Count
-		result.counts.TrackerTransfers[domain] = s.totals()
-	}
-	reportEmptiedDomains(in, stats, result)
 }
 
 // placeMappedTorrents runs step 1 for each domain of the mapping, and reports
@@ -578,9 +609,9 @@ func placeMappedTorrents(in torrentCountsInput, add func(domain string, i int)) 
 
 // reportEmptiedDomains lists the domains whose exclusions no longer hide a
 // torrent, with the excluded hashes to drop from the mapping.
-func reportEmptiedDomains(in torrentCountsInput, stats map[string]*trackerDomainStats, result *torrentCountsResult) {
+func reportEmptiedDomains(in torrentCountsInput, result *torrentCountsResult) {
 	for domain, hashes := range in.trackers.exclusions {
-		if _, ok := stats[domain]; ok {
+		if _, ok := result.counts.Trackers[domain]; ok {
 			continue
 		}
 		result.emptiedDomains = append(result.emptiedDomains, domain)
@@ -592,4 +623,66 @@ func reportEmptiedDomains(in torrentCountsInput, stats map[string]*trackerDomain
 		}
 		result.unmap[domain] = slices.Collect(maps.Keys(hashes))
 	}
+}
+
+// trackerSet holds the totals of the torrents that share one set of tracker
+// domains. Public torrents share one set whatever their domains are.
+type trackerSet struct {
+	domains []string
+	public  bool
+	stats   trackerDomainStats
+}
+
+// groupTrackers sums the torrents of the input by Tracker group. A torrent
+// counts toward one group, and a content path that two torrents of one group
+// share counts once in it.
+func groupTrackers(in torrentCountsInput, mapper *trackergroup.Mapper) map[trackergroup.Group]TrackerTransferStats {
+	torrents := in.torrents
+	domainsOf := make([][]string, len(torrents))
+	resolveTrackers(in, func(i int, domain, _ string) {
+		domainsOf[i] = append(domainsOf[i], domain)
+	}, func(int) {})
+
+	sharedContentPaths := findSharedContentPaths(torrents)
+	byKey := make(map[string]*trackerSet)
+	var sets []*trackerSet
+	for i := range torrents {
+		t := torrents[i]
+		public := !PrivateUnknown(t) && !t.Private
+		domains := domainsOf[i]
+		key := "\x00public"
+		if public {
+			domains = nil
+		} else {
+			slices.Sort(domains)
+			key = strings.Join(domains, "\x00")
+		}
+		set := byKey[key]
+		if set == nil {
+			set = &trackerSet{domains: domains, public: public}
+			byKey[key] = set
+			sets = append(sets, set)
+		}
+		set.stats.add(t, sharedContentPaths[i])
+	}
+
+	merged := make(map[trackergroup.Group]*trackerDomainStats)
+	for _, set := range sets {
+		var private *bool
+		if set.public {
+			private = new(false)
+		}
+		group := mapper.Of(set.domains, private)
+		total := merged[group]
+		if total == nil {
+			total = &trackerDomainStats{}
+			merged[group] = total
+		}
+		total.merge(&set.stats)
+	}
+	groups := make(map[trackergroup.Group]TrackerTransferStats, len(merged))
+	for group, total := range merged {
+		groups[group] = total.totals()
+	}
+	return groups
 }

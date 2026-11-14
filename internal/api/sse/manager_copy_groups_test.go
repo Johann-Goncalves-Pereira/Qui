@@ -42,6 +42,17 @@ func TestParseStreamRequests_GroupCopies(t *testing.T) {
 
 	_, err = parse(map[string]any{"instanceId": 1, "groupCopies": true, "summary": true})
 	require.Error(t, err, "a summary has no rows to group")
+
+	summary, err := parse(map[string]any{"instanceId": 1, "summary": true})
+	require.NoError(t, err)
+	unique, err := parse(map[string]any{"instanceId": 1, "summary": true, "uniqueSize": true})
+	require.NoError(t, err)
+	require.True(t, unique[0].options.View.UniqueSize)
+	require.NotEqual(t, streamOptionsKey(summary[0].options), streamOptionsKey(unique[0].options),
+		"a stream with the Unique size must not share a payload with one without it")
+
+	_, err = parse(map[string]any{"instanceIds": []int{1, 2}, "uniqueSize": true})
+	require.EqualError(t, err, "the Unique size needs a single instance")
 }
 
 // A Copy group change with no torrent change sends the row again in each view.
@@ -127,48 +138,6 @@ func TestFlatAndGroupedSubscribersGetTheirOwnPayload(t *testing.T) {
 	})
 }
 
-// The browser sends no list request while a grouped stream works, so the
-// stream keeps the job, which stops 5 minutes after the last demand, running.
-func TestOpenGroupedStreamKeepsDemandingCopyGroups(t *testing.T) {
-	for name, tt := range map[string]struct {
-		payload []map[string]any
-		demands bool
-	}{
-		"flat":    {payload: streamPayload(1, "flat")},
-		"grouped": {payload: groupedStreamPayload(1, "grouped"), demands: true},
-		"unified": {payload: []map[string]any{{"key": "unified", "instanceIds": []int{1, 2}, "groupCopies": true}}, demands: true},
-	} {
-		t.Run(name, func(t *testing.T) {
-			synctest.Test(t, func(t *testing.T) {
-				provider := &fakeSyncProvider{
-					torrentsResponse:      flatRows(),
-					groupedResponse:       copyGroupRows(true),
-					crossInstanceResponse: &qbittorrent.TorrentResponse{},
-				}
-				manager := newIdleTestManager(t, provider)
-				reader := connectPipeStream(t, manager, tt.payload)
-				reader.waitForEvent(t, streamEventInit, time.Second)
-				openedAt := time.Now()
-
-				reader.requireNoTick(t, 10*time.Minute)
-
-				demands := provider.demandTimes()
-				if !tt.demands {
-					require.Empty(t, demands, "a flat stream must not wake the job")
-					return
-				}
-				require.NotEmpty(t, demands)
-				last := openedAt
-				for _, at := range demands {
-					require.LessOrEqual(t, at.Sub(last), 2*heartbeatInterval, "the stream left a gap between demands")
-					last = at
-				}
-				require.LessOrEqual(t, time.Since(last), 2*heartbeatInterval)
-			})
-		})
-	}
-}
-
 // The setter wakes the stream when no torrent changed: the frame carries the
 // ready field and the rows that joined a group.
 func TestStreamFrameAfterCopyGroupsSetter(t *testing.T) {
@@ -187,7 +156,7 @@ func TestStreamFrameAfterCopyGroupsSetter(t *testing.T) {
 		provider.mu.Lock()
 		provider.groupedResponse = copyGroupRows(true)
 		provider.mu.Unlock()
-		sm.SetCopyGroups(qbittorrent.NewCopyGroups(map[int]map[string]uint64{1: {"a": 0xaa, "b": 0xaa}}, []int{1}))
+		sm.SetCopyGroups(qbittorrent.NewCopyGroups(map[int]map[string]uint64{1: {"a": 0xaa, "b": 0xaa}}, nil, []int{1}))
 
 		frame := decodeStreamPayloadData(t, reader.waitForTick(t, time.Second).data)
 		require.Equal(t, streamEventDelta, frame.Type)

@@ -36,6 +36,7 @@ import (
 	"github.com/autobrr/qui/internal/services/automations"
 	"github.com/autobrr/qui/internal/services/crossseed"
 	"github.com/autobrr/qui/internal/services/crossseedroute"
+	"github.com/autobrr/qui/internal/services/dbshrink"
 	"github.com/autobrr/qui/internal/services/dirscan"
 	"github.com/autobrr/qui/internal/services/discscan"
 	"github.com/autobrr/qui/internal/services/externalprograms"
@@ -46,7 +47,9 @@ import (
 	"github.com/autobrr/qui/internal/services/orphanscan"
 	"github.com/autobrr/qui/internal/services/peerclienticons"
 	"github.com/autobrr/qui/internal/services/reannounce"
+	"github.com/autobrr/qui/internal/services/systemnotice"
 	"github.com/autobrr/qui/internal/services/trackericons"
+	"github.com/autobrr/qui/internal/services/transferhistory"
 	"github.com/autobrr/qui/internal/sshpool"
 	"github.com/autobrr/qui/internal/update"
 	"github.com/autobrr/qui/internal/web"
@@ -103,6 +106,9 @@ type Server struct {
 	orphanScanService                *orphanscan.Service
 	discScanStore                    *models.DiscScanStore
 	discScanService                  *discscan.Service
+	transferHistory                  *transferhistory.Module
+	systemNotices                    *systemnotice.Module
+	databaseShrink                   *dbshrink.Service
 	backendPool                      *fsops.Pool
 	sshPool                          *sshpool.Pool
 	dirScanService                   *dirscan.Service
@@ -158,6 +164,9 @@ type Dependencies struct {
 	OrphanScanService                *orphanscan.Service
 	DiscScanStore                    *models.DiscScanStore
 	DiscScanService                  *discscan.Service
+	TransferHistory                  *transferhistory.Module
+	SystemNotices                    *systemnotice.Module
+	DatabaseShrink                   *dbshrink.Service
 	BackendPool                      *fsops.Pool
 	SSHPool                          *sshpool.Pool
 	DirScanService                   *dirscan.Service
@@ -167,7 +176,7 @@ type Dependencies struct {
 }
 
 func NewServer(deps *Dependencies) *Server {
-	streamManager := sse.NewStreamManager(deps.ClientPool, deps.SyncManager, deps.SyncManager, deps.SyncManager, deps.InstanceStore)
+	streamManager := sse.NewStreamManager(deps.ClientPool, deps.SyncManager, deps.SyncManager, deps.InstanceStore)
 	if deps.ClientPool != nil {
 		deps.ClientPool.AddSyncEventSink(streamManager)
 	}
@@ -237,6 +246,9 @@ func NewServer(deps *Dependencies) *Server {
 		orphanScanService:                deps.OrphanScanService,
 		discScanStore:                    deps.DiscScanStore,
 		discScanService:                  deps.DiscScanService,
+		transferHistory:                  deps.TransferHistory,
+		systemNotices:                    deps.SystemNotices,
+		databaseShrink:                   deps.DatabaseShrink,
 		backendPool:                      deps.BackendPool,
 		sshPool:                          deps.SSHPool,
 		dirScanService:                   deps.DirScanService,
@@ -422,6 +434,10 @@ func (s *Server) Handler() (*chi.Mux, error) {
 	automationsHandler := handlers.NewAutomationHandler(s.automationStore, s.automationActivityStore, s.instanceStore, s.externalProgramStore, s.automationService)
 	orphanScanHandler := handlers.NewOrphanScanHandler(s.orphanScanStore, s.instanceStore, s.orphanScanService)
 	discScanHandler := handlers.NewDiscScanHandler(s.discScanService, s.discScanStore, s.syncManager, s.backendPool)
+	transferHistoryHandler := handlers.NewTransferHistoryHandler(s.transferHistory)
+	systemNoticeHandler := handlers.NewSystemNoticeHandler(s.systemNotices)
+	databaseShrinkHandler := handlers.NewDatabaseShrinkHandler(s.databaseShrink)
+	trackerGroupsHandler := handlers.NewTrackerGroupsHandler(s.syncManager, s.trackerCustomizationStore)
 	var dirScanHandler *handlers.DirScanHandler
 	if s.dirScanService != nil {
 		dirScanHandler = handlers.NewDirScanHandler(s.dirScanService, s.instanceStore)
@@ -628,6 +644,8 @@ func (s *Server) Handler() (*chi.Mux, error) {
 			// Version endpoints (current running version + update checks)
 			r.Get("/version", versionHandler.GetVersion)
 			r.Get("/version/latest", versionHandler.GetLatestVersion)
+			r.With(system.Read).Get("/system-notices", systemNoticeHandler.List)
+			r.With(settings.Write).Delete("/system-notices/{kind}", systemNoticeHandler.Dismiss)
 			r.With(system.Read).Get("/application/info", applicationHandler.GetInfo)
 			r.With(browserOnly).Post("/system/restart", systemHandler.Restart)
 			r.With(browserOnly).Post("/system/update", systemHandler.Update)
@@ -694,6 +712,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 
 					r.With(instances.Read).Get("/capabilities", instancesHandler.GetInstanceCapabilities)
 					r.With(instances.Read).Get("/transfer-info", instancesHandler.GetTransferInfo)
+					r.With(instances.Read).Get("/free-space", instancesHandler.GetFreeSpaceAtPath)
 					r.With(instances.Read).Get("/reannounce/activity", instancesHandler.GetReannounceActivity)
 					r.With(instances.Read).Get("/reannounce/candidates", instancesHandler.GetReannounceCandidates)
 
@@ -718,6 +737,11 @@ func (s *Server) Handler() (*chi.Mux, error) {
 
 					// Trackers
 					r.With(torrents.Read).Get("/trackers", torrentsHandler.GetActiveTrackers)
+
+					r.With(torrents.Read).Get("/transfer-history", transferHistoryHandler.Transfer)
+					r.With(torrents.Read).Get("/transfer-history/library", transferHistoryHandler.Library)
+					r.With(torrents.Read).Get("/transfer-history/deletes", transferHistoryHandler.Deletes)
+					r.With(torrents.Read).Get("/tracker-groups", trackerGroupsHandler.List)
 
 					// Automations
 					r.Route("/automations", func(r chi.Router) {
@@ -822,6 +846,13 @@ func (s *Server) Handler() (*chi.Mux, error) {
 				r.With(allInstances, torrents.Read).Get("/cross-instance", torrentsHandler.ListCrossInstanceTorrents)
 				r.With(allInstances, torrents.Write).Post("/export", torrentsHandler.ExportTorrentArchive)
 			})
+
+			r.With(allInstances, torrents.Read).Get("/transfer-history/status", transferHistoryHandler.Status)
+			r.With(allInstances, settings.Write).Put("/transfer-history/settings", transferHistoryHandler.UpdateSettings)
+			r.With(allInstances, settings.Write).Delete("/transfer-history", transferHistoryHandler.DeleteHistory)
+			r.With(allInstances, settings.Read).Get("/database/shrink", databaseShrinkHandler.Status)
+			r.With(browserOnly).Post("/database/shrink", databaseShrinkHandler.Request)
+			r.With(allInstances, settings.Write).Delete("/database/shrink/result", databaseShrinkHandler.DismissResult)
 		})
 	})
 

@@ -19,22 +19,23 @@ import (
 
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/testutil/testdb"
+	"github.com/autobrr/qui/internal/trackergroup"
 )
 
 // listRows returns the rows that a list request with filters gives from
 // torrents, with the tracker inputs that the sync manager gathers.
 func listRows(sm *SyncManager, client *Client, torrents []qbt.Torrent, filters FilterOptions, mainData *qbt.MainData, useSubcategories bool, health *TrackerHealthSnapshot) []qbt.Torrent {
 	rule := sm.torrentListRuleFor(client, filters, mainData, health, useSubcategories)
-	var rows []qbt.Torrent
+	var refs []*qbt.Torrent
 	for i := range torrents {
 		if rule.match(&torrents[i]) {
-			rows = append(rows, torrents[i])
+			refs = append(refs, &torrents[i])
 		}
 	}
 	if filters.Expr != "" {
-		rows = sm.filterTorrentsByExpr(rows, filters.Expr, false)
+		refs = sm.filterTorrentsByExpr(refs, filters.Expr, false)
 	}
-	return rows
+	return torrentValues(refs)
 }
 
 // sidebarLibrary holds each qBittorrent state, a parent category with a
@@ -106,7 +107,7 @@ func TestSidebarCountsEqualRows(t *testing.T) {
 	for _, useSubcategories := range []bool{false, true} {
 		t.Run(fmt.Sprintf("subcategories %t", useSubcategories), func(t *testing.T) {
 			counts := countTorrents(torrentCountsInput{
-				torrents:         torrents,
+				torrents:         torrentRefs(torrents),
 				useSubcategories: useSubcategories,
 				health:           health,
 				domainToHashes:   byDomain(mapping),
@@ -198,7 +199,7 @@ func newRuleTestClient(t *testing.T, instanceID int, mainData map[string]any) *C
 	client, err := NewClientWithTimeout(instanceID, srv.URL, "", "", "", nil, nil, false, time.Second, time.Second)
 	require.NoError(t, err)
 	t.Cleanup(client.optimisticUpdates.Close)
-	require.NoError(t, client.GetSyncManager().Sync(t.Context()))
+	require.NoError(t, client.SyncOwner().Sync(t.Context()))
 	return client
 }
 
@@ -313,4 +314,161 @@ func TestAddSubcategoriesToParentsCountsEachSizeOnce(t *testing.T) {
 		require.Equal(t, map[string]int{"tv": 3, "tv/anime": 2, "tv/anime/season": 1}, counts.Categories)
 		require.Equal(t, map[string]int64{"tv": 111, "tv/anime": 110, "tv/anime/season": 100}, counts.CategorySizes)
 	}
+}
+
+// TestTrackerGroupsCountEachTorrentOnce holds the Tracker group totals: a
+// torrent counts toward one group, so the groups add up to the library, and a
+// content path that two torrents of one group share counts once.
+func TestTrackerGroupsCountEachTorrentOnce(t *testing.T) {
+	t.Parallel()
+
+	withMetadata, noMetadata := true, false
+	torrent := func(hash, tracker string, private *bool, size, uploaded int64, contentPath string) qbt.Torrent {
+		tr := qbt.Torrent{Hash: hash, Tracker: tracker, Size: size, Uploaded: uploaded, Downloaded: 1, ContentPath: contentPath}
+		if tracker != "" {
+			tr.TrackersCount = 1
+		}
+		if private != nil {
+			tr.HasMetadata, tr.Private = &withMetadata, *private
+		} else {
+			tr.HasMetadata = &noMetadata
+		}
+		return tr
+	}
+	private, public := true, false
+	torrents := []qbt.Torrent{
+		torrent("h1", "https://a.example.invalid/announce", &private, 100, 10, "/data/shared"),
+		torrent("h2", "https://a.example.invalid/announce", &private, 100, 20, "/data/shared"),
+		torrent("h3", "https://c.example.invalid/announce", &public, 300, 30, "/data/three"),
+		torrent("h4", "https://d.example.invalid/announce", nil, 400, 40, "/data/four"),
+		torrent("h5", "", &private, 500, 50, "/data/five"),
+	}
+	// h1 announces to two domains of one tracker.
+	mapping := map[string]map[string]struct{}{
+		"a.example.invalid": {"h1": {}, "h2": {}},
+		"b.example.invalid": {"h1": {}},
+	}
+	in := torrentCountsInput{
+		torrents:       torrentRefs(torrents),
+		domainToHashes: mapping,
+		trackers:       trackerSources{extractDomain: ExtractDomainFromURL},
+	}
+	counts := countTorrents(in).counts
+
+	// The sidebar counts still count h1 under each of its domains.
+	require.Equal(t, 2, counts.Trackers["a.example.invalid"])
+	require.Equal(t, 1, counts.Trackers["b.example.invalid"])
+
+	groupOf := func(name string, kind trackergroup.Kind) trackergroup.Group {
+		return trackergroup.Group{Kind: kind, Name: name}
+	}
+	total := func(groups map[trackergroup.Group]TrackerTransferStats) (n int, uploaded int64) {
+		for _, stats := range groups {
+			n += stats.Count
+			uploaded += stats.Uploaded
+		}
+		return n, uploaded
+	}
+
+	t.Run("no customization", func(t *testing.T) {
+		groups := groupTrackers(in, trackergroup.New(nil))
+		require.Equal(t, map[trackergroup.Group]TrackerTransferStats{
+			groupOf("a.example.invalid", trackergroup.Domain): {Count: 2, Uploaded: 30, Downloaded: 2, TotalSize: 100},
+			groupOf("Public", trackergroup.Public):            {Count: 1, Uploaded: 30, Downloaded: 1, TotalSize: 300},
+			groupOf("d.example.invalid", trackergroup.Domain): {Count: 1, Uploaded: 40, Downloaded: 1, TotalSize: 400},
+			groupOf("No tracker", trackergroup.NoTracker):     {Count: 1, Uploaded: 50, Downloaded: 1, TotalSize: 500},
+		}, groups)
+		n, uploaded := total(groups)
+		require.Equal(t, len(torrents), n)
+		require.EqualValues(t, 150, uploaded)
+	})
+
+	t.Run("a customization merges two groups", func(t *testing.T) {
+		mapper := trackergroup.New([]*models.TrackerCustomization{
+			{DisplayName: "Example", Domains: []string{"b.example.invalid", "d.example.invalid"}},
+		})
+		groups := groupTrackers(in, mapper)
+		require.Equal(t, TrackerTransferStats{Count: 2, Uploaded: 50, Downloaded: 2, TotalSize: 500},
+			groups[groupOf("Example", trackergroup.Customization)])
+		require.Equal(t, TrackerTransferStats{Count: 1, Uploaded: 20, Downloaded: 1, TotalSize: 100},
+			groups[groupOf("a.example.invalid", trackergroup.Domain)])
+		n, uploaded := total(groups)
+		require.Equal(t, len(torrents), n)
+		require.EqualValues(t, 150, uploaded)
+	})
+
+	t.Run("sizes merge across sets of one group", func(t *testing.T) {
+		mapper := trackergroup.New([]*models.TrackerCustomization{
+			{DisplayName: "Example", Domains: []string{"a.example.invalid", "b.example.invalid"}},
+		})
+		// h1 has the sets {a, b} and h2 has {a}. Both are in Example and share a path.
+		stats := groupTrackers(in, mapper)[groupOf("Example", trackergroup.Customization)]
+		require.Equal(t, TrackerTransferStats{Count: 2, Uploaded: 30, Downloaded: 2, TotalSize: 100}, stats)
+	})
+}
+
+// An empty content path is an unknown identity, not proof of shared data, so
+// two torrents of one group with no content path count their sizes apart.
+func TestTrackerGroupsDoNotDeduplicateEmptyContentPath(t *testing.T) {
+	t.Parallel()
+
+	torrents := []qbt.Torrent{
+		{Hash: "h1", Tracker: "https://a.example.invalid/announce", TrackersCount: 1, Size: 30, Uploaded: 10},
+		{Hash: "h2", Tracker: "https://a.example.invalid/announce", TrackersCount: 1, Size: 300, Uploaded: 100},
+	}
+	in := torrentCountsInput{
+		torrents:       torrentRefs(torrents),
+		domainToHashes: map[string]map[string]struct{}{"a.example.invalid": {"h1": {}, "h2": {}}},
+		trackers:       trackerSources{extractDomain: ExtractDomainFromURL},
+	}
+
+	groups := groupTrackers(in, trackergroup.New(nil))
+
+	require.Equal(t, map[trackergroup.Group]TrackerTransferStats{
+		{Kind: trackergroup.Domain, Name: "a.example.invalid"}: {Count: 2, Uploaded: 110, TotalSize: 330},
+	}, groups)
+}
+
+// regression: #4100
+func TestTrackerFilterFindsATorrentThatTheMappingDoesNotHoldUnderEachDomain(t *testing.T) {
+	t.Parallel()
+
+	torrents := []qbt.Torrent{
+		{Hash: "hash-mapped", Tracker: "https://alpha.example/announce", TrackersCount: 1},
+		{Hash: "hash-new", Tracker: "https://charlie.example/announce", TrackersCount: 2},
+		{Hash: "hash-edited", Tracker: "https://charlie.example/announce", TrackersCount: 2},
+	}
+	mainData := &qbt.MainData{Trackers: map[string][]string{
+		"https://alpha.example/announce":   {"hash-mapped", "hash-new", "hash-edited"},
+		"https://charlie.example/announce": {"hash-new", "hash-edited"},
+	}}
+	mapping := func() *ValidatedTrackerMapping {
+		return &ValidatedTrackerMapping{
+			HashToDomains:  map[string]map[string]struct{}{"hash-mapped": {"alpha.example": {}}, "hash-edited": {"old.example": {}}},
+			DomainToHashes: map[string]map[string]struct{}{"alpha.example": {"hash-mapped": {}}, "old.example": {"hash-edited": {}}},
+		}
+	}
+	hashes := func(rows []qbt.Torrent) []string {
+		out := make([]string, 0, len(rows))
+		for _, row := range rows {
+			out = append(out, row.Hash)
+		}
+		return out
+	}
+	filter := FilterOptions{Trackers: []string{"alpha.example"}}
+
+	t.Run("no tracker exclusions", func(t *testing.T) {
+		t.Parallel()
+		sm := &SyncManager{validatedTrackerMapping: map[int]*ValidatedTrackerMapping{7: mapping()}}
+		rows := listRows(sm, &Client{instanceID: 7}, torrents, filter, mainData, false, nil)
+		require.Equal(t, []string{"hash-mapped", "hash-new"}, hashes(rows))
+	})
+
+	t.Run("the mapping holds a torrent only under an excluded domain", func(t *testing.T) {
+		t.Parallel()
+		sm := &SyncManager{validatedTrackerMapping: map[int]*ValidatedTrackerMapping{7: mapping()}}
+		client := &Client{instanceID: 7, trackerExclusions: map[string]map[string]struct{}{"old.example": {"hash-edited": {}}}}
+		rows := listRows(sm, client, torrents, filter, mainData, false, nil)
+		require.Equal(t, []string{"hash-mapped", "hash-new", "hash-edited"}, hashes(rows))
+	})
 }

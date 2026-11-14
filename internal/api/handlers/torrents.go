@@ -52,7 +52,11 @@ type deleteMatchFinder interface {
 type torrentContentResolver interface {
 	GetTorrentFiles(ctx context.Context, instanceID int, hash string) (*qbt.TorrentFiles, error)
 	GetTorrentProperties(ctx context.Context, instanceID int, hash string) (*qbt.TorrentProperties, error)
-	GetTorrents(ctx context.Context, instanceID int, options qbt.TorrentFilterOptions) ([]qbt.Torrent, error)
+	GetTorrentRefs(ctx context.Context, instanceID int, filter qbittorrent.TorrentRefFilter) ([]*qbt.Torrent, error)
+}
+
+type torrentDeleter interface {
+	DeleteTorrents(ctx context.Context, instanceID int, hashes []string, deleteFiles bool, actor qbittorrent.DeleteActor) error
 }
 
 type TorrentsHandler struct {
@@ -64,6 +68,7 @@ type TorrentsHandler struct {
 	contentResolver   torrentContentResolver
 	archiveExporter   torrentArchiveExporter
 	deleteMatches     deleteMatchFinder
+	deleter           torrentDeleter
 }
 
 // truncateExpr truncates long filter expressions for cleaner logging
@@ -114,6 +119,7 @@ func NewTorrentsHandler(syncManager *qbittorrent.SyncManager, jackettService *ja
 		contentResolver: syncManager,
 		archiveExporter: syncManager,
 		deleteMatches:   crossSeedService,
+		deleter:         syncManager,
 	}
 	if jackettService != nil {
 		h.torrentDownloader = jackettService
@@ -221,6 +227,7 @@ func (h *TorrentsHandler) ListTorrents(w http.ResponseWriter, r *http.Request) {
 		Filters:           filters,
 		SidebarCounts:     true,
 		CopyGroups:        groupCopiesParam(r),
+		UniqueSize:        uniqueSizeParam(r),
 		CacheOnly:         preferCached,
 		FullPasskeyAccess: middleware.CanReadTrackerPasskeys(r),
 	})
@@ -254,6 +261,11 @@ func (h *TorrentsHandler) ListTorrents(w http.ResponseWriter, r *http.Request) {
 func groupCopiesParam(r *http.Request) bool {
 	groupCopies, _ := strconv.ParseBool(r.URL.Query().Get("groupCopies"))
 	return groupCopies
+}
+
+func uniqueSizeParam(r *http.Request) bool {
+	uniqueSize, _ := strconv.ParseBool(r.URL.Query().Get("uniqueSize"))
+	return uniqueSize
 }
 
 // GetTorrentField returns field values for torrents matching either the current filters
@@ -543,7 +555,7 @@ func (h *TorrentsHandler) CheckDuplicates(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	syncManager, err := h.syncManager.GetQBittorrentSyncManager(r.Context(), instanceID)
+	syncManager, err := h.syncManager.GetSyncOwner(r.Context(), instanceID)
 	if err != nil {
 		if respondIfInstanceDisabled(w, err, instanceID, "torrents:checkDuplicates") {
 			return
@@ -553,7 +565,18 @@ func (h *TorrentsHandler) CheckDuplicates(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	torrents := syncManager.GetTorrents(qbt.TorrentFilterOptions{Hashes: req.Hashes})
+	// The matches keep the order of the Sync snapshot.
+	var torrents []*qbt.Torrent
+	if snapshot := syncManager.Snapshot(); snapshot != nil {
+		wanted := make(map[string]struct{}, len(req.Hashes))
+		for _, hash := range req.Hashes {
+			wanted[hash] = struct{}{}
+		}
+		torrents = snapshot.Matching(func(t *qbt.Torrent) bool {
+			_, ok := wanted[t.Hash]
+			return ok
+		})
+	}
 
 	matches := make([]qbittorrent.DuplicateTorrentMatch, len(torrents))
 	for i, torrent := range torrents {
@@ -1567,12 +1590,9 @@ func (h *TorrentsHandler) executeBulkActionForInstance(ctx context.Context, inst
 			return errors.New("trackerURLs parameter is required for removeTrackers action")
 		}
 		return h.syncManager.BulkRemoveTrackers(ctx, instanceID, hashes, req.TrackerURLs)
-	case "delete":
-		action := req.Action
-		if req.DeleteFiles {
-			action = "deleteWithFiles"
-		}
-		return h.syncManager.BulkAction(ctx, instanceID, hashes, action)
+	case "delete", "deleteWithFiles":
+		deleteFiles := req.Action == "deleteWithFiles" || req.DeleteFiles
+		return h.deleter.DeleteTorrents(ctx, instanceID, hashes, deleteFiles, qbittorrent.DeleteActor{Kind: qbittorrent.DeleteActorUser})
 	default:
 		return h.syncManager.BulkAction(ctx, instanceID, hashes, req.Action)
 	}
@@ -3049,7 +3069,7 @@ func fetchTorrentFilesAndPropsForContentFile(ctx context.Context, resolver torre
 
 func resolveTorrentContentFilePathOnDisk(ctx context.Context, resolver torrentContentResolver, instanceID int, hash string, props *qbt.TorrentProperties, targetFileName string, filesLen int, w http.ResponseWriter) (string, bool) {
 	contentPath := ""
-	if torrents, err := resolver.GetTorrents(ctx, instanceID, qbt.TorrentFilterOptions{Hashes: []string{hash}}); err != nil {
+	if torrents, err := resolver.GetTorrentRefs(ctx, instanceID, qbittorrent.TorrentRefFilter{Hashes: []string{hash}}); err != nil {
 		log.Warn().Err(err).Int("instanceID", instanceID).Str("hash", hash).Msg("Failed to get torrent content path for fallback resolution")
 	} else if len(torrents) > 0 {
 		contentPath = torrents[0].ContentPath

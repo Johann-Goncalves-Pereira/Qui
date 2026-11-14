@@ -21,7 +21,7 @@ type deletionSelectionInput struct {
 	// rules in rule order. A rule without an enabled delete action is ignored.
 	rules []*models.Automation
 	// torrents are sorted in place by the sort order of each rule.
-	torrents   []qbt.Torrent
+	torrents   []*qbt.Torrent
 	evalCtx    *EvalContext
 	crossSeeds *crossSeedGroups
 	// scope is the Rule scope of the run. The dry run and the preview open it with no Skip window.
@@ -41,6 +41,51 @@ type selectedDeletion struct {
 	trigger      bool
 	hardlinkCopy bool
 	logMsg       string
+}
+
+// deleteFilesForMode refuses a mode that is not a batch mode, such as a
+// stored mode that qui no longer knows.
+func deleteFilesForMode(mode string) (bool, error) {
+	switch mode {
+	case DeleteModeKeepFiles:
+		return false, nil
+	case DeleteModeWithFiles:
+		return true, nil
+	}
+	return false, fmt.Errorf("unknown delete mode: %s", mode)
+}
+
+// ruleDeletes holds the torrents that one rule deletes with one mode.
+type ruleDeletes struct {
+	mode   string
+	rule   ruleRef
+	hashes []string
+}
+
+// groupDeletesByRule splits the queued deletes by rule and mode, in selection
+// order, so that each delete names the rule that started it.
+func groupDeletesByRule(sel *deletionSelection) []ruleDeletes {
+	type key struct {
+		mode string
+		rule ruleRef
+	}
+	var groups []ruleDeletes
+	index := make(map[key]int)
+	for _, hash := range sel.order {
+		pending, queued := sel.byHash[hash]
+		if !queued {
+			continue
+		}
+		k := key{pending.batchMode, pending.rule}
+		i, ok := index[k]
+		if !ok {
+			i = len(groups)
+			index[k] = i
+			groups = append(groups, ruleDeletes{mode: pending.batchMode, rule: pending.rule})
+		}
+		groups[i].hashes = append(groups[i].hashes, hash)
+	}
+	return groups
 }
 
 func (d selectedDeletion) filesKept() bool {
@@ -93,10 +138,10 @@ func (s *Service) selectDeletions(ctx context.Context, instanceID int, in deleti
 		failedRules: make(map[int]error),
 	}
 	evalCtx := in.evalCtx
-	// A torrent is about 2 KB. Build the map only for the modes that expand groups, so the
-	// preview of another mode does not pay for it. The run builds the map later in any case.
+	// Build the map only for the modes that expand groups, so the preview of another mode
+	// does not pay for it. The run builds the map later in any case.
 	if evalCtx.torrentsByHash == nil && slices.ContainsFunc(in.rules, deleteExpandsGroups) {
-		evalCtx.torrentsByHash = make(map[string]qbt.Torrent, len(in.torrents))
+		evalCtx.torrentsByHash = make(map[string]*qbt.Torrent, len(in.torrents))
 		for _, torrent := range in.torrents {
 			evalCtx.torrentsByHash[torrent.Hash] = torrent
 		}
@@ -126,11 +171,10 @@ func (s *Service) selectDeletions(ctx context.Context, instanceID int, in deleti
 	}
 	askDeleteGroups(claims, in.crossSeeds, evalCtx.hardlinkIndex)
 
-	// The sort order is final now, so pointers into in.torrents stay valid.
 	triggerTorrents := make(map[string]*qbt.Torrent, len(sel.triggers))
-	for i := range in.torrents {
-		if sel.isClaimed(in.torrents[i].Hash) {
-			triggerTorrents[in.torrents[i].Hash] = &in.torrents[i]
+	for _, torrent := range in.torrents {
+		if sel.isClaimed(torrent.Hash) {
+			triggerTorrents[torrent.Hash] = torrent
 		}
 	}
 	// Torrents that an include-cross-seeds group took, so a later group does not check them
@@ -207,7 +251,7 @@ func claimDeleteTriggers(rule *models.Automation, in deletionSelectionInput, sel
 
 	var claims []deletionClaim
 	for i := range in.torrents {
-		torrent := &in.torrents[i]
+		torrent := in.torrents[i]
 		if !inScope(torrent) {
 			continue
 		}

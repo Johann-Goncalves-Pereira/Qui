@@ -37,6 +37,7 @@ import (
 	"github.com/autobrr/qui/internal/fsops"
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/qbittorrent"
+	"github.com/autobrr/qui/internal/qbittorrent/syncowner"
 	"github.com/autobrr/qui/internal/services/activity"
 	"github.com/autobrr/qui/internal/services/arr"
 	"github.com/autobrr/qui/internal/services/crossseedroute"
@@ -45,6 +46,7 @@ import (
 	"github.com/autobrr/qui/internal/services/jackett"
 	"github.com/autobrr/qui/internal/services/metadata"
 	"github.com/autobrr/qui/internal/services/notifications"
+	"github.com/autobrr/qui/internal/services/systemnotice"
 	"github.com/autobrr/qui/pkg/hardlinktree"
 	"github.com/autobrr/qui/pkg/stringutils"
 )
@@ -90,7 +92,7 @@ type seasonPackRunCreator interface {
 
 // qbittorrentSync exposes the sync manager functionality needed by the service.
 type qbittorrentSync interface {
-	GetTorrents(ctx context.Context, instanceID int, filter qbt.TorrentFilterOptions) ([]qbt.Torrent, error)
+	GetTorrentRefs(ctx context.Context, instanceID int, filter qbittorrent.TorrentRefFilter) ([]*qbt.Torrent, error)
 	// GetTorrentFilesBatch returns files keyed by the provided hashes (canonicalized by the sync manager).
 	// The returned map uses normalized hashes; missing entries indicate per-hash fetch failures or absent torrents.
 	GetTorrentFilesBatch(ctx context.Context, instanceID int, hashes []string) (map[string]qbt.TorrentFiles, error)
@@ -102,7 +104,7 @@ type qbittorrentSync interface {
 	BulkAction(ctx context.Context, instanceID int, hashes []string, action string) error
 	GetCachedInstanceTorrents(ctx context.Context, instanceID int) ([]qbittorrent.CrossInstanceTorrentView, error)
 	ExtractDomainFromURL(urlStr string) string
-	GetQBittorrentSyncManager(ctx context.Context, instanceID int) (*qbt.SyncManager, error)
+	GetSyncOwner(ctx context.Context, instanceID int) (*syncowner.Owner, error)
 	RenameTorrent(ctx context.Context, instanceID int, hash, name string) error
 	RenameTorrentFile(ctx context.Context, instanceID int, hash, oldPath, newPath string) error
 	RenameTorrentFolder(ctx context.Context, instanceID int, hash, oldPath, newPath string) error
@@ -114,6 +116,7 @@ type qbittorrentSync interface {
 
 const (
 	searchResultCacheTTL                  = 5 * time.Minute
+	gazelleLocalCacheTTL                  = time.Minute
 	indexerDomainCacheTTL                 = 1 * time.Minute
 	contentFilteringWaitTimeout           = 20 * time.Second
 	contentFilteringPollInterval          = 150 * time.Millisecond
@@ -180,8 +183,11 @@ type Service struct {
 	searchResultCache *ttlcache.Cache[string, cachedTorrentSearchResults]
 	// asyncFilteringCache stores async filtering state by torrent key for UI polling
 	asyncFilteringCache *ttlcache.Cache[string, *AsyncIndexerFilteringState]
-	indexerDomainCache  *ttlcache.Cache[string, string]
-	stringNormalizer    *stringutils.Normalizer[string, string]
+	// gazelleLocalCache keeps the local RED/OPS checks of a torrent for a short
+	// time, so the search after the dialog opens does not run them again.
+	gazelleLocalCache  *ttlcache.Cache[string, gazelleLocalResult]
+	indexerDomainCache *ttlcache.Cache[string, string]
+	stringNormalizer   *stringutils.Normalizer[string, string]
 
 	// sizeMismatchWarned tracks (source hash, matched hash) pairs whose
 	// size-mismatch rejection already logged at warn; repeats drop to trace.
@@ -193,6 +199,13 @@ type Service struct {
 	jackettService           *jackett.Service
 	arrService               arrLookupService // ARR service for ID lookup
 	notifier                 notifications.Notifier
+	systemNotices            *systemnotice.Module
+	// gazelleNoticeMu guards gazelleKeyGens and each change of a key rejected
+	// notice. The key generation of a site goes up when a settings save changes
+	// its key or the RED/OPS switch, so a client from before the save does not
+	// open or close the notice of the new key.
+	gazelleNoticeMu sync.Mutex
+	gazelleKeyGens  map[string]uint64
 
 	// External program execution
 	externalProgramStore   *models.ExternalProgramStore
@@ -206,6 +219,8 @@ type Service struct {
 	// excluded from matching. Set at startup via config.
 	recoverErroredTorrentsEnabled bool
 
+	// settingsMu makes the read, the save, and the forget of a settings save one step.
+	settingsMu       sync.Mutex
 	automationMu     sync.Mutex
 	automationCancel context.CancelFunc
 	automationWake   chan struct{}
@@ -308,6 +323,7 @@ func NewService(
 	completionStore *models.InstanceCrossSeedCompletionStore,
 	trackerCustomizationStore *models.TrackerCustomizationStore,
 	notifier notifications.Notifier,
+	systemNotices *systemnotice.Module,
 	recoverErroredTorrents bool,
 	seasonPackRunStore seasonPackRunCreator,
 	settler *Settler,
@@ -323,6 +339,9 @@ func NewService(
 		ttlcache.DisableUpdateTime(true))
 	indexerDomainCache := ttlcache.New[string, string](
 		ttlcache.SetDefaultTTL(indexerDomainCacheTTL))
+	gazelleLocalCache := ttlcache.New[string, gazelleLocalResult](
+		ttlcache.SetDefaultTTL(gazelleLocalCacheTTL),
+		ttlcache.DisableUpdateTime(true))
 	contentFilesCache := ttlcache.New[string, qbt.TorrentFiles](
 		ttlcache.SetDefaultTTL(5 * time.Minute))
 	dedupCache := ttlcache.New[string, *dedupCacheEntry](
@@ -341,6 +360,7 @@ func NewService(
 		releaseCache:                  NewReleaseCache(),
 		searchResultCache:             searchCache,
 		asyncFilteringCache:           asyncFilteringCache,
+		gazelleLocalCache:             gazelleLocalCache,
 		indexerDomainCache:            indexerDomainCache,
 		stringNormalizer:              stringutils.NewDefaultNormalizer(),
 		automationStore:               automationStore,
@@ -348,6 +368,7 @@ func NewService(
 		jackettService:                jackettService,
 		arrService:                    arrLookup,
 		notifier:                      notifier,
+		systemNotices:                 systemNotices,
 		externalProgramStore:          externalProgramStore,
 		externalProgramService:        externalProgramService,
 		completionStore:               completionStore,
@@ -374,7 +395,6 @@ func NewService(
 	if syncManager != nil {
 		syncManager.SetFilesChangedHandler(svc.forgetLocalRead)
 		svc.copyGroups = newCopyGroupsJob(svc, syncManager)
-		syncManager.SetCopyGroupsDemandHandler(svc.copyGroups.demand)
 	}
 	svc.partialPool = &partialPoolCoordinator{
 		automationStore: automationStore,

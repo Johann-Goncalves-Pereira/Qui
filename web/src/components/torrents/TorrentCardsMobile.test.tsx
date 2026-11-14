@@ -15,16 +15,19 @@
 import { TorrentCardsMobile } from "@/components/torrents/TorrentCardsMobile"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { MobileScrollProvider } from "@/contexts/MobileScrollContext"
-import { TorrentSelectionProvider } from "@/contexts/TorrentSelectionContext"
+import type { BulkActionPick } from "@/components/torrents/bulk-actions/bulk-action-state"
+import { BulkActionsContext } from "@/components/torrents/bulk-actions/bulk-actions-context"
+import { TorrentSelectionProvider, useTorrentSelectionSummary } from "@/contexts/TorrentSelectionContext"
 // The size and speed formatters read their unit labels from the i18n resources.
 import "@/i18n"
 import { makeFilters } from "@/test/mockFilters"
 import { makeTorrent } from "@/test/mockTorrent"
 import { formatBytes } from "@/lib/utils"
+import type { ActionTarget } from "@/lib/torrent-selection"
 import type { Torrent, TorrentFilters } from "@/types"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
-import type { ComponentProps, ReactNode } from "react"
+import { useMemo, useRef, type ComponentProps, type ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 // Per-test knobs read by the hoisted mocks below. Reset in beforeEach.
@@ -151,31 +154,20 @@ vi.mock("@/hooks/useTorrentsList", () => {
   }
 })
 
-// Every handler is the same spy, so a test can read the Action target that an action got.
-const actionHandler = vi.hoisted(() => vi.fn())
-vi.mock("@/hooks/useTorrentActions", () => {
-  const actions = new Proxy(
-    {
-      blockCrossSeeds: false,
-      deleteCrossSeeds: false,
-      deleteFiles: false,
-      isDeleteFilesLocked: false,
-      pendingTmmEnable: false,
-      isPending: false,
-    } as Record<string, unknown>,
-    {
-      get(target, prop: string) {
-        if (prop in target) return target[prop]
-        if (prop.startsWith("show")) return false
-        return actionHandler
-      },
-    }
-  )
-  return {
-    TORRENT_ACTIONS: { DELETE: "delete", PAUSE: "pause", RESUME: "resume" },
-    useTorrentActions: () => actions,
-  }
-})
+// The bulk action module, as a spy: each pick with the Action target that the cards published.
+const picks: Array<{ pick: BulkActionPick; target?: ActionTarget }> = []
+
+function BulkActionSpy({ children }: { children: ReactNode }) {
+  const published = useTorrentSelectionSummary()
+  const publishedRef = useRef(published)
+  publishedRef.current = published
+  const value = useMemo(() => ({
+    pick: (pick: BulkActionPick) => picks.push({ pick, target: publishedRef.current?.actionTarget }),
+    isPending: false,
+    isExporting: false,
+  }), [])
+  return <BulkActionsContext.Provider value={value}>{children}</BulkActionsContext.Provider>
+}
 
 afterEach(() => {
   cleanup()
@@ -214,7 +206,9 @@ function renderCards(rows: Torrent[], props: CardsProps = {}) {
     <QueryClientProvider client={queryClient}>
       <MobileScrollProvider>
         <TorrentSelectionProvider>
-          <TooltipProvider>{children}</TooltipProvider>
+          <BulkActionSpy>
+            <TooltipProvider>{children}</TooltipProvider>
+          </BulkActionSpy>
         </TorrentSelectionProvider>
       </MobileScrollProvider>
     </QueryClientProvider>
@@ -240,20 +234,15 @@ function renderGroups(rows: Torrent[] = copyGroupRows(), props: CardsProps = {})
 const cardNames = (container: HTMLElement) => Array.from(container.querySelectorAll("h3"), name => name.textContent)
 const cardOf = (container: HTMLElement, name: string) => within(container).getByText(name)
 const pills = (container: HTMLElement) => Array.from(container.querySelectorAll<HTMLButtonElement>("button[aria-label^=\"copyGroups.\"]"))
-const warnings = (container: HTMLElement) => container.querySelectorAll("button[aria-label^=\"copyGroups.copiesWithProblem\"]")
+const warnings = (container: HTMLElement) => container.querySelectorAll("button[aria-label^=\"copyGroups.labelWithProblem\"]")
 const tickedCards = (container: HTMLElement) =>
   Array.from(container.querySelectorAll("[role=\"checkbox\"][aria-checked=\"true\"]"), box => box.closest(".cursor-pointer")?.querySelector("h3")?.textContent)
 
-// The sort menu stays open after a press of the switch or of Expand all.
 async function sortMenuItem(view: ReturnType<typeof render>, role: "menuitem" | "menuitemcheckbox", name: string | RegExp) {
   if (!view.queryByRole("menu")) {
     fireEvent.pointerDown(view.getByRole("button", { name: /^mobileCards\.sort:/ }), { button: 0, ctrlKey: false })
   }
   return view.findByRole(role, { name })
-}
-
-async function pressExpandAll(view: ReturnType<typeof render>) {
-  fireEvent.click(await sortMenuItem(view, "menuitem", /^copyGroups\.(expandAll|collapseAll)$/))
 }
 
 function longPress(card: HTMLElement) {
@@ -272,26 +261,25 @@ beforeEach(() => {
   scenario.copyGroupsReady = undefined
   scenario.listOptions = undefined
   scenario.isDemo = false
+  picks.length = 0
 })
 
 describe("TorrentCardsMobile Group copies switch", () => {
-  it("holds the switch in the sort menu, asks for groups while it is on, and shows Expand all only then", async () => {
+  it("holds the switch in the sort menu and asks for groups while it is on", async () => {
     const view = renderCards(flatRows(3))
+    const groupSwitch = () => sortMenuItem(view, "menuitemcheckbox", "copyGroups.groupCopies")
     expect(scenario.listOptions?.groupCopies).toBe(false)
-    const groupSwitch = await sortMenuItem(view, "menuitemcheckbox", "copyGroups.groupCopies")
-    expect(groupSwitch.getAttribute("aria-checked")).toBe("false")
-    expect(view.queryByRole("menuitem", { name: "copyGroups.expandAll" })).toBeNull()
+    expect((await groupSwitch()).getAttribute("aria-checked")).toBe("false")
 
-    fireEvent.click(groupSwitch)
+    fireEvent.click(await groupSwitch())
 
     expect(scenario.listOptions?.groupCopies).toBe(true)
     expect(localStorage.getItem(GROUP_COPIES_KEY)).toBe("true")
-    expect(view.getByRole("menuitem", { name: "copyGroups.expandAll" })).toBeTruthy()
+    expect((await groupSwitch()).getAttribute("aria-checked")).toBe("true")
 
-    fireEvent.click(groupSwitch)
+    fireEvent.click(await groupSwitch())
 
     expect(scenario.listOptions?.groupCopies).toBe(false)
-    expect(view.queryByRole("menuitem", { name: "copyGroups.expandAll" })).toBeNull()
   })
 
   it("asks for no groups in Filter Cross-Seeds", () => {
@@ -386,7 +374,9 @@ describe("TorrentCardsMobile Copy groups", () => {
   describe("selection", () => {
     const pausedHashes = (view: ReturnType<typeof render>) => {
       fireEvent.click(view.getByRole("button", { name: "managementBar.pause" }))
-      return (actionHandler.mock.calls[0][1] as { hashes?: string[] }).hashes
+      expect(picks.map(({ pick }) => pick)).toEqual([{ action: "pause" }])
+      const target = picks[0].target
+      return target?.kind === "ticks" ? target.hashes : undefined
     }
 
     it("selects one torrent on a long press on the card of a closed group, and a bulk pause reaches only that torrent", () => {
@@ -433,16 +423,6 @@ describe("TorrentCardsMobile Copy groups", () => {
     })
   })
 
-  it("opens and closes all groups from Expand all in the sort menu", async () => {
-    const view = renderGroups()
-
-    await pressExpandAll(view)
-    expect(cardNames(view.container)).toEqual(["Delta Release", "Delta Release copy B", "Delta Release copy C", "Echo Release"])
-    expect(await sortMenuItem(view, "menuitem", "copyGroups.collapseAll")).toBeTruthy()
-
-    await pressExpandAll(view)
-    expect(cardNames(view.container)).toEqual(["Delta Release", "Echo Release"])
-  })
 })
 
 describe("TorrentCardsMobile Compact card", () => {
