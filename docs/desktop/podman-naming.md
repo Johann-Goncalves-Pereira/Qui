@@ -18,7 +18,7 @@ preload bridge, tray/menu copy, settings dialogs, and wiki text use **Podman**
 | Catalog owner | `desktop/podman` |
 | Dismissed digests | `dismissed-podman-digests.json`; `dismissed-docker-digests.json` is read when the new file is missing |
 | Update check | `podman manifest inspect` (no `buildx` path) |
-| Compose | `podman compose`, then `podman-compose`, then `docker-compose` binary as last resort only |
+| Compose | `podman compose`, then `podman-compose` only (no Docker CLI fallback) |
 | Dev refresh | `scripts/desktop-refresh` uses `podman build` / `podman run` and renames `…/Qui/docker/` when needed |
 
 ## Unchanged (not the desktop runtime brand)

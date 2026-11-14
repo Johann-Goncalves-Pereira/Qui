@@ -97,5 +97,6 @@ behavior exists.
 | `BR-desktop-53` | Desktop VPN settings card exposes a How to enable link that opens the Proton VPN how-to on GitHub (`docs/desktop/vpn-privacy.md` on `develop`) | docs/desktop/vpn-privacy.md | desktop/vpn | web/src/components/settings/VpnSettingsCard.test.tsx | `asserted-unit` |
 | `BR-desktop-54` | Gluetun `qui-vpn` run args place all Podman flags and `-e` env pairs before the image name so Podman does not treat them as the container command | docs/desktop/vpn-privacy.md | desktop/vpn | tests/container-layout.test.ts | `asserted-unit` |
 | `BR-desktop-55` | Desktop companion runtime uses Podman-only naming (module, IPC `podman:*`, preload APIs, tray/menu copy, host data dir `…/Qui/podman/` with legacy `…/Qui/docker/` migration); logical CLI token is `podman` | docs/desktop/podman-naming.md | desktop/podman | tests/podman.test.ts, tests/container-layout.test.ts, tests/desktop-refresh.test.ts | `asserted-unit` |
+| `BR-desktop-56` | Before ensuring companion qBittorrent on host ports, desktop removes a leftover `qui-vpn` container so Podman gvproxy does not keep `:6881`/`:8080`; when VPN vault config is enabled, startup re-applies VPN after the base ensure | docs/desktop/vpn-privacy.md | desktop/podman | tests/podman.test.ts | `asserted-unit` |
 
 

@@ -322,6 +322,11 @@ export class PodmanManager {
 			quiContainerRunArgs(this.quiImage, dirs.quiConfig, dirs.downloads),
 		)
 
+		// An exited/created qui-vpn still owns host publishes (6881/8080). Remove
+		// it before binding standalone qBittorrent so gvproxy does not report
+		// "proxy already running for tcp on :6881" (BR-desktop-56).
+		await this.removeContainerQuiet(VPN_CONTAINER_NAME)
+
 		const qbitStatus = await this.ensureContainer(
 			QBIT_CONTAINER_NAME,
 			QBIT_IMAGE,
@@ -330,6 +335,20 @@ export class PodmanManager {
 		)
 
 		return { qui: quiStatus, qbit: qbitStatus }
+	}
+
+	/** Stop and remove a container if present; ignore missing/stopped errors. */
+	async removeContainerQuiet(name: string): Promise<void> {
+		try {
+			await this.executor.exec('podman', ['stop', name])
+		} catch {
+			// already stopped or missing
+		}
+		try {
+			await this.executor.exec('podman', ['rm', '-f', name])
+		} catch {
+			// already removed
+		}
 	}
 
 	async getGazelleStatus(): Promise<PodmanContainerStatus> {
@@ -489,8 +508,18 @@ export class PodmanManager {
 		}
 
 		if (current.state === 'stopped') {
-			await this.executor.exec('podman', ['start', name])
-			return this.getContainerStatus(name, port, image)
+			// "created" means the previous run never started (often a port bind
+			// failure). start would hit the same error; recreate instead.
+			if (current.status === 'created') {
+				await this.removeContainerQuiet(name)
+			} else {
+				try {
+					await this.executor.exec('podman', ['start', name])
+					return this.getContainerStatus(name, port, image)
+				} catch {
+					await this.removeContainerQuiet(name)
+				}
+			}
 		}
 
 		await this.pullIfMissing(image)
