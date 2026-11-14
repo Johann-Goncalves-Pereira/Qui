@@ -30,7 +30,7 @@ describe('Encrypted desktop account (BR-desktop-12)', () => {
 		)
 	})
 
-	it('round-trips the VPN config through VpnVault (BR-desktop-08)', () => {
+	it('round-trips the VPN config through VpnVault (BR-desktop-52)', () => {
 		let stored: Uint8Array | null = null
 		const vpnVault = new VpnVault(
 			{

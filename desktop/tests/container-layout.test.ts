@@ -369,7 +369,7 @@ Connection to localhost succeeded!
 		expect(emptyCreds.isTemporary).toBe(false)
 	})
 
-	it('parses WireGuard conf file into privateKey and address', () => {
+	it('parses WireGuard conf file into privateKey and address (BR-desktop-50)', () => {
 		const sampleConf = `[Interface]
 PrivateKey = aaaaaa111111=
 Address = 10.2.0.2/32
@@ -380,7 +380,7 @@ DNS = 10.2.0.1
 		expect(res.address).toBe('10.2.0.2/32')
 	})
 
-	it('generates Gluetun VPN container run arguments and attaches qBittorrent', () => {
+	it('generates Gluetun VPN container run arguments and attaches qBittorrent (BR-desktop-51)', () => {
 		const vpnArgs = vpnContainerRunArgs({
 			provider: 'protonvpn',
 			wireguardPrivateKey: 'my-key=',

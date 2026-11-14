@@ -91,5 +91,9 @@ behavior exists.
 | `BR-desktop-47` | Desktop shell registers as the default OS handler for magnet protocol, verifies isDefaultProtocolClient status, and seamlessly buffers and routes magnet URLs to Qui /add endpoint | docs/desktop/magnet-links.md | desktop/magnet | tests/magnet.test.ts | `asserted-unit` |
 | `BR-desktop-48` | Suppress intrusive update check and alert prompts on application launch so alerts never interrupt startup, while modernizing Casks/qui.rb to postflight_steps | docs/desktop/updates.md | desktop/updater | tests/cask.test.ts, tests/updater.test.ts | `asserted-unit` |
 | `BR-desktop-49` | Before ensuring containers, desktop verifies Podman answers `info`; if not, runs `podman machine start` once and rechecks; persistent failure shows a recoverable Failed to start Qui message that mentions starting the Podman machine (not a 120s HTTP hang) | docs/desktop/overview.md | desktop/docker | tests/docker.test.ts | `asserted-unit` |
+| `BR-desktop-50` | Desktop parses a Proton WireGuard `.conf` into private key and address for the VPN settings card | docs/desktop/vpn-privacy.md | desktop/vpn | tests/container-layout.test.ts | `asserted-unit` |
+| `BR-desktop-51` | Enabled VPN runs Gluetun as `qui-vpn` with Proton WireGuard env and attaches companion qBittorrent with `--network=container:qui-vpn` | docs/desktop/vpn-privacy.md | desktop/vpn | tests/container-layout.test.ts | `asserted-unit` |
+| `BR-desktop-52` | VPN settings round-trip through encrypted `VpnVault` (`vpn-config.bin`) | docs/desktop/vpn-privacy.md | desktop/vpn | tests/account-vault.test.ts | `asserted-unit` |
+| `BR-desktop-53` | Desktop VPN settings card exposes a How to enable link that opens the Proton VPN how-to on GitHub (`docs/desktop/vpn-privacy.md` on `develop`) | docs/desktop/vpn-privacy.md | desktop/vpn | web/src/components/settings/VpnSettingsCard.test.tsx | `asserted-unit` |
 
 

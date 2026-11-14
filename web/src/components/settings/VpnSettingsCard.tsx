@@ -12,6 +12,10 @@ import { Switch } from "@/components/ui/switch"
 import { ExternalLink, Lock, Shield, ShieldAlert, ShieldCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 
+/** GitHub wiki how-to for Proton VPN privacy (desktop Settings → Instances). */
+export const VPN_PRIVACY_DOCS_URL =
+  "https://github.com/Johann-Goncalves-Pereira/Qui/blob/develop/docs/desktop/vpn-privacy.md"
+
 export function VpnSettingsCard() {
   const isDesktop = typeof window !== "undefined" && Boolean(window.quiDesktop?.saveVpnConfig)
 
@@ -124,8 +128,19 @@ export function VpnSettingsCard() {
             )}
           </div>
         </div>
-        <CardDescription>
-          Route qBittorrent through an isolated VPN tunnel using Podman. Only torrent traffic goes through the VPN.
+        <CardDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Route qBittorrent through an isolated VPN tunnel using Podman. Only torrent traffic goes through the VPN.
+          </span>
+          <a
+            href={VPN_PRIVACY_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            How to enable
+            <ExternalLink className="h-3 w-3" aria-hidden />
+          </a>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
