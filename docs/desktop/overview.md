@@ -14,6 +14,7 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 | Install or update the downloadable macOS app | [updates.md](updates.md) |
 | Understand desktop semantic versioning & PR pipeline | [versioning.md](versioning.md) — after SM run `make desktop-version-bump` ($0 Actions) |
 | Configure native magnet link handlers & browser association | [magnet-links.md](magnet-links.md) |
+| Enable Proton VPN privacy for torrent traffic | [vpn-privacy.md](vpn-privacy.md) |
 | Day-to-day develop UI with hot reload | [dev-mode.md](dev-mode.md) |
 | Rebuild the local Docker image + clear Electron cache after pulling code | [refresh-script.md](refresh-script.md) |
 | Open a PR on this fork without fighting upstream (local sync gate) | [upstream-sync.md](upstream-sync.md) — run `./scripts/install-local-hooks` once |
@@ -63,6 +64,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - [package-managers.md](package-managers.md) — install via Homebrew Cask and package manager roadmap
 - [updates.md](updates.md) — install / update the downloadable app and Docker images
 - [magnet-links.md](magnet-links.md) — native magnet protocol handling and browser association
+- [vpn-privacy.md](vpn-privacy.md) — Proton WireGuard tunnel for companion qBittorrent
 - [versioning.md](versioning.md) — desktop semver baseline (`0.0.0`) and automated PR merge bump
 - [dev-mode.md](dev-mode.md) — hot-reload Electron + Vite
 - [refresh-script.md](refresh-script.md) — one-command local image rebuild
@@ -106,4 +108,5 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - `BR-desktop-43` in `docs/specs/catalog.md` — qBittorrent container WebUI credentials card with blurred password reveal and copy actions.
 - `BR-desktop-47` in `docs/specs/catalog.md` — native magnet protocol handling, client verification, and browser association.
 - `BR-desktop-49` in `docs/specs/catalog.md` — Podman engine preflight (`info` / `machine start`) before ensuring containers.
+- `BR-desktop-50`–`53` in `docs/specs/catalog.md` — Proton VPN WireGuard parse, Gluetun sidecar attach, VpnVault round-trip, and How to enable GitHub link ([vpn-privacy.md](vpn-privacy.md)).
 
