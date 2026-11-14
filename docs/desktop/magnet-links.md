@@ -38,7 +38,7 @@ In the Electron desktop shell (`desktop/src/main/magnet.ts` and `desktop/src/mai
 1. **Packaging Declaration:** `desktop/package.json` configures `build.protocols` with name `"Magnet URI Scheme"`, scheme `"magnet"`, and role `"Viewer"`. This ensures `electron-builder` generates the appropriate `CFBundleURLTypes` entry in macOS `Info.plist` and registers scheme associations on Windows and Linux.
 2. **Runtime Registration:** On application startup, `registerMagnetProtocolHandler(app)` calls `app.setAsDefaultProtocolClient('magnet')`.
 3. **Status Verification:** The registration utility checks `app.isDefaultProtocolClient('magnet')` to verify that Qui is recognized as the active protocol client.
-4. **Resilient Buffering:** If Qui is launched cold via a magnet link, the Docker containers and backend HTTP service take a few seconds to boot. `MagnetManager` buffers the magnet URL, brings the window to the front with the startup progress page, and automatically navigates to `/add?url=...` once `openWrappedQui` verifies HTTP readiness.
+4. **Resilient Buffering:** If Qui is launched cold via a magnet link, the Podman containers and backend HTTP service take a few seconds to boot. `MagnetManager` buffers the magnet URL, brings the window to the front with the startup progress page, and automatically navigates to `/add?url=...` once `openWrappedQui` verifies HTTP readiness.
 
 ## Browser Association & Chooser Dialogs
 
