@@ -6,7 +6,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   viewMode: "standard" as "standard" | "dense",
@@ -14,6 +14,20 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   instances: [] as Array<{ id: number; name: string; isActive: boolean }>,
 }))
+
+// jsdom has no matchMedia; ThemeToggle reads system preference through it.
+beforeAll(() => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({
+    matches: false,
+    media: "(prefers-color-scheme: dark)",
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })))
+})
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,

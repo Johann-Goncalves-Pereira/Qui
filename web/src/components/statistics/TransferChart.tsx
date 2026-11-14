@@ -4,8 +4,9 @@
  */
 
 import { ChartContainer, ChartLegend, ChartTooltip, type ChartConfig } from "@/components/ui/chart"
-import { byteTicks, formatGapLength, labelledGaps, SERIES_COLORS, type BarWidth, type ChartUnit, type Metric, type StatisticsBar } from "@/lib/statistics"
+import { byteTicks, foldOther, formatGapLength, labelledGaps, type BarWidth, type ChartUnit, type Metric, type StatisticsBar } from "@/lib/statistics"
 import { useBucketFormat } from "@/components/statistics/useBucketFormat"
+import { useSeriesColors } from "@/hooks/useSeriesColors"
 import { formatBytes } from "@/lib/utils"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -34,15 +35,16 @@ export function TransferChart({ bars, groups, metric, unit, displayName }: Trans
   const { t, i18n } = useTranslation("statistics")
   const locale = i18n.resolvedLanguage ?? i18n.language
   const { formatStart, formatTick } = useBucketFormat(unit)
+  const colors = useSeriesColors()
 
   const config = useMemo<ChartConfig>(() => {
     const entries: ChartConfig = {}
     groups.forEach((group, index) => {
-      entries[`s${index}`] = { label: displayName(group), theme: { light: SERIES_COLORS.light[index], dark: SERIES_COLORS.dark[index] } }
+      entries[`s${index}`] = { label: displayName(group), theme: { light: colors.light[index], dark: colors.dark[index] } }
     })
     entries[OTHER] = { label: t("chart.other"), color: "var(--muted-foreground)" }
     return entries
-  }, [groups, displayName, t])
+  }, [groups, displayName, t, colors])
 
   const rows = useMemo(() => bars.map(bar => {
     const row: ChartRow = { start: bar.start, width: bar.width, gapSeconds: bar.gapSeconds, total: 0, [OTHER]: 0 }
@@ -58,9 +60,18 @@ export function TransferChart({ bars, groups, metric, unit, displayName }: Trans
     return row
   }), [bars, groups, metric])
 
+  const widths = useMemo(() => new Map(rows.map(row => [row.start, row.width])), [rows])
   const gapLabels = useMemo(() => labelledGaps(rows.flatMap((row, index) => row.gapSeconds > 0 ? [index] : []), rows.length), [rows])
   const ticks = useMemo(() => byteTicks(Math.max(0, ...rows.map(row => row.total))), [rows])
-  const otherGroups = useMemo(() => new Set(bars.flatMap(bar => [...bar.bytes].filter(([group, bytes]) => bytes[metric] > 0 && !groups.includes(group)).map(([group]) => group))).size, [bars, groups, metric])
+  const otherGroups = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const bar of bars) {
+      for (const [group, bytes] of bar.bytes) {
+        totals.set(group, (totals.get(group) ?? 0) + bytes[metric])
+      }
+    }
+    return foldOther(totals, groups)?.groups ?? 0
+  }, [bars, groups, metric])
   const hasOther = otherGroups > 0
   const keys = [...groups.map((_, index) => `s${index}`), ...(hasOther ? [OTHER] : [])]
 
@@ -68,7 +79,7 @@ export function TransferChart({ bars, groups, metric, unit, displayName }: Trans
     <ChartContainer config={config} className="aspect-auto h-[300px] w-full">
       <BarChart data={rows} margin={{ top: 16, right: 24, bottom: 0, left: 0 }} barCategoryGap={rows.length > 60 ? 0.5 : "18%"}>
         <CartesianGrid vertical={false} />
-        <XAxis dataKey="start" tickLine={false} axisLine={false} minTickGap={48} tickFormatter={value => formatTick(Number(value))} />
+        <XAxis dataKey="start" tickLine={false} axisLine={false} minTickGap={48} tickFormatter={value => formatTick(Number(value), widths.get(Number(value)))} />
         <YAxis tickLine={false} axisLine={false} width={72} ticks={ticks} domain={[0, ticks[ticks.length - 1]]} tickFormatter={value => formatBytes(Number(value))} />
         {rows.map((row, index) => row.gapSeconds > 0 && (
           <ReferenceLine

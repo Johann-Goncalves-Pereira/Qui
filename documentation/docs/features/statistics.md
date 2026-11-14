@@ -28,9 +28,9 @@ Select the period at the top of the page:
 | 24 hours | One bar for each hour |
 | 7 days | One bar for each hour |
 | 30 days | One bar for each day |
-| Year | One bar for each day |
-| All time | One bar for each day, from the first recording |
-| Custom | One bar for each hour for 7 days or less, and one bar for each day for a longer range |
+| Year | The [year view](#year-view) |
+| All time | One bar for each day, from the first recording. The year view if the range covers more than 120 days |
+| Custom | One bar for each hour for 7 days or less, and one bar for each day for a longer range. The year view for a range of more than 120 days |
 
 A day starts at midnight in the timezone of your browser.
 
@@ -50,6 +50,7 @@ If you have two or more instances with history, select **All instances** or a se
 | Downloaded | The download of the period |
 | Ratio | Uploaded divided by Downloaded. Below the ratio, the buffer is Uploaded minus Downloaded |
 | From cross-seeds | The upload of the torrents that completed with less than 1% of their size downloaded, and its share of the upload |
+| Unique size | The newest [Unique size](./dashboard.md#unique-size) in the period. Below it is the total size of the same day, with each torrent counted in full. See [Library growth](#library-growth) |
 
 If qui recorded the period before in full, Uploaded and Downloaded also show the change against that period. qui stores the transfer of each whole hour, so the change leaves out the hour that still runs. The period before has the same length as the rest of the selected period. It ends at the start of the hour in which the selected period starts.
 
@@ -58,6 +59,20 @@ If qui recorded the period before in full, Uploaded and Downloaded also show the
 The chart shows the upload or the download of each bar. Use the switch above the chart to select **Upload** or **Download**. The bars stack by tracker. The five trackers with the most bytes in the period each get a color. The other trackers are in the gray series Other.
 
 The page counts each torrent toward one tracker. Thus, the tracker series of the chart add up to the Uploaded or Downloaded number of the period. All time is the exception, because its numbers also hold the Baseline. A torrent that is not private counts toward Public. A torrent with no tracker counts toward No tracker. Tracker customizations apply: a merged tracker is one series under its display name. A rename or a merge also changes the past.
+
+## Year view
+
+If a chart covers more than 120 days, the bars of the days are too thin to read. For such a period, the page shows the year view in place of the chart. The page counts the days of All time from the first recording. The year view shows upload only, so the switch for **Upload** or **Download** is not there.
+
+The year view has these parts:
+
+- A calendar with one cell for each day of the period, for the last 53 weeks at most. Each column is one week, from Monday to Sunday. A cell with a stronger color has more upload. A cell with a dashed border is a day before the first recording. A cell with a yellow ring is a day that a [recording gap](#recording-gap) covers, or the day after the gap that holds its bytes. To see the date and the upload of a day, hold the pointer on its cell or tap it. The line above the calendar then shows them. On a phone, the calendar scrolls sideways and opens at the latest weeks.
+- **Best day**: the day of the period with the most upload.
+- **Best month**: the month of the period with the most upload.
+- **Weekends**: the share of the upload of the period that moved on a Saturday or a Sunday.
+- The upload of each month, as bars that stack by tracker. The colors and the gray series Other are the same as in the chart.
+
+The best day, the best month, and the weekend share count the whole period, also the days before the 53 weeks of the calendar. In a period that qui folded, a day is a UTC day. See [Keep daily detail for](#keep-daily-detail-for).
 
 ## Table
 
@@ -114,6 +129,8 @@ The detail shows:
 
 The chart of a tracker has the bars of the main chart: hours for a period of 7 days or less, and days for a longer period. The chart of a category or a release attribute shows days, because qui stores those bytes for each UTC day. In the chart of a release attribute, a year that qui folded is one bar. That bar is never the best day, and the average counts each day that it stands for.
 
+For a period of more than 120 days, the chart of the row shows one bar for each week, from Monday on. The best day and the average per day still count days.
+
 For All time, the rows, the share, and the upload from cross-seeds include the Baseline. The chart, the best bar, and the average do not, because the Baseline has no date.
 
 ## Top torrents
@@ -132,6 +149,56 @@ The table below the table of trackers shows the ten torrents with the most uploa
 A deleted torrent stays in the list with its name. Thus, the list of a long period is complete. The table counts all the upload of a cross-seed, also the upload from before the torrent completed. For All time, the upload includes the Baseline of each torrent. On a phone, the table hides some columns and shows the tracker below the name.
 
 Click a row to see the upload and download of that torrent for each day of the period. qui stores the bytes of a torrent for each UTC day, so each bar is a UTC day.
+
+## Library growth
+
+The Library growth chart is below the top torrents. It shows the size of your library for each UTC day of the period. The Total size line counts each torrent in full. The Unique size line counts each Copy group one time inside an instance. A Copy group is a set of torrents that share the same files, for example a hardlinked or reflinked cross-seed.
+
+The text above the chart gives the torrent count of the newest day. To see the total size, the Unique size, and the torrent count of a day, hover over that day. The torrent count and the total size come from the last reading of that UTC day. The Unique size comes from the last reading of that day that had a Unique size.
+
+The page adds the selected instances together. The Unique size of two instances is the sum of the Unique size of each instance, because a Copy group stays inside one instance.
+
+The chart starts on the first day in the period that qui recorded the library. It has no data from before the first recording.
+
+If a day has no completed Copy groups build, that day has no Unique size. The Unique size line then has a gap on that day, and it does not drop to zero. If one of two or more selected instances has no Unique size on a day, the line also has a gap. A sum without that instance would show a false drop. If qui did not record a selected instance on a day, for example because qui or qBittorrent was stopped, both lines have a gap on that day. A removed or disabled instance is the exception: after its last recorded day, the sum leaves it out. Today can show a gap for a few minutes after midnight UTC, until qui stores the first reading of the day.
+
+## Added and deleted
+
+The chart **Added and deleted** shows how many torrents were added, completed, and deleted on each day of the period. It includes each selected instance.
+
+- The adds and the completions are above the zero line. The deletes are below it.
+- qui counts these events for each UTC day. Thus, each bar is a UTC day, also for a period of 24 hours or 7 days.
+- The legend gives the total of each kind for the days of the chart. For a period of 24 hours, these days can hold more events than the period. Thus, the legend can show more deletes than the table.
+
+When you delete a torrent and add it again, the chart counts one delete and one add.
+
+## Deleted torrents
+
+The table **Deleted torrents** lists each torrent that was deleted in the period, with the newest delete first. It includes each selected instance. Each row has these columns:
+
+| Column | Content |
+|--------|---------|
+| Deleted | The time of the delete |
+| Torrent | The name of the torrent |
+| Tracker | The tracker of the torrent |
+| Deleted by | The cause of the delete |
+| Final upload | The upload of the torrent at the delete |
+| Final ratio | The last ratio that qBittorrent gave for the torrent |
+| Seeding time | The last seeding time that qBittorrent gave for the torrent |
+
+If qui did not read the torrent after qui started and before the delete, Final ratio and Seeding time are empty.
+
+The cause is one of these:
+
+- **Automation**, with the name of the rule: an [automation](./automations.md) rule deleted the torrent.
+- **You**: you deleted the torrent in qui.
+- **Backup restore**: a [backup](./backups.md) restore deleted the torrent.
+- **Client Proxy key**, with the name of the API key: a tool deleted the torrent through the [Client Proxy](./reverse-proxy.md), for example Sonarr.
+- **Outside qui**: the torrent left qBittorrent without qui. For example, you deleted it in the qBittorrent WebUI, or a tool deleted it through a direct connection to qBittorrent.
+
+The buttons above the table select **All**, **Automations**, **You**, or **Other**. Other is a backup restore, a Client Proxy key, and outside qui. Each button shows the number of deletes of that kind in the period.
+
+The table shows 50 rows first. Click **Show more** to see 50 more rows. On a phone, the table hides some columns. It shows the tracker, the cause, the final ratio, and the seeding time below the name.
 
 ## Baseline
 
@@ -258,10 +325,12 @@ Each time the notice opens, qui sends it one time to each [notification target](
 
 On Postgres, qui does not read the disk, and the notice never opens.
 
-## Why the numbers differ from Server Statistics
-
-Server Statistics on the [Dashboard](./dashboard.md) reads the all-time counters of qBittorrent. These counters also count protocol traffic. The Statistics page adds up the transfer of each torrent. Thus, the two pages show different numbers.
-
 ## Incognito mode
 
 If [incognito mode](./incognito.md) is on, the page replaces the torrent names, the tracker names, the category names, and the release groups with fake names. Resolution, source, and content type stay visible.
+
+## Series colors
+
+The selector at the top of the page sets the colors of the series in the charts. **Distinct colors** is the default. It gives each series a color that is easy to tell apart from the others. **Theme colors** uses the five chart colors of the active theme. When you change the theme, the colors change too.
+
+The [chart](#chart) explains which trackers get a color. qui stores the setting on the server, so each browser shows the same colors.
