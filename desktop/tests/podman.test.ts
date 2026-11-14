@@ -303,6 +303,47 @@ describe('PodmanManager', () => {
 		).toBe(true)
 	})
 
+	it('removes leftover qui-vpn before ensuring qBittorrent host ports (BR-desktop-56)', async () => {
+		const mock = new MockPodmanExecutor()
+		mock.responses[
+			'podman inspect --format {{.State.Status}}|{{.State.Running}} qui'
+		] = {
+			stdout: 'running|true\n',
+			stderr: '',
+		}
+		mock.responses[
+			'podman inspect --format {{.State.Status}}|{{.State.Running}} qbittorrent-nox'
+		] = {
+			stdout: 'running|true\n',
+			stderr: '',
+		}
+
+		const manager = new PodmanManager(mock)
+		await manager.ensureContainersRunning()
+
+		const stopVpn = mock.executedCommands.findIndex(
+			c =>
+				c.command === 'podman' &&
+				c.args[0] === 'stop' &&
+				c.args[1] === 'qui-vpn',
+		)
+		const rmVpn = mock.executedCommands.findIndex(
+			c =>
+				c.command === 'podman' &&
+				c.args[0] === 'rm' &&
+				c.args.includes('qui-vpn'),
+		)
+		const qbitInspect = mock.executedCommands.findIndex(
+			c =>
+				c.command === 'podman' &&
+				c.args[0] === 'inspect' &&
+				c.args.includes('qbittorrent-nox'),
+		)
+		expect(stopVpn).toBeGreaterThan(-1)
+		expect(rmVpn).toBeGreaterThan(-1)
+		expect(qbitInspect).toBeGreaterThan(rmVpn)
+	})
+
 	it('detects available updates when image digests differ', async () => {
 		const mock = new MockPodmanExecutor()
 		mock.responses[

@@ -27,6 +27,7 @@ import {
 	resolveQuiImage,
 	resolveQuiWebOrigin,
 } from '../shared/constants.js'
+import { VpnConfigSchema } from '../shared/types.js'
 import { AccountVault, VpnVault } from './account-vault.js'
 import { QuiApiClient } from './api.js'
 import { BiometricAuthService } from './auth.js'
@@ -241,6 +242,21 @@ async function loadQuiWebUi(): Promise<void> {
 						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
 					const { qui, qbit } = await podmanManager.ensureContainersRunning()
+					// Re-apply saved VPN after base ensure freed any leftover
+					// qui-vpn ports (BR-desktop-56).
+					const rawVpn = vpnVault().read()
+					if (rawVpn) {
+						const savedVpn = Schema.decodeUnknownSync(VpnConfigSchema)(rawVpn)
+						if (savedVpn.enabled) {
+							const vpnApply = await podmanManager.applyVpnConfig(savedVpn)
+							if (!vpnApply.success) {
+								throw new Error(
+									vpnApply.error ??
+										'Failed to re-apply saved VPN configuration',
+								)
+							}
+						}
+					}
 					if (tray) tray.updatePodmanStatus(qui, qbit)
 				},
 				waitForHttp: () => waitForQuiHttpReady({ baseUrl: quiWebOrigin }),
