@@ -149,7 +149,7 @@ A torrent without metadata, such as a new magnet link, has no Private value. It 
 
 **Tracker** matches every tracker the torrent announces to, including trackers that do not work. qui ignores the DHT, PeX, and LSD pseudo-trackers.
 
-If you configured [Tracker Customizations](./tracker-customizations.md) (Dashboard → **Tracker Breakdown**), the condition can also match the display name in addition to the raw URL or domain. A merged tracker group matches by its group name.
+If you configured [Tracker Customizations](./tracker-customizations.md) (**Settings** → **Tracker Customizations**), the condition can also match the display name in addition to the raw URL or domain. A merged tracker group matches by its group name.
 
 On qBittorrent versions before 5.1, qui cannot read the full tracker list. **Tracker** then sees only the one tracker in the qBittorrent tracker field. That is the last tracker that answered, also when that tracker is down now. If no tracker answered yet, the field is empty. When qui finds no tracker at all, positive operators such as **is** and **contains** match nothing, and negative operators such as **is not** match every torrent.
 
@@ -670,17 +670,19 @@ qui evaluates the move path as a **Go template** for each torrent. Use a fixed p
 
 The path must be absolute on the machine that runs qBittorrent, for example `/data/archive`, `D:\Archive` or `\\nas\media`. qBittorrent resolves a relative path against its own working directory and default save path, so the move fails or repeats on every run.
 
-When you save an enabled rule or start a dry run, qui renders the path for a sample torrent whose name and category are `sample` and whose tracker is `tracker`. It rejects the rule if the template is invalid or the result is relative. A template that renders nothing for the sample, such as `{{ if eq .Category "tv" }}/data/tv{{ end }}`, is accepted. When the rule runs, qui skips the move for any torrent whose path renders empty or relative, and logs a warning for a relative path.
+When you save an enabled rule or start a dry run, qui renders the path for a sample torrent whose name and category are `sample` and whose tracker is `tracker`. For the sample, `.CategorySavePath` is `/data/sample` and `.DefaultSavePath` is `/data`. It rejects the rule if the template is invalid or the result is relative. A template that renders nothing for the sample, such as `{{ if eq .Category "tv" }}/data/tv{{ end }}`, is accepted. When the rule runs, qui skips the move for any torrent whose path renders empty or relative, and logs a warning for a relative path.
 
-**Available template variables:**
+**Available template variables.** A **path segment** is a folder name on its own, so it needs a root in front of it, as in `/data/{{ .Category }}`. An **absolute path** already names a location and works on its own. The path qui sends to qBittorrent must be absolute either way.
 
-| Variable | Description |
-| --- | --- |
-| `.Name` | Torrent display name |
-| `.Hash` | Info hash |
-| `.Category` | qBittorrent category |
-| `.IsolationFolderName` | `<sanitized name>--<short hash>`, the name of the isolation folder that cross-seed uses when the plain name is taken. qui cuts a long name to 245 bytes. The short hash is the first 8 characters of the info hash. Use `{{ sanitize .Name }}` for the name without the hash. |
-| `.Tracker` | Tracker display name from [Tracker Customizations](./tracker-customizations.md), otherwise the tracker domain |
+| Variable | Kind | Description |
+| --- | --- | --- |
+| `.Name` | Path segment | Torrent display name |
+| `.Hash` | Path segment | Info hash |
+| `.Category` | Path segment | qBittorrent category. A subcategory contains a `/`, so `tv/anime` renders as two folders. |
+| `.IsolationFolderName` | Path segment | `<sanitized name>--<short hash>`, the name of the isolation folder that cross-seed uses when the plain name is taken. qui cuts a long name to 245 bytes. The short hash is the first 8 characters of the info hash. Use `{{ sanitize .Name }}` for the name without the hash. |
+| `.Tracker` | Path segment | Tracker display name from [Tracker Customizations](./tracker-customizations.md), otherwise the tracker domain |
+| `.CategorySavePath` | Absolute path | The save path qBittorrent uses for the torrent's category with Automatic Torrent Management. See [Category save path](#category-save-path). |
+| `.DefaultSavePath` | Absolute path | qBittorrent's default save path, from its settings |
 
 **Template function:**
 
@@ -695,6 +697,26 @@ When you save an enabled rule or start a dry run, qui renders the path for a sam
 - By name (safe for paths): `/data/{{ sanitize .Name }}`
 - By isolation folder: `/data/{{.IsolationFolderName}}`
 - By tracker: `/data/{{.Tracker}}`
+- Under the category's save path: `{{.CategorySavePath}}/done`
+- Under the default save path: `{{.DefaultSavePath}}/archive`
+
+#### Category save path
+
+`.CategorySavePath` follows the same rules as qBittorrent's Automatic Torrent Management:
+
+- No category: the default save path from qBittorrent's settings.
+- Category with an absolute save path: that path.
+- Category with a relative save path: the default save path, then that path. For example, `shows` becomes `/downloads/shows`.
+- Category with no save path: the default save path, then the category name. For example, `music` becomes `/downloads/music`.
+- Subcategory with no save path, such as `tv/anime`: this depends on the qBittorrent version.
+  - qBittorrent 5.2 and later, or 5.0 and 5.1 with subcategories turned on: the parent category's save path, then the last part of the name. If `tv` saves to `/media/tv`, `tv/anime` becomes `/media/tv/anime`.
+  - qBittorrent 4.x, or 5.0 and 5.1 with subcategories turned off: the default save path, then the full name: `/downloads/tv/anime`.
+
+qBittorrent changes some characters when it turns a category name into a folder name, and the rule changed in qBittorrent 5.3. Before 5.3, it replaces each run of `:?"*<>|` with a space. From 5.3, it replaces each run of reserved characters with `_`, and the reserved characters depend on the platform qBittorrent was built for. qui uses the rule of the instance's qBittorrent. See [Category folders](../advanced/compatibility.md#category-folders).
+
+Neither variable ends with a separator, so write `{{.CategorySavePath}}/done`. Some qBittorrent versions report save paths with a trailing `/`, and qui drops it. A bare root such as `/` stays as it is.
+
+If the torrent's category no longer exists in qBittorrent, a template that uses `.CategorySavePath` can't resolve, and qui skips the move or export for that torrent. `.DefaultSavePath` doesn't depend on the category, so a template that uses only `.DefaultSavePath` still resolves.
 
 ### Auto management
 
@@ -792,13 +814,18 @@ When multiple rules match the same torrent with Export to Instance actions, the 
 
 The save path field supports Go templates, the same as the [Move action](#move-path-templates).
 
-| Variable | Description |
-| --- | --- |
-| `.Name` | Torrent display name |
-| `.Hash` | Info hash |
-| `.Category` | qBittorrent category (on source instance) |
-| `.IsolationFolderName` | `<sanitized name>--<short hash>`, the name of the isolation folder that cross-seed uses when the plain name is taken. qui cuts a long name to 245 bytes. The short hash is the first 8 characters of the info hash. Use `{{ sanitize .Name }}` for the name without the hash. |
-| `.Tracker` | Tracker display name from [Tracker Customizations](./tracker-customizations.md), otherwise the tracker domain |
+| Variable | Kind | Description |
+| --- | --- | --- |
+| `.Name` | Path segment | Torrent display name |
+| `.Hash` | Path segment | Info hash |
+| `.Category` | Path segment | qBittorrent category (on source instance). A subcategory contains a `/`. |
+| `.IsolationFolderName` | Path segment | `<sanitized name>--<short hash>`, the name of the isolation folder that cross-seed uses when the plain name is taken. qui cuts a long name to 245 bytes. The short hash is the first 8 characters of the info hash. Use `{{ sanitize .Name }}` for the name without the hash. |
+| `.Tracker` | Path segment | Tracker display name from [Tracker Customizations](./tracker-customizations.md), otherwise the tracker domain |
+| `.CategorySavePath` | Absolute path | The torrent's [category save path](#category-save-path) on the source instance. If the target's folders differ, use a literal path. |
+| `.DefaultSavePath` | Absolute path | The source instance's default save path |
+| `.CurrentSavePath` | Absolute path | The torrent's save path on the source instance. Export only: in a Move path it would change after every move. The export waits for a later run while the torrent is moving, or when a Move action in the same run moves it. It does not wait for a category change or for auto management turned on in the same run: under Auto TMM those also move the files, and the export uses the old path. |
+
+In a rule that moves the torrent, do not use Save Path or Content Path in the condition of an export that uses `.CurrentSavePath`. That export waits for the move, and it does not run by itself later. The next run checks the export condition again against the new save path. The condition no longer matches, and qui never exports the torrent.
 
 | Function | Description |
 | --- | --- |
@@ -1260,21 +1287,28 @@ After qui removes files, it waits about 5 minutes before running Free Space dele
 
 #### Free Space source
 
-By default, Free Space uses qBittorrent's reported free space, based on its default download location. If you want to manage a specific mount point, select "Path on server" and enter the path to that disk.
+By default, Free Space uses qBittorrent's reported free space, based on its default download location. If you want to manage a specific mount point, pick one of the path sources and enter the path to that disk.
 
 | Source | Description |
 | --- | --- |
-| Default (qBittorrent) | Uses qBittorrent's reported free space |
-| Path on server | Reads free space from a specific filesystem path |
+| Default (qBittorrent) | Uses qBittorrent's reported free space for its default download location |
+| Path on server | qui reads free space at a path on the qui host, or on the remote machine through SSH access |
+| Path on the qBittorrent host | qBittorrent measures free space at a path on its own host |
 
 :::note
 Path on server requires filesystem access on the instance: "Local Filesystem Access", or [SSH access](./ssh-access.md) for a remote instance. With SSH access, qui reads the free space on the remote machine, and the server must report free space (see [Read the test result](./ssh-access.md#read-the-test-result)). If qui cannot reach the remote machine, the run fails and sends a notification. qui does not use the value from qBittorrent instead, because that value can come from a different disk.
+
+Path on the qBittorrent host needs no filesystem access. qBittorrent measures the free space, so the disk must exist only on the qBittorrent host. It needs qBittorrent 5.3 (WebAPI 2.15.2) or later. On older instances, the UI disables the option.
 :::
 
-If you want to manage multiple disks, create one workflow per disk and set a different Path on server for each workflow.
+Enter the path the way the qBittorrent host writes it. A qBittorrent on Windows takes `D:\downloads`, one on Linux takes `/downloads`.
+
+If you want to manage multiple disks, create one workflow per disk and set a different path for each workflow.
+
+If qBittorrent cannot measure the path, qui treats the read as failed. Free Space never falls back to zero, so an unreadable path cannot trigger a delete.
 
 :::note
-When qui runs on Windows, Path on server works only for a remote instance. For an instance with local access, the UI disables the option and switches legacy workflows back to the default when you open them.
+When qui runs on Windows, Path on server works only for a remote instance. For an instance with local access, the UI disables the option and switches legacy workflows back to the default when you open them. Path on the qBittorrent host works on every qui host.
 :::
 
 ### Batching
@@ -1287,7 +1321,7 @@ A rule can move as JSON. The rule menu has two entries, and the **Import** butto
 
 - **Export JSON** copies the rule to the clipboard.
 - **Edit as JSON** opens the rule's JSON in an editor. Save updates the rule in place. The rule keeps its enabled state and its position in the list.
-- **Import** creates a new rule from pasted JSON. The new rule starts disabled and goes to the end of the list.
+- **Import** creates a new rule from pasted JSON. The new rule starts disabled and goes to the end of the list. It keeps its name. If the instance already has a rule with that name, qui adds `(copy)` to the name.
 
 The JSON carries the name, the tracker fields, the conditions, the sorting config, the free space source, the interval, dry-run, and notify. It does not carry the id, the instance id, the enabled state, or the sort order. The export omits `intervalSeconds` at the default 15 minutes, `dryRun` when off, and `notify` when on; when you remove one of these keys, the rule goes back to that default.
 

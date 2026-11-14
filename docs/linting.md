@@ -5,7 +5,7 @@ Internal reference for lint policy and interpretation. Read this when lint outpu
 ## Commands
 
 - `make precommit`: `check-mojibake` and `generate`, then fmt + gofix on changed files, then `make lint`, `make lint-ratchet`, and `make typecheck-frontend`.
-- `make lint`: golangci-lint on Go issues that are new since the `develop` merge-base, then the full `pnpm lint`. A frontend lint error in any file fails it, not only an error in a changed file.
+- `make lint`: golangci-lint on Go issues that are new since the `develop` merge-base, then the `unused` linter on the whole repo, then the full `pnpm lint`. A change can make unchanged code unused, so the `unused` run does not stop at changed lines. A frontend lint error in any file fails it, not only an error in a changed file.
 - `make lint-ratchet`: run the linters in `scripts/ratchet/golangci.yml` and compare the problems in each file with `scripts/ratchet/allowlist.json`. CI runs it on each pull request. The target compares with `git merge-base HEAD develop`, which uses your local `develop`. If a merge is not committed yet, or your local `develop` is behind, the target reports growth that is not real. Commit the merge first, or run `git fetch origin develop` and then `go run ./scripts/ratchet`, which compares with `origin/develop`.
 - `make typecheck-frontend`: `tsc -b` in `web/`, the type check that the frontend build runs first. ESLint and Vitest do not report type errors.
 - `make lint-json`: write lint output to `lint-report.json`.
@@ -38,6 +38,7 @@ To prove that a new forbidigo or depguard rule fires, add a temporary violation 
 The linters in `scripts/ratchet/golangci.yml` are rules that existing code does not pass yet. `scripts/ratchet/allowlist.json` records the number of problems in each file that broke a rule when the rule was added. The count for a file can only go down:
 
 - A file without an entry must have no problems. A new problem in a listed file makes its count too high, and the check fails.
+- A new rule in the ratchet starts with the count of each file. Rule 3 in `scripts/ratchet/main.go` skips a linter that the allowlist of the base does not list.
 - When you fix a problem, lower the count of its file in the same change. Delete the entry at 0. The check fails until the count matches.
 - Do not hide `gocognit` with a `nolint` comment. Split the function.
 - The other linters in the ratchet accept `//nolint:<linter> // reason` when the code is correct on purpose.

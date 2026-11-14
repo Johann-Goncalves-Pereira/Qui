@@ -9,7 +9,6 @@ Repo rules for AI agents working on qui.
 - Stay inside requested scope. Do not implement review-suggested/extra changes without explicit user approval. Keep diffs minimal in high-churn areas: `internal/services/crossseed`, `internal/qbittorrent`, `internal/models`.
 - Avoid repo-wide `pnpm format` / `eslint --fix` sweeps unless explicitly requested. Do not weaken, delete, or skip tests or lint rules to hide failures.
 - qui is single-user self-hosted software. Prefer readable, maintainable code over paranoid guards for impossible states. No backward compatibility shims unless requested.
-- Never add AI advertising, attribution, or co-author lines to a commit or a PR. Some agent tools add a co-author trailer by default.
 - Update PR branches by merging develop into them, never rebase/force-push. PRs are squash-merged, so rebase gains nothing and force-pushes break review history and contributors' local branches.
 - Never publish private tracker links or torrent names taken from a client. This covers PR and issue titles, bodies, and comments, commit messages, `documentation/`, and tracked files under `docs/`. No tracker URL that carries a path, query, or key: torrent pages, announce URLs, passkeys, `.torrent` links. Bare hostnames and tracker names stay allowed; the code and docs use them.
   - No release name copied word for word from a user report, a torrent client, Discord, or a DM. Build an equivalent name: keep each token that matters, change the title and the group. Make sure the new name still causes the bug before you publish it. Naming a work in prose, or building a name from a real title and group tag, is allowed. Keep the real string in notes outside the repo so the repro stays runnable. New test fixtures and code comments use built names. Do not sweep the existing ones.
@@ -18,18 +17,6 @@ Repo rules for AI agents working on qui.
 - Go tests: always use `-count=1`. Leave `-race` to CI. Run the full suite (`make test`) locally only when asked, or when one change crosses many packages. API contract changes must update `internal/web/swagger` and pass `make test-openapi` and `go test -count=1 -run TestAllEndpointsDocumented ./internal/api`.
 - Before you report a code change complete, run it live: build and start the app (`make build` then the binary, or `make dev`) and exercise the behavior the change touches. Report the command and the output you observed. If the change needs human judgment (UI look and feel, real tracker behavior), ask the user to test it and say what remains for them. If a live run is not possible, say so and name the closest check you did run. In the final report, state required checks run, skipped/deferred checks with reason, and unresolved failures. Do not claim complete while a required repo check is known failing unless user accepts the risk.
 
-## Paths / Security
-
-qui must work on Windows and Unix-like hosts.
-
-- Host-only paths (data dir, backups): `filepath.Join`, `filepath.Clean`, `filepath.Rel`, `filepath.Separator`.
-- Paths to or from an `fsops.Backend`, including save paths from qBittorrent: use `backend.Paths()`. A remote backend uses slash paths, and host `filepath` changes them on a Windows host.
-- Slash-delimited formats only: `path` for torrent-internal file names, URLs, API payloads.
-- At torrent/API -> local FS boundaries: validate slash paths, then convert with `filepath.FromSlash`.
-- Traversal checks must reject POSIX + Windows escaping on every OS: leading `/`, leading `\`, drive letters, UNC, `..`.
-- Cross-platform tests: avoid raw `"/foo/"` local path assertions; use `filepath.ToSlash` or `filepath.Join`.
-- Path traversal tests should include POSIX and Windows cases.
-
 ## Read When
 
 - Before you plan an issue or a pull request for your user, do the collaborator check in `docs/agents/collaborator-check.md` one time per session.
@@ -37,6 +24,7 @@ qui must work on Windows and Unix-like hosts.
 - Before pushing a feature branch or squash-merging a PR into `develop`, read `.cursor/skills/qui-fork-local-upstream-sync/SKILL.md`: upstream-sync is a **local** gate (`make upstream-sync` / `.githooks`), not GitHub Actions. Do not wait for `Merge autobrr/qui develop` on GitHub while Actions usage is blocked.
 - When finishing / squash-merging a PR on this fork (`finish-pr`, SM, `/finish-pr-workflow`), read `.cursor/skills/qui-fork-finish-pr/SKILL.md`: after SM, run `./scripts/desktop-version-bump-local` (version + `v*` tag without Actions). Skip only for bump-only PRs.
 - Before you commit, open a PR, add commits to one, post or apply a review suggestion, or show screenshots in a PR, read `docs/agents/pull-requests.md`. Before you open a PR or add commits to one, also do the performance checks in `docs/agents/performance-checks.md` for the full PR diff.
+- qui must work on Windows and Unix-like hosts. Before you write or review code that builds, compares, or validates a filesystem path, or a test of that code, read `docs/standards/paths.md`.
 - When you write or review code, follow the rules for its area in `CODING_STANDARDS.md`. Before changing cross-module data flow, service boundaries, API routing, or long-lived architecture, read `docs/architecture.md`.
 - Before you plan, edit, spec, or review a change to `web/`, i18n, React components, or frontend tests, read `web/AGENTS.md`. Before you change a locale file or a translation, also read `web/src/i18n/AGENTS.md`.
 - Before you change the database schema or a migration, read `internal/database/AGENTS.md`. Migration rules live there.

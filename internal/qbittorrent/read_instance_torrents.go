@@ -9,6 +9,8 @@ import (
 	"time"
 
 	qbt "github.com/autobrr/go-qbittorrent"
+
+	"github.com/autobrr/qui/internal/qbittorrent/syncowner"
 )
 
 const (
@@ -29,18 +31,18 @@ func (sm *SyncManager) ReadInstanceTorrents(ctx context.Context, instanceID int)
 	}
 
 	facts := rideFacts{lastWrite: sm.lastWriteAt(instanceID)}
-	var syncManager *qbt.SyncManager
+	var syncManager *syncowner.Owner
+	var snapshot *qbt.SyncSnapshot
 	if err == nil {
 		facts.hasClient = true
 		facts.healthy = client.IsHealthy()
-		syncManager = client.GetSyncManager()
+		syncManager = client.SyncOwner()
 	}
 	if syncManager != nil {
 		facts.lastAttempt = syncManager.LastSyncTime()
 		facts.synced = !syncManager.LastSuccessfulSyncTime().IsZero()
-		facts.anyMoving = len(syncManager.GetTorrentsMatchingUnchecked(func(t *qbt.Torrent) bool {
-			return t.State == qbt.TorrentStateMoving
-		})) > 0
+		snapshot = syncManager.SnapshotUnchecked()
+		facts.anyMoving = len(snapshotMatching(snapshot, func(t *qbt.Torrent) bool { return t.State == qbt.TorrentStateMoving })) > 0
 	}
 	// The 120 s rule relies on the tracker health loop, which syncs each
 	// connected instance every 60 s (refreshTrackerHealthCounts in sync_manager.go).
@@ -52,7 +54,7 @@ func (sm *SyncManager) ReadInstanceTorrents(ctx context.Context, instanceID int)
 	if err != nil {
 		return nil, err
 	}
-	return sm.instanceTorrentViews(client, instanceID, name, syncManager.GetTorrentsUnchecked(qbt.TorrentFilterOptions{})), nil
+	return sm.instanceTorrentViews(client, instanceID, name, TorrentRefFilter{}.Select(snapshot)), nil
 }
 
 // rideFacts is what ReadInstanceTorrents knows about an instance before it picks a path.

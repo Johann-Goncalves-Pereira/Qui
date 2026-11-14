@@ -71,7 +71,7 @@ func benchRunService(b *testing.B, pairs int) (*Service, *models.Instance, *atom
 	require.NoError(b, err)
 	b.Cleanup(func() { _ = clientPool.Close() })
 	syncManager := qbittorrent.NewSyncManager(clientPool, nil)
-	matcher := crossseed.NewService(instanceStore, syncManager, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil, nil, nil, nil)
+	matcher := crossseed.NewService(instanceStore, syncManager, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil, nil, nil, nil)
 	svc := NewService(DefaultConfig(), instanceStore, nil, nil, nil, syncManager, nil, nil, matcher, fsops.NewPool(instanceStore, localbackend.NewBackend()))
 	return svc, instance, fileReads
 }
@@ -100,11 +100,11 @@ func BenchmarkRunSessionDeletionSelection(b *testing.B) {
 			fileReads.Store(0)
 			b.ReportAllocs()
 			for b.Loop() {
-				torrents, err := svc.syncManager.GetAllTorrents(ctx, instance.ID)
+				torrents, err := svc.syncManager.GetAllTorrentRefs(ctx, instance.ID)
 				if err != nil || len(torrents) != 3000 {
 					b.Fatalf("got %d torrents: %v", len(torrents), err)
 				}
-				evalCtx, _, err := svc.buildEvalContext(ctx, instance.ID, instance, torrents, needs)
+				evalCtx, _, err := svc.buildEvalContext(ctx, instance.ID, instance, torrents, needs, nil)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -197,11 +197,11 @@ func benchmarkPlanRun(b *testing.B, rule *models.Automation, want int, planned f
 	fileReads.Store(0)
 	b.ReportAllocs()
 	for b.Loop() {
-		torrents, err := svc.syncManager.GetAllTorrents(ctx, instance.ID)
+		torrents, err := svc.syncManager.GetAllTorrentRefs(ctx, instance.ID)
 		if err != nil || len(torrents) != 3000 {
 			b.Fatalf("got %d torrents: %v", len(torrents), err)
 		}
-		evalCtx, _, err := svc.buildEvalContext(ctx, instance.ID, instance, torrents, needs)
+		evalCtx, _, err := svc.buildEvalContext(ctx, instance.ID, instance, torrents, needs, nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -209,7 +209,7 @@ func benchmarkPlanRun(b *testing.B, rule *models.Automation, want int, planned f
 		states := make(map[string]*torrentDesiredState)
 		scope := noSkipWindow(rules...)
 		buildAndExecuteBatches(instance.ID, rules, torrents, evalCtx, groups, scope, make(map[int]*ruleRunStats), states)
-		torrentByHash := make(map[string]qbt.Torrent, len(torrents))
+		torrentByHash := make(map[string]*qbt.Torrent, len(torrents))
 		for _, t := range torrents {
 			torrentByHash[t.Hash] = t
 		}
@@ -239,11 +239,11 @@ func BenchmarkRunSessionCrossSeedFacts(b *testing.B) {
 	fileReads.Store(0)
 	b.ReportAllocs()
 	for b.Loop() {
-		torrents, err := svc.syncManager.GetAllTorrents(ctx, instance.ID)
+		torrents, err := svc.syncManager.GetAllTorrentRefs(ctx, instance.ID)
 		if err != nil || len(torrents) != 3000 {
 			b.Fatalf("got %d torrents: %v", len(torrents), err)
 		}
-		evalCtx, _, err := svc.buildEvalContext(ctx, instance.ID, instance, torrents, needs)
+		evalCtx, _, err := svc.buildEvalContext(ctx, instance.ID, instance, torrents, needs, nil)
 		if err != nil {
 			b.Fatal(err)
 		}

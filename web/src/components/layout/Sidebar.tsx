@@ -10,6 +10,7 @@ import { NapsterLogo } from "@/components/ui/NapsterLogo"
 import { Separator } from "@/components/ui/separator"
 import { SwizzinLogo } from "@/components/ui/SwizzinLogo"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { SystemNoticeList } from "@/components/ui/SystemNoticeList"
 import { UpdateBanner } from "@/components/ui/UpdateBanner"
 import { useAuth } from "@/hooks/useAuth"
 import { useCrossSeedInstanceState } from "@/hooks/useCrossSeedInstanceState"
@@ -24,6 +25,7 @@ import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-route
 import { navigateWithSearch } from "@/lib/router-search"
 import {
   Archive,
+  ChartColumn,
   FileText,
   GitBranch,
   HardDrive,
@@ -55,6 +57,12 @@ const navigation: NavItem[] = [
     titleKey: "nav.dashboard",
     href: "/dashboard",
     icon: Home,
+  },
+  {
+    id: "statistics",
+    titleKey: "nav.statistics",
+    href: "/statistics",
+    icon: ChartColumn,
   },
   {
     id: "search",
@@ -313,6 +321,7 @@ export function Sidebar() {
         </div>
 
         <div className="mt-auto space-y-3 pt-3 mb-4">
+          <SystemNoticeList />
           <UpdateBanner />
 
           {!isDemo && (

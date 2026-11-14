@@ -181,6 +181,10 @@ export interface TorrentStats {
   totalSize?: number
   totalRemainingSize?: number
   totalSeedingSize?: number
+  // Set when the request asks for the Unique size and a Copy groups build that
+  // read the instance has ended.
+  uniqueSize?: number
+  uniqueSeedingSize?: number
 }
 
 export interface CacheMetadata {
@@ -188,15 +192,6 @@ export interface CacheMetadata {
   age: number
   isStale: boolean
   nextRefresh?: string
-}
-
-export interface TrackerTransferStats {
-  uploaded: number
-  downloaded: number
-  uploadedSession: number
-  downloadedSession: number
-  totalSize: number
-  count: number
 }
 
 /**
@@ -212,7 +207,6 @@ export interface TorrentCounts {
   tags: Record<string, number>
   tagSizes?: Record<string, number>
   trackers: Record<string, number>
-  trackerTransfers?: Record<string, TrackerTransferStats>
   total: number
 }
 

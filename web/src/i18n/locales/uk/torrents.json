@@ -187,14 +187,6 @@
     "renameTorrentSuccess": "Перейменовано торент на \"{{name}}\"",
     "renameTorrentFailed": "Не вдалося перейменувати торент: {{error}}",
     "renameTorrentEmpty": "Назва торента не може бути пустою",
-    "renameFileSuccess": "Файл перейменовано на \"{{name}}\"",
-    "renameFileFailed": "Не вдалося перейменувати файл: {{error}}",
-    "renameFilePathsRequired": "Потрібні і вихідний, і новий шлях до файлу",
-    "renameFileUnchanged": "Ім'я файлу без змін",
-    "renameFolderSuccess": "Папку перейменовано на \"{{name}}\"",
-    "renameFolderFailed": "Не вдалося перейменувати папку: {{error}}",
-    "renameFolderPathsRequired": "Потрібні і вихідний, і новий шлях до папки",
-    "renameFolderUnchanged": "Назва папки не змінена",
     "partialTags": {
       "title_one": "Частково оновлено теги для {{count}} торента",
       "title_other": "Частково оновлено теги для {{count}} торентів",
@@ -724,10 +716,7 @@
     "bottomPriorityBatch": "Нижній пріоритет ({{count}})"
   },
   "renameSubmenu": {
-    "rename": "Перейменувати",
-    "renameTorrent": "Перейменувати торент",
-    "renameFile": "Перейменувати файл",
-    "renameFolder": "Перейменувати папку"
+    "renameTorrent": "Перейменувати торент"
   },
   "tagCategoryManagement": {
     "createTag": {
@@ -847,12 +836,10 @@
     "partialResults": "Часткові результати - деякі індексатори не відповіли",
     "arrLookupFailed": "Не вдалося знайти ідентифікатори метаданих - пошук лише за назвою, результати можуть бути неповними",
     "arrNoIds": "Ідентифікатори метаданих для цього релізу не знайдено - пошук лише за назвою",
-    "gazelleTimedOut": "RED/OPS не відповів вчасно",
     "torznabFailed": "Пошук Torznab не вдався - показано лише результати RED/OPS",
     "searchScope": "Область пошуку",
     "noIndexers": "Немає доступних індексаторів Torznab",
     "noIndexersHelp": "Додайте або ввімкніть індексатори Torznab у налаштуваннях для пошуку крос-сідів.",
-    "gazelleOnlySearch": "Пошук звертається лише до сайтів RED/OPS, для яких задано ключ API.",
     "capabilityNote": "Примітка про можливості",
     "capabilityDescription": "Цим індексаторам бракує потрібних можливостей/категорій для цього торента, тому сервер їх пропустить:",
     "smartFilteringActive": "Інтелектуальна фільтрація активна",
@@ -942,7 +929,30 @@
       "useRss": "Використовуйте функцію автоматизації RSS для поточного перехресного роздавання",
       "checkIndexers": "Перевірте сторінку індексаторів, щоб дізнатися, які з них обмежені"
     },
-    "routedTo": "Крос-сіди йдуть до екземпляра для крос-сідів {{instance}}."
+    "routedTo": "Крос-сіди йдуть до екземпляра для крос-сідів {{instance}}.",
+    "gazelle": {
+      "heading": "RED/OPS",
+      "willAsk": "буде запитано",
+      "willAskRejected": "буде запитано: минулого разу сайт відхилив API-ключ",
+      "match": "збіг",
+      "noMatch": "немає збігу",
+      "openSettings": "Відкрити налаштування",
+      "notAsked": {
+        "disabled": "не запитано: вимкнено",
+        "noApiKey": "не запитано: немає API-ключа",
+        "cooldown": "не запитано: нещодавно шукали",
+        "notSelected": "не запитано: не вибрано",
+        "sourceSite": "не запитано: торрент походить із {{site}}",
+        "alreadySeeded": "не запитано: ви вже роздаєте його там",
+        "notMusic": "не запитано: це не музика",
+        "other": "не запитано"
+      },
+      "failed": {
+        "keyRejected": "помилка: сайт відхилив API-ключ",
+        "timedOut": "помилка: час очікування минув",
+        "other": "помилка: {{detail}}"
+      }
+    }
   },
   "columnFilter": {
     "filterColumn": "Фільтр {{column}}",
@@ -1139,7 +1149,7 @@
     "torrentCount_other": "{{count}} торенти",
     "torrentsLoaded": "Завантажено торенти {{loaded}} з {{total}}",
     "scrollForMore": "(прокрутіть, щоб дізнатися більше)",
-    "freeSpace": "Вільний простір",
+    "freeSpace": "Вільне місце (типовий шлях)",
     "switchToBits": "Перейти на біт в секунду (біт/с)",
     "switchToBytes": "Перейти до байтів за секунду (B/s)",
     "altSpeedOn": "Альтернативні обмеження швидкості: увімк",
@@ -1559,6 +1569,7 @@
       "noTagsMatch": "Немає тегів, що відповідають \"{{query}}\"",
       "autoTmm": "Автоматичне керування торентами",
       "savePath": "Шлях збереження",
+      "freeSpaceAtDestination": "Вільне місце в призначенні: {{value}}",
       "savePathPlaceholder": "За замовчуванням залиште порожнім",
       "manualSavePath": "Шлях збереження вручну (TMM вимкнено)",
       "useTemporaryPath": "Використовуйте тимчасовий шлях",
@@ -1841,10 +1852,14 @@
     "copies_few": "Ще {{count}} копії торрента {{name}}",
     "copies_many": "Ще {{count}} копій торрента {{name}}",
     "copies_other": "Ще {{count}} копії торрента {{name}}",
-    "copiesWithProblem_one": "Ще {{count}} копія торрента {{name}}. Прихована копія має проблему",
-    "copiesWithProblem_few": "Ще {{count}} копії торрента {{name}}. Прихована копія має проблему",
-    "copiesWithProblem_many": "Ще {{count}} копій торрента {{name}}. Прихована копія має проблему",
-    "copiesWithProblem_other": "Ще {{count}} копії торрента {{name}}. Прихована копія має проблему",
+    "labelWithProblem": "{{label}}. {{problem}}",
+    "hiddenProblem": {
+      "missingFiles": "У прихованої копії відсутні файли",
+      "error": "Прихована копія має помилку",
+      "unregistered": "Прихована копія незареєстрована",
+      "trackerError": "Прихована копія має помилку трекера",
+      "trackerDown": "Трекер прихованої копії вимкнено"
+    },
     "badge": "+{{hidden}}",
     "badgeTicked_one": "+{{hidden}} · вибрано {{count}}",
     "badgeTicked_few": "+{{hidden}} · вибрано {{count}}",
@@ -1856,8 +1871,14 @@
     "hiddenTicked_other": "Вибрано {{count}} прихованої копії",
     "labelWithTicks": "{{label}}. {{ticks}}",
     "groupCopies": "Групувати копії",
-    "expandAll": "Розгорнути все",
-    "collapseAll": "Згорнути все",
+    "ungroupCopies": "Розгрупувати копії",
     "grouping": "Групування…"
+  },
+  "featureNotice": {
+    "groupCopies": {
+      "title": "Групуйте свої Cross-Seeds",
+      "description": "Показує копії одного торрента одним рядком.",
+      "action": "Спробувати"
+    }
   }
 }

@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/context-menu"
 import { useCrossSeedFilter } from "@/hooks/useCrossSeedFilter"
 import { useInstancesSupport, type CapabilityFlag } from "@/hooks/useInstanceCapabilities"
-import { TORRENT_ACTIONS } from "@/hooks/useTorrentActions"
 import { api } from "@/lib/api"
 import { getLinuxIsoName, getLinuxSavePath, useIncognitoMode } from "@/lib/incognito"
 import { buildTorrentActionTargets, getTorrentTargetInstanceId } from "@/lib/torrent-action-targets"
@@ -37,6 +36,7 @@ import {
   GitBranch,
   MessageSquare,
   Pause,
+  Pencil,
   Play,
   Radio,
   Search,
@@ -50,11 +50,11 @@ import {
 import { memo, useCallback, useMemo, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { TORRENT_ACTIONS } from "./bulk-actions/bulk-action-requests"
 import type { BulkActionPick } from "./bulk-actions/bulk-action-state"
 import { useBulkActionCategories } from "./bulk-actions/bulk-actions-context"
 import { CategorySubmenu } from "./CategorySubmenu"
 import { QueueSubmenu } from "./QueueSubmenu"
-import { RenameSubmenu } from "./RenameSubmenu"
 
 export interface TorrentContextMenuProps {
   children: React.ReactNode
@@ -64,7 +64,7 @@ export interface TorrentContextMenuProps {
   isSelected: boolean
   // The Action target of the selection. Every action item acts on it.
   actionTarget: ActionTarget
-  onTorrentSelect?: (torrent: Torrent | null, initialTab?: string) => void
+  onTorrentSelect?: (torrent: Torrent | null) => void
   // Sends a Bulk action to the bulk action module, which acts on the Action target.
   onPick: (pick: BulkActionPick) => void
   isPending?: boolean
@@ -478,16 +478,14 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
               <FolderOpen className="mr-2 h-4 w-4" />
               {t("contextMenu.setLocation")} {count > 1 ? `(${count})` : ""}
             </ContextMenuItem>
-            {supportsInstanceScopedActions && (
-              <RenameSubmenu
-                type="context"
-                hashCount={count}
-                onRenameTorrent={() => onPick({ action: "renameTorrent" })}
-                onRenameFile={() => onTorrentSelect?.(torrent, "content")}
-                onRenameFolder={() => onTorrentSelect?.(torrent, "content")}
-                isPending={isPending}
-                capabilities={capabilities}
-              />
+            {supportsInstanceScopedActions && (capabilities?.supportsRenameTorrent ?? true) && (
+              <ContextMenuItem
+                onClick={() => onPick({ action: "renameTorrent" })}
+                disabled={isPending || count !== 1}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                {t("renameSubmenu.renameTorrent")}
+              </ContextMenuItem>
             )}
             <WhenSupported instanceIds={targetInstanceIds} capability="supportsSetComment">
               <ContextMenuItem

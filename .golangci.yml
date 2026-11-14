@@ -95,9 +95,12 @@ linters:
         - pattern: ^orphanscan\.(isIgnoredPath|isPathProtectedByIgnorePaths|TorrentFileMap\.(Has|HasAnyInDir))$
           pkg: ^github\.com/autobrr/qui/internal/services/orphanscan$
           msg: ask the protected path module in internal/services/orphanscan/protected.go
-        - pattern: ^crossseed\.(decideSearchScope|decideTorznabIndexers|withoutGazelleTorznabIndexers|Service\.(resolveTorznabIndexerIDs|gazelleTorznabIndexers|contentFilterFacts))$
+        - pattern: ^crossseed\.(decideSearchScope|decideTorznabIndexers|decideGazelleSites|withoutGazelleTorznabIndexers|Service\.(resolveTorznabIndexerIDs|gazelleTorznabIndexers|contentFilterFacts|collectGazelleFacts|gazelleLocalFacts))$
           pkg: ^github\.com/autobrr/qui/internal/services/crossseed$
           msg: ask the Search scope module in internal/services/crossseed/search_scope.go (ADR 0029)
+        - pattern: ^gazellemusic\.(siteTable|KnownTrackers|TrackerToSite)$
+          pkg: ^github\.com/autobrr/qui/internal/services/crossseed/gazellemusic$
+          msg: read the RED/OPS sites through the site table in internal/services/crossseed/gazellemusic/sites.go
         - pattern: ^crossseed\.(isSourceMovingOrChecking|isSourceErrored)$
           pkg: ^github\.com/autobrr/qui/internal/services/crossseed$
           msg: ask the Source gate in internal/services/crossseed/source_gate.go
@@ -133,6 +136,9 @@ linters:
           msg: use crossseed.Adder
         - pattern: ^\w+\.\w+\.RenameTorrent(File|Folder)$
           msg: use crossseed.Aligner
+        - pattern: ^models\.(NewTransferHistoryStore|TransferHistoryStore\.\w+)$
+          pkg: ^github\.com/autobrr/qui/internal/models$
+          msg: only the Transfer history module in internal/services/transferhistory calls the history store
         - pattern: ^models\.CrossSeedStore\.\w*PartialPool\w*$
           pkg: ^github\.com/autobrr/qui/internal/models$
           msg: ask the partial pool coordinator in internal/services/crossseed/partial_pool.go
@@ -142,6 +148,20 @@ linters:
         - pattern: ^(driver\.(Driver\.Open|DriverContext\.OpenConnector|Connector\.Connect)|(sqlite|stdlib)\.Driver\.Open|stdlib\.Driver\.OpenConnector|pq\.(Open|DialOpen|NewConnector|NewConnectorConfig|Driver\.Open|NewListener|NewDialListener))$
           pkg: ^(database/sql/driver|github\.com/jackc/pgx/v5/stdlib|github\.com/lib/pq|modernc\.org/sqlite)$
           msg: open SQLite and Postgres connections through internal/database, which sets the UTC time-zone handling
+        # One package owns the sync object of go-qbittorrent (ADR 0051). The
+        # type rule also catches an interface method or a field whose type names
+        # the object, and each method call on an object of that type.
+        - pattern: ^qbittorrent\.SyncManager(\.\w+)?$
+          pkg: ^github\.com/autobrr/go-qbittorrent$
+          msg: only internal/qbittorrent/syncowner holds the sync object of go-qbittorrent; read the Sync snapshot with Owner.Snapshot or Owner.SnapshotUnchecked (ADR 0051)
+        # qui has its own function qbittorrent.NewSyncManager, so the function
+        # rule names the library package. The method rule names no package: it
+        # reports the method on each type, also on a type that embeds a client.
+        - pattern: ^qbittorrent\.NewSyncManager$
+          pkg: ^github\.com/autobrr/go-qbittorrent$
+          msg: only internal/qbittorrent/syncowner creates the sync object of go-qbittorrent; read the Sync snapshot with Owner.Snapshot or Owner.SnapshotUnchecked (ADR 0051)
+        - pattern: ^\w+\.\w+\.NewSyncManager$
+          msg: only internal/qbittorrent/syncowner creates the sync object of go-qbittorrent; read the Sync snapshot with Owner.Snapshot or Owner.SnapshotUnchecked (ADR 0051)
 
     exhaustive:
       # A switch with a default has handled the rest by definition, and the repo
@@ -201,8 +221,8 @@ linters:
           - forbidigo
         text: SyncManager\.InstanceFolders
 
-      # The torrent list rule binds only the qBittorrent production code. Cross-seed
-      # and reannounce use the library filter on purpose.
+      # The torrent list rule binds only the qBittorrent production code.
+      # Reannounce uses the library filter on purpose in a request to qBittorrent.
       - path-except: ^internal/qbittorrent/
         linters:
           - forbidigo
@@ -211,6 +231,12 @@ linters:
         linters:
           - forbidigo
         text: ADR 0043
+
+      # Only the sync owner holds and creates the sync object of go-qbittorrent.
+      - path: ^internal/qbittorrent/syncowner/
+        linters:
+          - forbidigo
+        text: the sync object of go-qbittorrent
 
       # The one-parser rule binds only the cross-seed production code.
       - path-except: ^internal/services/crossseed/
@@ -233,6 +259,12 @@ linters:
         linters:
           - forbidigo
         text: free space ledger
+
+      # Only the site table reads the raw facts about the RED/OPS sites.
+      - path: internal/services/crossseed/gazellemusic/sites\.go$|_test\.go$
+        linters:
+          - forbidigo
+        text: the site table
 
       # Only the Search scope module decides what a search asks (ADR 0029).
       - path: internal/services/crossseed/search_scope\.go$|_test\.go$
@@ -292,6 +324,12 @@ linters:
         linters:
           - forbidigo
         text: partial pool coordinator
+
+      # Only the Transfer history module and the store itself call the history store.
+      - path: ^internal/services/transferhistory/|^internal/models/transfer_history\.go$
+        linters:
+          - forbidigo
+        text: Transfer history module
 
       # Only the database module opens SQLite and Postgres connections (ADR 0044).
       - path: ^internal/database/

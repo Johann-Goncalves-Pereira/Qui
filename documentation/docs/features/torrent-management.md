@@ -49,6 +49,12 @@ Manage tags and categories from the **Tags** and **Categories** sections in the 
 
 qBittorrent stores a subcategory as a name with `/` separators, for example `media/movies`. qui shows the categories as a collapsible tree sorted by name when the instance supports subcategories (qBittorrent WebUI API 2.9.0 or newer). The qBittorrent preference **Enable Subcategories** (Instance Preferences > Files) must also be on. From WebUI API 2.15.0, subcategories are always on. In other cases, qui shows a flat list.
 
+## Free space when you add a torrent
+
+The Add Torrent dialog shows the free space at the destination it resolves for the torrent: the save path you enter, or, with automatic torrent management on, the assigned category's path. qBittorrent measures that path on its own host, so the value needs qBittorrent 5.3 (WebAPI 2.15.2) or later. Older instances show no line here. The value is informational and never blocks the add.
+
+If qBittorrent cannot measure the path, the dialog shows the space as unavailable.
+
 ## Exclude a filter
 
 Click a status, category, tag, or tracker in the filter sidebar to show only the torrents that match it. Ctrl+click the same item (Cmd+click on macOS) to exclude it instead. The list then shows the torrents that do not match. On a touch screen, press and hold the item for the same result. Click it again to clear the exclusion.
@@ -124,11 +130,11 @@ Stretch mode is the default. In stretch mode, the Name column takes the width th
 
 ## Group copies
 
-A copy is a torrent of the same release on another tracker or another instance. **Group copies** shows all copies of a release as one row. The switch is off by default. In Table and Dense, it is in the **Toggle columns** menu. In Stacked, it is in the sort menu. On phones, it is in the sort menu above the cards. qui saves the switch with your other settings, so it applies in each browser that you sign in to.
+A copy is a torrent of the same release on another tracker or another instance. **Group copies** shows all copies of a release as one row. The switch is off by default. On a computer, it is the button next to the search bar. On phones, it is in the sort menu above the cards. qui saves the switch with your other settings, so it applies in each browser that you sign in to.
 
 Two torrents are copies when qui matches them as cross-seeds and their files have the same sizes. Equal sizes keep a season pack apart from its episodes. A torrent with no file list, for example a magnet without metadata, stays a row of its own.
 
-Each group starts closed. The top row is the oldest copy, and a badge such as **+2** gives the number of hidden copies. A warning icon on the badge tells you that a hidden copy has an error, missing files, or a tracker problem. Click or tap the badge to open or close one group. **Expand all**, next to the switch, opens or closes all groups.
+Each group starts closed. The top row is the oldest copy, and a badge such as **+2** gives the number of hidden copies. A warning icon on the badge tells you that a hidden copy has a problem. The color of the badge shows the worst problem of the hidden copies. Red means that a copy has missing files, has an error, or is unregistered. Purple means a tracker error. Yellow means that the tracker of a copy is down. Click or tap the badge to open or close one group.
 
 Grouping changes only how the list looks:
 
@@ -136,7 +142,7 @@ Grouping changes only how the list looks:
 - A tick, a right-click, and Shift + click select only the rows that you see. To act on all copies, use Ctrl/Cmd + A, or the cross-seed option in the delete dialog.
 - The torrent count in the status bar counts torrents, not rows.
 
-When you turn on the switch for the first time, qui reads the file lists of your torrents. Until it finishes, the list stays flat, and the status bar shows **Grouping…**. On phones, the bar above the cards shows it. **Filter Cross-Seeds** always shows flat rows.
+qui finds the copies in the background from its start, also while the switch is off. The first time, it reads the file lists of the torrents that can have a copy. Until the first search after a start of qui finishes, the list stays flat, and the status bar shows **Grouping…**. On phones, the bar above the cards shows it. **Filter Cross-Seeds** always shows flat rows.
 
 ## Live updates paused
 

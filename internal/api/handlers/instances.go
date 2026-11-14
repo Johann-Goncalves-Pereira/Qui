@@ -269,7 +269,7 @@ func (h *InstancesHandler) GetTransferInfo(w http.ResponseWriter, r *http.Reques
 	// the request context rather than the library's checked accessor, which syncs
 	// on context.Background() and would outlive this handler's deadline against a
 	// saturated WebUI. A failed sync still leaves the last good state to serve.
-	if syncManager := client.GetSyncManager(); syncManager != nil {
+	if syncManager := client.SyncOwner(); syncManager != nil {
 		if err := syncManager.Sync(ctx); err != nil {
 			log.Debug().Err(err).Int("instanceID", instanceID).Msg("Failed to sync before reading server state; serving cached state")
 		}
@@ -288,6 +288,49 @@ func (h *InstancesHandler) GetTransferInfo(w http.ResponseWriter, r *http.Reques
 	}
 
 	RespondJSON(w, http.StatusOK, transferInfoResponse{TransferInfo: *info})
+}
+
+// InstanceFreeSpaceResponse reports free space at a path on the qBittorrent host.
+// Bytes is null when qBittorrent could not determine the free space.
+type InstanceFreeSpaceResponse struct {
+	Path  string `json:"path"`
+	Bytes *int64 `json:"bytes"`
+}
+
+// GetFreeSpaceAtPath returns the free space qBittorrent reports for a path on its own host.
+func (h *InstancesHandler) GetFreeSpaceAtPath(w http.ResponseWriter, r *http.Request) {
+	instanceID, err := strconv.Atoi(chi.URLParam(r, "instanceID"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid instance ID")
+		return
+	}
+
+	// Remote path: keep the qBittorrent host's separators, only drop surrounding whitespace.
+	path := strings.TrimSpace(r.URL.Query().Get("path"))
+	if path == "" {
+		RespondError(w, http.StatusBadRequest, "Path is required")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	freeSpace, err := h.syncManager.GetFreeSpaceAtPath(ctx, instanceID, path)
+	switch {
+	case errors.Is(err, internalqbittorrent.ErrFreeSpaceAtPathUnsupported):
+		RespondError(w, http.StatusNotImplemented, "This qBittorrent instance does not support free space at a path")
+		return
+	case err != nil:
+		if respondIfInstanceDisabled(w, err, instanceID, "instances:getFreeSpaceAtPath") {
+			return
+		}
+		// The display treats an unmeasurable path and a failed read the same way.
+		log.Debug().Err(err).Int("instanceID", instanceID).Msg("Failed to get free space at path")
+		RespondJSON(w, http.StatusOK, InstanceFreeSpaceResponse{Path: path})
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, InstanceFreeSpaceResponse{Path: path, Bytes: &freeSpace})
 }
 
 func (h *InstancesHandler) buildInstanceResponsesParallel(ctx context.Context, instances []*models.Instance) []InstanceResponse {

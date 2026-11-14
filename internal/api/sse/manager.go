@@ -29,6 +29,7 @@ import (
 	"github.com/autobrr/qui/internal/api/middleware"
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/qbittorrent"
+	"github.com/autobrr/qui/internal/qbittorrent/syncowner"
 	"github.com/autobrr/qui/internal/services/activity"
 )
 
@@ -156,7 +157,7 @@ func streamOptionsKey(opts StreamOptions) string {
 	}
 
 	return fmt.Sprintf(
-		"%s|%d|%d|%s|%s|%s|%s|%t|%t",
+		"%s|%d|%d|%s|%s|%s|%s|%t|%t|%t",
 		instanceKey,
 		// A client that sends no key gets this text as its stream key, so it keeps the page number.
 		view.Offset/max(view.Limit, 1),
@@ -167,6 +168,7 @@ func streamOptionsKey(opts StreamOptions) string {
 		strconv.Quote(filtersKey),
 		view.NoRows,
 		view.CopyGroups,
+		view.UniqueSize,
 	)
 }
 
@@ -185,7 +187,7 @@ func streamGroupKey(opts StreamOptions) string {
 // delivery can be exercised with injected fakes in tests.
 type syncProvider interface {
 	ListTorrents(ctx context.Context, view qbittorrent.TorrentListView) (*qbittorrent.TorrentResponse, error)
-	GetQBittorrentSyncManager(ctx context.Context, instanceID int) (*qbt.SyncManager, error)
+	GetSyncOwner(ctx context.Context, instanceID int) (*syncowner.Owner, error)
 	ReadCachedConnectionStatus(ctx context.Context, instanceID int) string
 	GetActiveTaskCount(ctx context.Context, instanceID int) int
 }
@@ -194,13 +196,6 @@ type syncProvider interface {
 // frame. It stays apart from syncProvider, which ADR 0005 caps at five methods.
 type versionWatcher interface {
 	WebAPIVersionsChanged(ctx context.Context, versions map[int]string) bool
-}
-
-// copyGroupsDemand keeps the Copy groups job running while a grouped stream is
-// open, because the browser sends no list request while the stream works. It
-// stays apart from syncProvider, which ADR 0005 caps at five methods.
-type copyGroupsDemand interface {
-	DemandCopyGroups()
 }
 
 // instanceStore is the subset of *models.InstanceStore that the StreamManager
@@ -221,7 +216,6 @@ type StreamManager struct {
 	clientPool  *qbittorrent.ClientPool
 	syncManager syncProvider
 	versions    versionWatcher
-	copyGroups  copyGroupsDemand
 	instanceDB  instanceStore
 
 	// lastSuccessfulSyncFn resolves an instance's last successful sync time for
@@ -449,7 +443,7 @@ type ActivityPayload struct {
 }
 
 // NewStreamManager constructs a manager with a configured SSE server.
-func NewStreamManager(clientPool *qbittorrent.ClientPool, syncManager syncProvider, versions versionWatcher, copyGroups copyGroupsDemand, instanceStore instanceStore) *StreamManager {
+func NewStreamManager(clientPool *qbittorrent.ClientPool, syncManager syncProvider, versions versionWatcher, instanceStore instanceStore) *StreamManager {
 	replayer, err := sse.NewFiniteReplayer(4, true)
 	if err != nil {
 		// Constructor only errors on invalid parameters; fall back to nil replayer just in case.
@@ -464,7 +458,6 @@ func NewStreamManager(clientPool *qbittorrent.ClientPool, syncManager syncProvid
 		clientPool:     clientPool,
 		syncManager:    syncManager,
 		versions:       versions,
-		copyGroups:     copyGroups,
 		instanceDB:     instanceStore,
 		subscriptions:  make(map[string]*subscriptionState),
 		instanceIndex:  make(map[int]map[string]*subscriptionState),
@@ -497,7 +490,7 @@ func NewStreamManager(clientPool *qbittorrent.ClientPool, syncManager syncProvid
 // clock, so a failing instance keeps reporting its last good sync rather than now.
 //
 // Resolve this from callback fan-out goroutines rather than directly inside
-// OnError/OnUpdate so the qBittorrent sync loop is not blocked by stream publishing.
+// OnError/OnSyncUpdate so the qBittorrent sync loop is not blocked by stream publishing.
 func (m *StreamManager) instanceLastSuccessfulSync(ctx context.Context, instanceID int) time.Time {
 	if m.clientPool == nil || instanceID <= 0 {
 		return time.Time{}
@@ -731,58 +724,76 @@ func (m *StreamManager) Unregister(id string) {
 		groupKey := state.groupKey
 		delete(m.subscriptions, id)
 
-		groupRemoved := false
-		if group, exists := m.groups[groupKey]; exists {
-			group.subsMu.Lock()
-			delete(group.subs, id)
-			remaining := len(group.subs)
-			group.subsMu.Unlock()
-
-			if remaining == 0 {
-				delete(m.groups, groupKey)
-				groupRemoved = true
-			}
-		}
+		groupRemoved := m.removeGroupSubscriberLocked(groupKey, id)
 
 		// Detach from every instance the subscription was registered under. A
 		// per-instance sync/heartbeat loop is stopped only once no remaining
 		// subscription (single- or multi-instance) still depends on that instance.
 		for _, instanceID := range state.options.instanceIDs() {
 			if groupRemoved {
-				if groups := m.instanceGroups[instanceID]; groups != nil {
-					delete(groups, groupKey)
-					if len(groups) == 0 {
-						delete(m.instanceGroups, instanceID)
-					}
-				}
+				m.removeInstanceGroupLocked(instanceID, groupKey)
 			}
-
-			if subs := m.instanceIndex[instanceID]; subs != nil {
-				delete(subs, id)
-				if len(subs) == 0 {
-					delete(m.instanceIndex, instanceID)
-					if loop, ok := m.syncLoops[instanceID]; ok {
-						loop.cancel()
-						delete(m.syncLoops, instanceID)
-					}
-					if hbLoop, ok := m.heartbeatLoops[instanceID]; ok {
-						hbLoop.cancel()
-						delete(m.heartbeatLoops, instanceID)
-					}
-					delete(m.syncBackoff, instanceID)
-				}
-			}
+			m.removeInstanceSubscriberLocked(instanceID, id)
 		}
 	}
 	m.mu.Unlock()
 }
 
-// HandleMainData implements qbittorrent.SyncEventSink.
-func (m *StreamManager) HandleMainData(instanceID int, data *qbt.MainData) {
-	if data == nil {
+// removeGroupSubscriberLocked drops the subscriber from its group and deletes
+// the group once it is empty. It reports whether the group was deleted.
+func (m *StreamManager) removeGroupSubscriberLocked(groupKey, id string) bool {
+	group, exists := m.groups[groupKey]
+	if !exists {
+		return false
+	}
+
+	group.subsMu.Lock()
+	delete(group.subs, id)
+	remaining := len(group.subs)
+	group.subsMu.Unlock()
+
+	if remaining != 0 {
+		return false
+	}
+	delete(m.groups, groupKey)
+	return true
+}
+
+func (m *StreamManager) removeInstanceGroupLocked(instanceID int, groupKey string) {
+	groups := m.instanceGroups[instanceID]
+	if groups == nil {
+		return
+	}
+	delete(groups, groupKey)
+	if len(groups) == 0 {
+		delete(m.instanceGroups, instanceID)
+	}
+}
+
+func (m *StreamManager) removeInstanceSubscriberLocked(instanceID int, id string) {
+	subs := m.instanceIndex[instanceID]
+	if subs == nil {
+		return
+	}
+	delete(subs, id)
+	if len(subs) != 0 {
 		return
 	}
 
+	delete(m.instanceIndex, instanceID)
+	if loop, ok := m.syncLoops[instanceID]; ok {
+		loop.cancel()
+		delete(m.syncLoops, instanceID)
+	}
+	if hbLoop, ok := m.heartbeatLoops[instanceID]; ok {
+		hbLoop.cancel()
+		delete(m.heartbeatLoops, instanceID)
+	}
+	delete(m.syncBackoff, instanceID)
+}
+
+// HandleSyncUpdate implements qbittorrent.SyncEventSink.
+func (m *StreamManager) HandleSyncUpdate(instanceID int, update qbt.SyncUpdate) {
 	if m.closing.Load() {
 		return
 	}
@@ -791,16 +802,14 @@ func (m *StreamManager) HandleMainData(instanceID int, data *qbt.MainData) {
 
 	meta := &StreamMeta{
 		InstanceID: instanceID,
-		RID:        data.Rid,
-		FullUpdate: data.FullUpdate,
 		Timestamp:  time.Now(),
 		// Counts ride the same frame as the rows they describe. Without this the
 		// sidebar only refreshed on the 60s tracker-health tick, so a new torrent
 		// sat in the table for up to a minute before the sidebar counted it.
 		IncludeCounts: true,
 	}
-	if qbittorrent.ServerStateOnly(data.Changes) {
-		meta.serverState = new(data.ServerState)
+	if qbittorrent.ServerStateOnly(update.Changes) {
+		meta.serverState = new(update.ServerState)
 	}
 
 	go m.publishInstance(instanceID, meta)
@@ -863,7 +872,7 @@ func (m *StreamManager) HandleSyncError(instanceID int, err error) {
 	}
 
 	// Resolve the staleness stamp and publish asynchronously so this callback's
-	// fan-out does not hold up the qBittorrent sync loop. Mirrors HandleMainData.
+	// fan-out does not hold up the qBittorrent sync loop. Mirrors HandleSyncUpdate.
 	go func() {
 		m.stampLastSuccessfulSync(m.ctx, meta, instanceID)
 		m.publishToInstance(instanceID, payload)
@@ -2424,7 +2433,7 @@ func jitteredInterval(interval time.Duration) time.Duration {
 // healthy delta streak and gets the short budget. A sync that another caller
 // cancelled also resets the rid, but reports no failure here. The loop then waits
 // only the short budget, and the full update, which runs on its own deadline,
-// still lands through OnUpdate.
+// still lands through OnSyncUpdate.
 func (m *StreamManager) syncTimeout(instanceID int) time.Duration {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -2450,7 +2459,7 @@ func (m *StreamManager) forceSync(parent context.Context, instanceID int) {
 	ctx, cancel := context.WithTimeout(parent, m.syncTimeout(instanceID))
 	defer cancel()
 
-	syncMgr, err := m.syncManager.GetQBittorrentSyncManager(ctx, instanceID)
+	syncMgr, err := m.syncManager.GetSyncOwner(ctx, instanceID)
 	if err != nil {
 		log.Warn().Err(err).Int("instanceID", instanceID).Msg("Failed to get qBittorrent sync manager for SSE loop")
 		m.HandleSyncError(instanceID, fmt.Errorf("sync manager unavailable: %w", err))
@@ -2484,7 +2493,6 @@ func (m *StreamManager) startHeartbeatLoop(instanceID int) *heartbeatLoopState {
 				return
 			case <-timer.C:
 				m.publishHeartbeat(instanceID)
-				m.demandCopyGroups(instanceID)
 				m.enqueueIdleTicks(instanceID) //nolint:contextcheck // a tick builds on the manager context, like every other tick
 				// Jitter each interval so per-instance heartbeats do not align into a
 				// synchronized burst through the single dispatcher.
@@ -2494,15 +2502,6 @@ func (m *StreamManager) startHeartbeatLoop(instanceID int) *heartbeatLoopState {
 	}()
 
 	return loop
-}
-
-func (m *StreamManager) demandCopyGroups(instanceID int) {
-	for _, group := range m.groupsForInstance(instanceID) {
-		if group.options.View.CopyGroups {
-			m.copyGroups.DemandCopyGroups()
-			return
-		}
-	}
 }
 
 func (m *StreamManager) publishHeartbeat(instanceID int) {
@@ -2549,6 +2548,7 @@ type streamRequestPayload struct {
 	Filters     *qbittorrent.FilterOptions `json:"filters"`
 	Summary     bool                       `json:"summary"`
 	GroupCopies bool                       `json:"groupCopies"`
+	UniqueSize  bool                       `json:"uniqueSize"`
 }
 
 func parseStreamRequests(r *http.Request) ([]streamRequest, error) {
@@ -2631,6 +2631,7 @@ func (p streamRequestPayload) toStreamOptions() (StreamOptions, error) {
 		Filters:    filters,
 		NoRows:     p.Summary,
 		CopyGroups: p.GroupCopies,
+		UniqueSize: p.UniqueSize,
 	}
 	if err := view.Validate(); err != nil {
 		return StreamOptions{}, err

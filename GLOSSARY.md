@@ -25,10 +25,12 @@ qui manages torrent-client state and workflows for a self-hosted installation.
 
 ## Torrent list
 
-- **Torrent view**: One reading of the torrent list: the instances, the page, the sort, the search, the filters, the passkey access of the reader, and what the reader gets (rows, Sidebar counts, Copy groups). The main table, a Dashboard card, and the details panel each hold one. _Avoid_: list request, list query.
+- **Torrent view**: One reading of the torrent list: the instances, the page, the sort, the search, the filters, the passkey access of the reader, and what the reader gets (rows, Sidebar counts, Copy groups, the Unique size). The main table, a Dashboard card, and the details panel each hold one. _Avoid_: list request, list query.
 - **Unified view**: One torrent list built from every active instance, or from the instances the user picks. A subset of instances is still the Unified view. Its totals add up torrents, so a torrent cross-seeded on two instances counts twice. _Avoid_: Cross-instance view, all-instances view.
 - **View parity**: The Unified view, scoped to one instance, shows the same rows, order, row fields, and totals as that instance's own view. With more instances, the rows of each instance keep the order that instance's own view gives them. A Copy group takes the place of its first-sorted member, so with more than one instance, the rows of an instance can leave the order of its own view. _Avoid_: Consistency, sync.
-- **Copy group**: Torrents that the Batch matcher links and that have equal file sizes, shown as one entry in the torrent list. It is a view of the list. _Avoid_: parent and children, Shared-file group, Duplicate group.
+- **Copy group**: Torrents that the Batch matcher links and that have equal file sizes. The torrent list shows them as one entry, and the Unique size counts them one time. _Avoid_: parent and children, Shared-file group, Duplicate group.
+- **Unique size**: The size of a set of torrents with each Copy group and each Shared part counted one time inside an instance. Torrents with the same content path also count one time. Instances add together. _Avoid_: true size, deduplicated size.
+- **Shared part**: Files that two or more torrents of one instance hold, when the Batch matcher links the torrents but their files are not all equal. For example, a cross-seed that holds two of the three episodes of a pack shares two episodes with the pack, and a single episode shares its file with its season pack. A file of one torrent and a file of the same size of another torrent count as the same data. _Avoid_: overlap, shared files.
 - **Group representative**: The member of a group that stands for the group: the oldest by added time, with the infohash as the tie-break, then the instance. _Avoid_: parent, canonical copy, primary copy.
 - **Select all mode**: A selection of every torrent that matches the current filter, including torrents on pages that are not loaded, minus the torrents that the user excluded. _Avoid_: Select-all, all selected.
 - **Exclusion**: A torrent that the user unticked in Select all mode. It stays out of the selection until the user ticks it again or the selection clears. _Avoid_: Deselected torrent.
@@ -42,7 +44,22 @@ qui manages torrent-client state and workflows for a self-hosted installation.
 - **Stopped**: A torrent in a paused or stopped state. Running is the opposite. _Avoid_: Paused, as a separate meaning.
 - **Seeding**: A torrent in an upload state, whether or not it sends data. Dashboard "active" counts only those that send data. _Avoid_: Uploading, in user text.
 - **Trackers**: The tracker domains that a torrent belongs to. A torrent with none is in No tracker. _Avoid_: Tracker membership, and the Tracker column for the full set.
+- **Tracker group**: The one tracker that the bytes of a torrent count toward: a tracker customization, one tracker domain, Public, or No tracker. Public holds every torrent that is not private. _Avoid_: tracker bucket.
 - **Stalled view**: A torrent view on an open stream that got no data for 2 minutes. It polls qui until data comes again. The other views on the same connection are not affected. A server error is not a stall. _Avoid_: dead stream, stale connection (that is when the whole connection stops, and the browser reconnects).
+- **Sync snapshot**: The torrents of one instance as one sync left them. Every reader of that sync shares it, and no reader changes it. _Avoid_: copy, sync cache, snapshot alone (a backup run is also a snapshot).
+
+## Torrent details
+
+- **Piece bar**: The bar in the General tab of a torrent that is not complete. It shows where the finished and downloading pieces are. When one column holds more than one piece, the column fills from the bottom to the share of finished pieces, with the share of downloading pieces on top. _Avoid_: progress bar (that is the progress column in the torrent list).
+
+## Statistics
+
+- **Statistics**: The page that shows Transfer history. _Avoid_: stats page, history page.
+- **Transfer history**: The upload and download bytes that qui recorded, for each period, torrent, tracker, and category. It keeps the bytes of deleted torrents. _Avoid_: bandwidth (that is a speed), tracker history.
+- **Baseline**: The upload and download bytes that a torrent already had when qui first recorded its instance. It has no date. All-time numbers include it, and charts do not. _Avoid_: backfill, opening balance.
+- **Recording gap**: A time when qui did not observe an instance. The bytes of the gap land on the first hour after it, with a mark. _Avoid_: missing data, downtime.
+- **Detail retention**: The time that qui keeps the hourly totals, the hourly state of each instance, and the daily bytes of each torrent: 90 days, 400 days, or forever. After it, hours become days, the hourly state is deleted, and the days of a torrent become one row for each year.
+- **Statistics cross-seed**: In Statistics, a torrent that completed with less than 1% of its size downloaded. It gets this role when it completes, and it keeps the role until the user deletes the torrent. A torrent that the user created, or added again with its data on disk, also has this role. _Avoid_: copy (that is a member of a Copy group).
 
 ## Peers
 
@@ -66,6 +83,8 @@ qui manages torrent-client state and workflows for a self-hosted installation.
 ## Client settings
 
 - **Client setting**: A UI preference that qui stores for the user on the server, so it follows the user to every browser and tab, for example the sidebar state, filters, and column layout. _Avoid_: local setting.
+- **System notice**: A message about a fault in qui that needs an action from the user, shown where qui shows the update notice. It says what qui does while the fault lasts and how to fix it. An available update is not a System notice. _Avoid_: banner, alert.
+- **Feature notice**: A one-time bubble that points at a control and tells the user about a feature. It goes away for good when the user dismisses it or uses the feature. _Avoid_: banner, tip, tour, announcement.
 
 ## Orphan scan
 
@@ -100,7 +119,8 @@ qui manages torrent-client state and workflows for a self-hosted installation.
 - **Manual match**: A cross-seed apply where the user chooses the target torrent. Candidate discovery and the category and content-type gates are bypassed; the recheck is the arbiter of a wrong pick. _Avoid_: forced match, pinned match. The Source gate still applies, with no source filter.
 - **Numbering scheme**: How a TV release names its episode: seasoned (`S04E15`) or absolute (`- 81`, no season). A pair of releases that use the same scheme compare episode numbers directly. _Avoid_: anime numbering, episode format.
 - **Episode map**: The Sonarr-sourced triple (season, episode, absolute) for one release name. It lets one seasoned and one absolute release count as the same episode. Exists only when Sonarr names exactly one episode and that episode has an absolute number; otherwise there is no map and the pair falls back to size evidence. _Avoid_: Sonarr mapping, episode translation, absolute lookup.
-- **Search scope**: The Torznab indexers and the RED/OPS sites that one search asks for one torrent and its duplicate copies, or the reason that it asks none. Every Trigger reads the same Search scope. A scope with no Torznab indexers is not a Gazelle-only run. _Avoid_: allowed indexers, indexer set.
+- **Search scope**: The Torznab indexers and the RED/OPS sites that one search asks for one torrent and its duplicate copies. For each RED/OPS site that it does not ask, and when it asks no Torznab indexer, it holds the reason. Every Trigger reads the same Search scope. A scope with no Torznab indexers is not a Gazelle-only run. _Avoid_: allowed indexers, indexer set.
+- **RED/OPS lookup**: The request that one search sends to one RED/OPS site through its API, and its outcome: a match, no match, not asked with a reason, or failed with a reason. Every Trigger reports the lookups of its search. _Avoid_: Gazelle search, pre-search.
 - **Gazelle-only run**: A library search with Torznab off; candidates come only from the OPS/RED APIs. Reached by the Torznab switch on the Library card, which applies to the next run and is not saved, never inferred from the indexer selection. Needs one Gazelle key. _Avoid_: Torznab-disabled run, forced Gazelle-only.
 - **Season numeral**: A Roman numeral at the end of a release title that names the release's season, as in "Kaiju Squad 100 III" for season 3. When the name also has a season marker, the numeral must equal it. When it has none, only II to X count, and only for a pack, not an episode. A movie with a year never has one. Matching reads the title with and without it, and the alternate-title search tries the title without it. _Avoid_: roman suffix, sequel number.
 - **Read release**: What qui knows about one release after it reads its name once, or its files when the name has no title (a season folder or a seasonless batch): its Title keys, Numbering scheme, season, and absolute episode. Every Match path compares Read releases, never raw names. _Avoid_: release view, parsed release (that is the raw parser output).
@@ -113,6 +133,7 @@ qui manages torrent-client state and workflows for a self-hosted installation.
 - **Match evidence**: What a Match path knows about a pair beyond the two Read releases: sizes, file lists, Sonarr alternate titles, and the episode map. A Match path that lacks one gives the Match verdict less to work with. It does not change the rules. _Avoid_: Evidence (alone), context.
 - **Shared file**: One file on disk that two torrents read through the same folder entry, on one instance or on two. A delete with files of one torrent removes it for the other. _Avoid_: same content path (that is path text), content match.
 - **Generic HDR tag**: An `HDR` tag in a release name that does not say `HDR10`, `HDR10+`, or `HLG`. Cross-seed matching reads it as `HDR10`, so `DV HDR` matches `DV HDR10`. It stays distinct from `HDR10+` and `HLG`. Release fields and Season pack status keep the tag as written. _Avoid_: plain HDR.
+- **UHD source prefix**: A `UHD.` before a release source, as in `UHD.WEB` or `UHD.BluRay`. Cross-seed matching ignores it, so `UHD.WEB-DL` matches `WEB-DL`. Release fields and Season pack status keep it as written. _Avoid_: UHD source (it names no source of its own).
 - **Season pack run**: One record of a season pack check or apply. A check run is Ready, Ready (no threshold), or Skipped. An apply run is Applied, Failed, or Skipped. _Avoid_: season pack activity, attempt.
 
 ## Indexers
