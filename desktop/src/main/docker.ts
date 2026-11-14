@@ -94,6 +94,9 @@ const DEFAULT_EXEC_PATH = [
 
 export const PODMAN_BINARY_NOT_FOUND = 'podman binary not found'
 export const DOCKER_BINARY_NOT_FOUND = PODMAN_BINARY_NOT_FOUND
+/** Surfaced on the Failed to start Qui splash when the engine stays unreachable. */
+export const PODMAN_ENGINE_NOT_READY =
+	'Podman is not reachable. Start the machine with `podman machine start` (or `podman machine init` then start), then use Tray → Reload Qui web app.'
 
 /** macOS GUI launches do not inherit a shell PATH, so look up the Podman CLI by path. */
 export function podmanBinaryCandidates(homeDir: string): readonly string[] {
@@ -240,12 +243,10 @@ export class DockerManager {
 
 	async isDockerAvailable(): Promise<boolean> {
 		try {
-			const { stdout } = await this.executor.exec('docker', [
-				'info',
-				'--format',
-				'{{.ServerVersion}}',
-			])
-			return stdout.trim().length > 0
+			// Podman has no Docker-compatible `.ServerVersion` template field; a
+			// successful `info` (exit 0) is enough to know the engine is reachable.
+			await this.executor.exec('docker', ['info'])
+			return true
 		} catch {
 			return false
 		}
@@ -253,6 +254,29 @@ export class DockerManager {
 
 	async isPodmanAvailable(): Promise<boolean> {
 		return this.isDockerAvailable()
+	}
+
+	/**
+	 * Ensure the Podman engine answers before container pull/start/run.
+	 * If `info` fails, run `podman machine start` once and recheck.
+	 * Does not run `podman machine init`.
+	 */
+	async ensurePodmanEngineReady(options?: {
+		onStartingMachine?: () => void | Promise<void>
+	}): Promise<void> {
+		if (await this.isPodmanAvailable()) {
+			return
+		}
+		await options?.onStartingMachine?.()
+		try {
+			await this.executor.exec('podman', ['machine', 'start'])
+		} catch {
+			// Machine may already be starting, or missing entirely — recheck info below.
+		}
+		if (await this.isPodmanAvailable()) {
+			return
+		}
+		throw new Error(PODMAN_ENGINE_NOT_READY)
 	}
 
 	async getContainerStatus(

@@ -11,6 +11,7 @@ import {
 	type DockerExecutor,
 	DockerManager,
 	dockerBinaryCandidates,
+	PODMAN_ENGINE_NOT_READY,
 	resolveDockerBinary,
 } from '../src/main/docker.js'
 import {
@@ -85,8 +86,8 @@ describe('Docker CLI resolution (BR-desktop-10)', () => {
 describe('DockerManager', () => {
 	it('checks if docker is available when docker info succeeds', async () => {
 		const mock = new MockDockerExecutor()
-		mock.responses['docker info --format {{.ServerVersion}}'] = {
-			stdout: '24.0.7\n',
+		mock.responses['docker info'] = {
+			stdout: 'host:\n  arch: arm64\n',
 			stderr: '',
 		}
 
@@ -105,6 +106,142 @@ describe('DockerManager', () => {
 		const manager = new DockerManager(mock)
 		const available = await manager.isDockerAvailable()
 		expect(available).toBe(false)
+	})
+
+	describe('ensurePodmanEngineReady (BR-desktop-49)', () => {
+		it('does not run machine start when Podman info already succeeds', async () => {
+			const mock = new MockDockerExecutor()
+			mock.responses['docker info'] = {
+				stdout: 'host:\n  arch: arm64\n',
+				stderr: '',
+			}
+			const manager = new DockerManager(mock)
+			await manager.ensurePodmanEngineReady()
+			expect(
+				mock.executedCommands.some(
+					c =>
+						(c.command === 'podman' || c.command === 'docker') &&
+						c.args[0] === 'machine' &&
+						c.args[1] === 'start',
+				),
+			).toBe(false)
+		})
+
+		it('runs machine start once when info fails then succeeds after start', async () => {
+			let infoCalls = 0
+			const mock: DockerExecutor = {
+				async exec(command, args) {
+					if (
+						(command === 'docker' || command === 'podman') &&
+						args[0] === 'info'
+					) {
+						infoCalls += 1
+						if (infoCalls === 1) {
+							throw new Error('connection refused')
+						}
+						return { stdout: 'host:\n  arch: arm64\n', stderr: '' }
+					}
+					if (
+						(command === 'podman' || command === 'docker') &&
+						args[0] === 'machine' &&
+						args[1] === 'start'
+					) {
+						return { stdout: 'Machine started\n', stderr: '' }
+					}
+					throw new Error(`unexpected ${command} ${args.join(' ')}`)
+				},
+			}
+			const manager = new DockerManager(mock)
+			let startingNotified = 0
+			await manager.ensurePodmanEngineReady({
+				onStartingMachine: () => {
+					startingNotified += 1
+				},
+			})
+			expect(infoCalls).toBe(2)
+			expect(startingNotified).toBe(1)
+		})
+
+		it('throws PODMAN_ENGINE_NOT_READY when machine start fails', async () => {
+			const mock: DockerExecutor = {
+				async exec(command, args) {
+					if (
+						(command === 'docker' || command === 'podman') &&
+						args[0] === 'info'
+					) {
+						throw new Error('connection refused')
+					}
+					if (
+						(command === 'podman' || command === 'docker') &&
+						args[0] === 'machine' &&
+						args[1] === 'start'
+					) {
+						throw new Error('no such machine')
+					}
+					return { stdout: '', stderr: '' }
+				},
+			}
+			const manager = new DockerManager(mock)
+			await expect(manager.ensurePodmanEngineReady()).rejects.toThrow(
+				PODMAN_ENGINE_NOT_READY,
+			)
+		})
+
+		it('throws PODMAN_ENGINE_NOT_READY when info still fails after machine start', async () => {
+			let machineStarts = 0
+			const mock: DockerExecutor = {
+				async exec(command, args) {
+					if (
+						(command === 'docker' || command === 'podman') &&
+						args[0] === 'info'
+					) {
+						throw new Error('connection refused')
+					}
+					if (
+						(command === 'podman' || command === 'docker') &&
+						args[0] === 'machine' &&
+						args[1] === 'start'
+					) {
+						machineStarts += 1
+						return { stdout: 'ok\n', stderr: '' }
+					}
+					return { stdout: '', stderr: '' }
+				},
+			}
+			const manager = new DockerManager(mock)
+			await expect(manager.ensurePodmanEngineReady()).rejects.toThrow(
+				PODMAN_ENGINE_NOT_READY,
+			)
+			expect(machineStarts).toBe(1)
+		})
+
+		it('attempts machine start at most once per ensure call', async () => {
+			let machineStarts = 0
+			const mock: DockerExecutor = {
+				async exec(command, args) {
+					if (
+						(command === 'docker' || command === 'podman') &&
+						args[0] === 'info'
+					) {
+						throw new Error('connection refused')
+					}
+					if (
+						(command === 'podman' || command === 'docker') &&
+						args[0] === 'machine' &&
+						args[1] === 'start'
+					) {
+						machineStarts += 1
+						throw new Error('still down')
+					}
+					return { stdout: '', stderr: '' }
+				},
+			}
+			const manager = new DockerManager(mock)
+			await expect(manager.ensurePodmanEngineReady()).rejects.toThrow(
+				PODMAN_ENGINE_NOT_READY,
+			)
+			expect(machineStarts).toBe(1)
+		})
 	})
 
 	it('inspects container status correctly when running', async () => {

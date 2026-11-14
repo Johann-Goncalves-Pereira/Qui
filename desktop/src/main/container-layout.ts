@@ -258,10 +258,16 @@ export function parseQBitCredentialsFromLogs(logs: string): QBitCredentials {
 	let password: string | undefined
 	let isTemporary = false
 
-	const cleanLogs = logs.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '')
+	const ansiEscape = new RegExp(
+		`${String.fromCharCode(0x1b)}\\[[0-?]*[ -/]*[@-~]`,
+		'g',
+	)
+	const cleanLogs = logs.replace(ansiEscape, '')
 
 	const userMatches = [
-		...cleanLogs.matchAll(/The WebUI administrator username is:\s*([^\r\n]+)/gi),
+		...cleanLogs.matchAll(
+			/The WebUI administrator username is:\s*([^\r\n]+)/gi,
+		),
 	]
 	if (userMatches.length > 0) {
 		username = userMatches[userMatches.length - 1][1].trim()
