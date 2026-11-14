@@ -57,9 +57,9 @@ describe('Pre-update backup engine (BR-desktop-31)', () => {
 	})
 
 	it('creates a verified pre-update backup snapshot preserving container configs and metadata', async () => {
-		// Set up mock docker data dirs
-		const quiConfigDir = path.join(tempBase, 'docker', 'qui')
-		const qbitConfigDir = path.join(tempBase, 'docker', 'qbittorrent')
+		// Set up mock podman data dirs
+		const quiConfigDir = path.join(tempBase, 'podman', 'qui')
+		const qbitConfigDir = path.join(tempBase, 'podman', 'qbittorrent')
 		mkdirSync(quiConfigDir, { recursive: true })
 		mkdirSync(qbitConfigDir, { recursive: true })
 

@@ -25,7 +25,7 @@ export function quiImageRelease(version?: string): string {
  */
 export const QUI_IMAGE_RELEASE = quiImageRelease()
 
-/** GitHub Releases asset stem for `docker load` when GHCR is unavailable ($0). */
+/** GitHub Releases asset stem for `podman load` when GHCR is unavailable ($0). */
 export function quiDesktopImageArchiveName(arch: string): string {
 	const normalized = arch === 'arm64' ? 'arm64' : 'amd64'
 	return `qui-desktop-image-${normalized}.tar.gz`
@@ -54,7 +54,7 @@ export const QUI_FORK_IMAGE_REPO = 'ghcr.io/johann-goncalves-pereira/qui'
 
 /**
  * Version-pinned container image tag (e.g. `ghcr.io/johann-goncalves-pereira/qui:0.0.9`).
- * Pinning directly prevents Docker from reusing stale ':latest' images across releases.
+ * Pinning directly prevents Podman from reusing stale ':latest' images across releases.
  */
 export function getVersionedQuiImage(version?: string): string {
 	const ver = version?.trim().replace(/^v/i, '')

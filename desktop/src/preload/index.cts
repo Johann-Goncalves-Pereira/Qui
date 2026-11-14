@@ -7,7 +7,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
 	AppReleaseInfo,
 	BiometricAuthResult,
-	DockerContainerStatus,
+	PodmanContainerStatus,
 	QBitContainerConfig,
 	QuiContainerConfig,
 	ThemeSyncPayload,
@@ -26,9 +26,9 @@ export interface QuiDesktopBridge {
 	hasSavedAccount: () => Promise<boolean>
 	/** Touch ID, then the encrypted account. Null when cancelled or missing. */
 	unlockAccount: () => Promise<{ username: string; password: string } | null>
-	getDockerStatus: () => Promise<{
-		qui: DockerContainerStatus
-		qbit: DockerContainerStatus
+	getPodmanStatus: () => Promise<{
+		qui: PodmanContainerStatus
+		qbit: PodmanContainerStatus
 	}>
 	getQuiConfig: () => Promise<QuiContainerConfig>
 	getQBitConfig: () => Promise<QBitContainerConfig>
@@ -45,7 +45,7 @@ export interface QuiDesktopBridge {
 	saveVpnConfig: (
 		config: unknown,
 	) => Promise<{ success: boolean; error?: string }>
-	getVpnStatus: () => Promise<DockerContainerStatus>
+	getVpnStatus: () => Promise<PodmanContainerStatus>
 	openVpnAuthPage: (provider?: string) => Promise<void>
 	parseWireGuardConf: (
 		content: string,
@@ -64,13 +64,13 @@ export interface QuiDesktopBridge {
 	onShowContainerUpdateDialog: (
 		callback: (details: unknown) => void,
 	) => () => void
-	/** Applies pending Docker container updates and recreates containers */
+	/** Applies pending Podman container updates and recreates containers */
 	applyContainerUpdates: () => Promise<{
 		success: boolean
 		error?: string
 		reloaded?: boolean
 	}>
-	/** Dismisses pending Docker container updates for current session digests */
+	/** Dismisses pending Podman container updates for current session digests */
 	dismissContainerUpdates: () => Promise<{ success: boolean }>
 	/** Subscribes to non-blocking desktop status notifications */
 	onUpdateStatus: (
@@ -82,15 +82,15 @@ export interface QuiDesktopBridge {
 	) => () => void
 	/** Synchronize active theme tokens and dark/light preference to desktop shell for startup page caching */
 	syncTheme: (payload: ThemeSyncPayload) => Promise<void>
-	/** Gazelle companion Docker lifecycle controls */
+	/** Gazelle companion Podman lifecycle controls */
 	gazelle: {
-		getStatus: () => Promise<DockerContainerStatus>
-		start: () => Promise<DockerContainerStatus>
-		stop: () => Promise<DockerContainerStatus>
-		restart: () => Promise<DockerContainerStatus>
+		getStatus: () => Promise<PodmanContainerStatus>
+		start: () => Promise<PodmanContainerStatus>
+		stop: () => Promise<PodmanContainerStatus>
+		restart: () => Promise<PodmanContainerStatus>
 		openWebUi: () => Promise<void>
-		install: () => Promise<DockerContainerStatus>
-		destroy: () => Promise<DockerContainerStatus>
+		install: () => Promise<PodmanContainerStatus>
+		destroy: () => Promise<PodmanContainerStatus>
 	}
 }
 
@@ -115,15 +115,15 @@ const bridge: QuiDesktopBridge = {
 		ipcRenderer.invoke('account:save', username, password),
 	hasSavedAccount: () => ipcRenderer.invoke('account:has'),
 	unlockAccount: () => ipcRenderer.invoke('account:unlock'),
-	getDockerStatus: () => ipcRenderer.invoke('docker:status'),
-	getQuiConfig: () => ipcRenderer.invoke('docker:get-qui-config'),
-	getQBitConfig: () => ipcRenderer.invoke('docker:get-qbit-config'),
+	getPodmanStatus: () => ipcRenderer.invoke('podman:status'),
+	getQuiConfig: () => ipcRenderer.invoke('podman:get-qui-config'),
+	getQBitConfig: () => ipcRenderer.invoke('podman:get-qbit-config'),
 	saveQuiConfig: (config: QuiContainerConfig) =>
-		ipcRenderer.invoke('docker:save-qui-config', config),
+		ipcRenderer.invoke('podman:save-qui-config', config),
 	saveQBitConfig: (config: QBitContainerConfig) =>
-		ipcRenderer.invoke('docker:save-qbit-config', config),
+		ipcRenderer.invoke('podman:save-qbit-config', config),
 	restartContainer: (name: string) =>
-		ipcRenderer.invoke('docker:restart-container', name),
+		ipcRenderer.invoke('podman:restart-container', name),
 	getVpnConfig: () => ipcRenderer.invoke('vpn:get-config'),
 	saveVpnConfig: (config: unknown) =>
 		ipcRenderer.invoke('vpn:save-config', config),
@@ -186,13 +186,13 @@ const bridge: QuiDesktopBridge = {
 	syncTheme: (payload: ThemeSyncPayload) =>
 		ipcRenderer.invoke('theme:sync', payload),
 	gazelle: {
-		getStatus: () => ipcRenderer.invoke('docker:gazelle:status'),
-		start: () => ipcRenderer.invoke('docker:gazelle:start'),
-		stop: () => ipcRenderer.invoke('docker:gazelle:stop'),
-		restart: () => ipcRenderer.invoke('docker:gazelle:restart'),
-		openWebUi: () => ipcRenderer.invoke('docker:gazelle:open-web'),
-		install: () => ipcRenderer.invoke('docker:gazelle:install'),
-		destroy: () => ipcRenderer.invoke('docker:gazelle:destroy'),
+		getStatus: () => ipcRenderer.invoke('podman:gazelle:status'),
+		start: () => ipcRenderer.invoke('podman:gazelle:start'),
+		stop: () => ipcRenderer.invoke('podman:gazelle:stop'),
+		restart: () => ipcRenderer.invoke('podman:gazelle:restart'),
+		openWebUi: () => ipcRenderer.invoke('podman:gazelle:open-web'),
+		install: () => ipcRenderer.invoke('podman:gazelle:install'),
+		destroy: () => ipcRenderer.invoke('podman:gazelle:destroy'),
 	},
 }
 

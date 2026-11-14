@@ -9,15 +9,15 @@ import { APP_NAME } from '../src/shared/constants.js'
 import {
 	BiometricAuthResultSchema,
 	DesktopConfigSchema,
-	DockerContainerStatusSchema,
-	DockerUpdateInfoSchema,
+	PodmanContainerStatusSchema,
+	PodmanUpdateInfoSchema,
 	QBitContainerConfigSchema,
 	QuiContainerConfigSchema,
 	TorrentTransferStatsSchema,
 } from '../src/shared/types.js'
 
 describe('Effect/Schema desktop validation', () => {
-	it('validates DockerContainerStatus with proper structure', () => {
+	it('validates PodmanContainerStatus with proper structure', () => {
 		const valid = {
 			name: 'qui',
 			state: 'running',
@@ -25,29 +25,29 @@ describe('Effect/Schema desktop validation', () => {
 			image: 'ghcr.io/autobrr/qui:latest',
 			port: 7476,
 		}
-		const decoded = Schema.decodeUnknownSync(DockerContainerStatusSchema)(valid)
+		const decoded = Schema.decodeUnknownSync(PodmanContainerStatusSchema)(valid)
 		expect(decoded.name).toBe('qui')
 		expect(decoded.port).toBe(7476)
 	})
 
-	it('rejects DockerContainerStatus when required fields are missing or wrong type', () => {
+	it('rejects PodmanContainerStatus when required fields are missing or wrong type', () => {
 		const invalid = {
 			name: 'qui',
 			port: 'not-a-number',
 		}
 		expect(() =>
-			Schema.decodeUnknownSync(DockerContainerStatusSchema)(invalid),
+			Schema.decodeUnknownSync(PodmanContainerStatusSchema)(invalid),
 		).toThrow()
 	})
 
-	it('validates DockerUpdateInfo schema correctly', () => {
+	it('validates PodmanUpdateInfo schema correctly', () => {
 		const valid = {
 			hasUpdate: true,
 			image: 'ghcr.io/autobrr/qui:latest',
 			localDigest: 'sha256:1111',
 			remoteDigest: 'sha256:2222',
 		}
-		const decoded = Schema.decodeUnknownSync(DockerUpdateInfoSchema)(valid)
+		const decoded = Schema.decodeUnknownSync(PodmanUpdateInfoSchema)(valid)
 		expect(decoded.hasUpdate).toBe(true)
 	})
 

@@ -120,7 +120,7 @@ describe('Application Menu Bar (BR-desktop-23)', () => {
 			onOpenQuiConfigFolder: vi.fn(),
 			onOpenQbitConfigFolder: vi.fn(),
 			onCheckAppUpdates: vi.fn(),
-			onCheckDockerUpdates: vi.fn(),
+			onCheckPodmanUpdates: vi.fn(),
 			onNavigateSettings: vi.fn(),
 			onNavigateTorrents: vi.fn(),
 			onReloadQui: vi.fn(),

@@ -5,7 +5,7 @@
 
 import { Schema } from 'effect'
 
-export const DockerContainerStatusSchema = Schema.Struct({
+export const PodmanContainerStatusSchema = Schema.Struct({
 	name: Schema.String,
 	state: Schema.String,
 	status: Schema.String,
@@ -13,20 +13,16 @@ export const DockerContainerStatusSchema = Schema.Struct({
 	port: Schema.Number,
 })
 
-export type DockerContainerStatus = typeof DockerContainerStatusSchema.Type
-export const PodmanContainerStatusSchema = DockerContainerStatusSchema
-export type PodmanContainerStatus = DockerContainerStatus
+export type PodmanContainerStatus = typeof PodmanContainerStatusSchema.Type
 
-export const DockerUpdateInfoSchema = Schema.Struct({
+export const PodmanUpdateInfoSchema = Schema.Struct({
 	hasUpdate: Schema.Boolean,
 	image: Schema.String,
 	localDigest: Schema.String,
 	remoteDigest: Schema.String,
 })
 
-export type DockerUpdateInfo = typeof DockerUpdateInfoSchema.Type
-export const PodmanUpdateInfoSchema = DockerUpdateInfoSchema
-export type PodmanUpdateInfo = DockerUpdateInfo
+export type PodmanUpdateInfo = typeof PodmanUpdateInfoSchema.Type
 
 export const TorrentTransferStatsSchema = Schema.Struct({
 	dlSpeed: Schema.Number,

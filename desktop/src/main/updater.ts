@@ -177,7 +177,7 @@ export class AppReleaseUpdater {
 	 */
 	async applyUpdate(
 		_window: BrowserWindow | null,
-		dockerManager: {
+		podmanManager: {
 			updateAndRestartContainer: (
 				name: string,
 				image: string,
@@ -210,7 +210,7 @@ export class AppReleaseUpdater {
 				}
 			}
 
-			await dockerManager.updateAndRestartContainer(
+			await podmanManager.updateAndRestartContainer(
 				QUI_CONTAINER_NAME,
 				targetImage,
 			)

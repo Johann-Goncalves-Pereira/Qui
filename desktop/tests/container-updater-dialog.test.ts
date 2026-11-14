@@ -9,7 +9,7 @@ import {
 	identifyUpdateComponentType,
 } from '../src/main/container-updater-dialog.js'
 import { QBIT_IMAGE, QUI_IMAGE } from '../src/shared/constants.js'
-import type { DockerUpdateInfo } from '../src/shared/types.js'
+import type { PodmanUpdateInfo } from '../src/shared/types.js'
 
 describe('formatContainerUpdatePrompt (BR-desktop-30)', () => {
 	it('identifies update component types correctly', () => {
@@ -29,7 +29,7 @@ describe('formatContainerUpdatePrompt (BR-desktop-30)', () => {
 	})
 
 	it('formats dialog details for qui container update with web reload requirements', () => {
-		const updates: DockerUpdateInfo[] = [
+		const updates: PodmanUpdateInfo[] = [
 			{
 				hasUpdate: true,
 				image: QUI_IMAGE,
@@ -50,7 +50,7 @@ describe('formatContainerUpdatePrompt (BR-desktop-30)', () => {
 	})
 
 	it('formats dialog details for qbittorrent container update with connection reload requirement', () => {
-		const updates: DockerUpdateInfo[] = [
+		const updates: PodmanUpdateInfo[] = [
 			{
 				hasUpdate: true,
 				image: QBIT_IMAGE,
@@ -71,7 +71,7 @@ describe('formatContainerUpdatePrompt (BR-desktop-30)', () => {
 	})
 
 	it('formats multi-component updates declaring reload requirements for each component', () => {
-		const updates: DockerUpdateInfo[] = [
+		const updates: PodmanUpdateInfo[] = [
 			{
 				hasUpdate: true,
 				image: QUI_IMAGE,

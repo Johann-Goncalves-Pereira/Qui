@@ -47,8 +47,8 @@ VERSION="${DESKTOP_PKG_VER:-$(git describe --tags --always --dirty 2>/dev/null |
 GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-echo "==> docker build -t qui-desktop:local"
-docker build \
+echo "==> podman build -t qui-desktop:local"
+podman build \
 	-t qui-desktop:local \
 	-f distrib/docker/Dockerfile \
 	--build-arg "VERSION=${VERSION}" \
@@ -57,21 +57,25 @@ docker build \
 	.
 
 echo "==> recreate qui container"
-if docker ps -a --format '{{.Names}}' | grep -qx qui; then
-	docker stop qui >/dev/null || true
-	docker rm qui >/dev/null || true
+if podman ps -a --format '{{.Names}}' | grep -qx qui; then
+	podman stop qui >/dev/null || true
+	podman rm qui >/dev/null || true
 fi
 
 QUI_DATA="${HOME}/Library/Application Support/Qui"
-mkdir -p "${QUI_DATA}/docker/qui" "${QUI_DATA}/docker/downloads"
+# One-time rename of the pre-Podman-naming host data root (BR-desktop-55).
+if [[ ! -e "${QUI_DATA}/podman" && -e "${QUI_DATA}/docker" ]]; then
+	mv "${QUI_DATA}/docker" "${QUI_DATA}/podman"
+fi
+mkdir -p "${QUI_DATA}/podman/qui" "${QUI_DATA}/podman/downloads"
 
 # Match desktop bind mounts; the Electron app will realign on next launch.
-docker run -d \
+podman run -d \
 	--name qui \
 	--restart unless-stopped \
 	-p 7476:7476 \
-	-v "${QUI_DATA}/docker/qui:/config" \
-	-v "${QUI_DATA}/docker/downloads:/downloads" \
+	-v "${QUI_DATA}/podman/qui:/config" \
+	-v "${QUI_DATA}/podman/downloads:/downloads" \
 	--add-host=host.docker.internal:host-gateway \
 	qui-desktop:local \
 	>/dev/null

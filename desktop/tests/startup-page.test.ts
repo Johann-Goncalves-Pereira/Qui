@@ -14,7 +14,7 @@ describe('Startup page (BR-desktop-09, BR-desktop-28)', () => {
 	it('paints an opaque Minimal background, the Qui animated logo, and a process code block', () => {
 		const html = startupPageDocument(
 			'Starting Qui…',
-			'Ensuring Docker containers (qui, qbit) are running…',
+			'Ensuring Podman containers (qui, qbit) are running…',
 			true,
 		)
 
@@ -24,7 +24,7 @@ describe('Startup page (BR-desktop-09, BR-desktop-28)', () => {
 		expect(html).toContain('logo-bounce')
 		expect(html).toContain('var(--primary)')
 		expect(html).toContain(
-			'<pre class="process-code"><code>Ensuring Docker containers (qui, qbit) are running…</code></pre>',
+			'<pre class="process-code"><code>Ensuring Podman containers (qui, qbit) are running…</code></pre>',
 		)
 		expect(ANIMATED_LOGO_SVG).toBe(LOADING_SPINNER_SVG)
 	})
@@ -35,14 +35,14 @@ describe('Startup page (BR-desktop-09, BR-desktop-28)', () => {
 		expect(html).not.toContain('background:#252525')
 	})
 
-	it('escapes the process log so a docker error cannot break the page', () => {
+	it('escapes the process log so a podman error cannot break the page', () => {
 		const html = startupPageDocument(
 			'Failed to start Qui',
-			'docker binary not found <script>',
+			'podman binary not found <script>',
 			true,
 		)
 		expect(html).toContain(
-			'<pre class="process-code"><code>docker binary not found &lt;script&gt;</code></pre>',
+			'<pre class="process-code"><code>podman binary not found &lt;script&gt;</code></pre>',
 		)
 		expect(html).not.toContain('<script>')
 	})
