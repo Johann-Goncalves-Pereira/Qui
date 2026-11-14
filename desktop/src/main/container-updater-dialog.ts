@@ -30,7 +30,7 @@ export interface ContainerUpdatePromptDetails {
 }
 
 /**
- * Identifies the high-level desktop component type for a given Docker image.
+ * Identifies the high-level desktop component type for a given Podman image.
  */
 export function identifyUpdateComponentType(
 	image: string,

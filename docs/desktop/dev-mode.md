@@ -3,14 +3,14 @@
 **Status:** shipped
 
 Run the Electron shell against the Vite web app so UI changes hot-reload
-without rebuilding the Docker image. Main/preload TypeScript changes relaunch
+without rebuilding the Podman image. Main/preload TypeScript changes relaunch
 Electron via `electronmon`.
 
 ## Prerequisites
 
 - Repo checkout with `pnpm` available
 - Two terminals (or equivalent)
-- Docker is **not** required for the Qui UI path in this mode (API comes from
+- Podman is **not** required for the Qui UI path in this mode (API comes from
   `air` / `make dev`). Companion containers are skipped so they do not bind
   `:7476`.
 
@@ -24,7 +24,7 @@ Run the unified hot-reload runner from the repository root:
 ```
 
 This single command automatically:
-1. Verifies/starts the backend API on `:7476` (Docker container or local Go server).
+1. Verifies/starts the backend API on `:7476` (Podman container or local Go server).
 2. Launches the Vite development server on `:5173` with React Fast Refresh / HMR.
 3. Compiles and launches Electron in dev mode with `tsc -w` and `electronmon` watching main/preload scripts.
 4. Cleanly terminates all child processes when you press `Ctrl+C`.
@@ -77,7 +77,7 @@ Mitigations shipped for this runner:
 
 | Variable | Effect |
 | --- | --- |
-| `QUI_DESKTOP_DEV=1` | Load Vite (`http://localhost:5173`) instead of Docker Qui; skip Qui Docker bootstrap |
+| `QUI_DESKTOP_DEV=1` | Load Vite (`http://localhost:5173`) instead of Podman Qui; skip Qui Podman bootstrap |
 | `QUI_WEB_ORIGIN=http://localhost:5173` | Same origin override (wins over `QUI_DESKTOP_DEV`) |
 | `QUI_DESKTOP_IMAGE=…` | Unused for Qui bootstrap while `QUI_DESKTOP_DEV=1` (containers are skipped) |
 
@@ -113,9 +113,9 @@ In production builds (`QUI_DESKTOP_DEV` unset or `0`), the **Developer** menu an
 
 - If the window says nothing is serving `:5173`, start Terminal 1 (`make dev`) first.
 - Port `7476` already in use by an old `qui` container: stop it
-  (`docker stop qui`) or use only `make dev` in this mode.
+  (`podman stop qui`) or use only `make dev` in this mode.
 - Tray → **Reload Qui web app** forces a full navigation to the Vite URL.
-- To go back to the packaged/local Docker path, quit Electron and open
+- To go back to the packaged/local Podman path, quit Electron and open
   `/Applications/Qui.app` (or `pnpm --dir desktop start` without
   `QUI_DESKTOP_DEV`).
 

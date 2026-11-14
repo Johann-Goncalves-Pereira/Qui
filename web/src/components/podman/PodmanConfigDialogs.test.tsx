@@ -6,8 +6,8 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { changeLanguage, initI18n } from "@/i18n"
-import { QBitDockerConfigDialog } from "./QBitDockerConfigDialog"
-import { QuiDockerConfigDialog } from "./QuiDockerConfigDialog"
+import { QBitPodmanConfigDialog } from "./QBitPodmanConfigDialog"
+import { QuiPodmanConfigDialog } from "./QuiPodmanConfigDialog"
 
 const mockSaveQui = vi.fn().mockResolvedValue({ success: true })
 const mockSaveQBit = vi.fn().mockResolvedValue({ success: true })
@@ -43,8 +43,8 @@ const mockGetQBitConfig = vi.fn().mockResolvedValue({
   isTemporaryPassword: true,
 })
 
-vi.mock("@/hooks/useDockerServices", () => ({
-  useDockerServices: () => ({
+vi.mock("@/hooks/usePodmanServices", () => ({
+  usePodmanServices: () => ({
     statuses: {
       qui: {
         name: "qui",
@@ -76,7 +76,7 @@ vi.mock("sonner", () => ({
   },
 }))
 
-describe("Docker configuration dialogs (BR-web-04)", () => {
+describe("Podman configuration dialogs (BR-web-04)", () => {
   beforeEach(async () => {
     await initI18n()
     await changeLanguage("en")
@@ -87,8 +87,8 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     vi.clearAllMocks()
   })
 
-  it("renders QuiDockerConfigDialog with official config parameters and submits updates", async () => {
-    render(<QuiDockerConfigDialog open={true} onOpenChange={() => {}} />)
+  it("renders QuiPodmanConfigDialog with official config parameters and submits updates", async () => {
+    render(<QuiPodmanConfigDialog open={true} onOpenChange={() => {}} />)
 
     expect(screen.getByText("Qui Container Configuration")).toBeDefined()
     expect(screen.getByLabelText("Host Web UI Port")).toBeDefined()
@@ -107,8 +107,8 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     expect(mockSaveQui).toHaveBeenCalled()
   })
 
-  it("renders QBitDockerConfigDialog with official config parameters and submits updates", async () => {
-    render(<QBitDockerConfigDialog open={true} onOpenChange={() => {}} />)
+  it("renders QBitPodmanConfigDialog with official config parameters and submits updates", async () => {
+    render(<QBitPodmanConfigDialog open={true} onOpenChange={() => {}} />)
 
     expect(screen.getByText("qBittorrent-nox Container Configuration")).toBeDefined()
     expect(screen.getByLabelText("Host Web UI Port")).toBeDefined()
@@ -124,7 +124,7 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     expect(mockSaveQBit).toHaveBeenCalled()
   })
 
-  it("renders QBitDockerConfigDialog with blurred password, reveal toggle, and copy buttons (BR-desktop-43)", async () => {
+  it("renders QBitPodmanConfigDialog with blurred password, reveal toggle, and copy buttons (BR-desktop-43)", async () => {
     const clipboardWriteMock = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, {
       clipboard: {
@@ -132,7 +132,7 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
       },
     })
 
-    render(<QBitDockerConfigDialog open={true} onOpenChange={() => {}} />)
+    render(<QBitPodmanConfigDialog open={true} onOpenChange={() => {}} />)
 
     // Wait for loaded config
     expect(await screen.findByText("WebUI Administrator Credentials")).toBeDefined()
@@ -172,7 +172,7 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
     expect(clipboardWriteMock).toHaveBeenCalledWith("temporaryPassword123")
   })
 
-  it("renders QBitDockerConfigDialog without password masking when no password is detected in logs", async () => {
+  it("renders QBitPodmanConfigDialog without password masking when no password is detected in logs", async () => {
     mockGetQBitConfig.mockResolvedValueOnce({
       port: 8080,
       peerPort: 6881,
@@ -189,7 +189,7 @@ describe("Docker configuration dialogs (BR-web-04)", () => {
       isTemporaryPassword: false,
     })
 
-    render(<QBitDockerConfigDialog open={true} onOpenChange={() => {}} />)
+    render(<QBitPodmanConfigDialog open={true} onOpenChange={() => {}} />)
 
     expect(await screen.findByText("WebUI Administrator Credentials")).toBeDefined()
 

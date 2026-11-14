@@ -8,16 +8,18 @@ import { describe, expect, it } from 'vitest'
 import {
 	defaultQBitConfig,
 	defaultQuiConfig,
-	dockerDataDirs,
-	ensureDockerDataPermissions,
+	ensurePodmanDataPermissions,
 	ensureQbitPreseedConfig,
 	gazelleContainerRunArgs,
 	imageDigestHasUpdate,
+	legacyContainerDataRoot,
+	migrateLegacyContainerDataRoot,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
 	parseQBitCredentialsFromLogs,
 	parseWireGuardConf,
 	patchQBitConfigAuthBypass,
+	podmanDataDirs,
 	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
 	quiConfigToRunArgs,
@@ -26,12 +28,12 @@ import {
 	vpnContainerRunArgs,
 } from '../src/main/container-layout.js'
 
-describe('Docker data survives container replacement (BR-desktop-11)', () => {
+describe('Podman data survives container replacement (BR-desktop-11)', () => {
 	it('keeps Qui config and downloads under the desktop data directory', () => {
 		const home = path.join('Users', 'ada')
-		const dirs = dockerDataDirs(home, 'darwin')
+		const dirs = podmanDataDirs(home, 'darwin')
 		expect(dirs.quiConfig).toBe(
-			path.join(home, 'Library', 'Application Support', 'Qui', 'docker', 'qui'),
+			path.join(home, 'Library', 'Application Support', 'Qui', 'podman', 'qui'),
 		)
 		expect(dirs.downloads).toBe(
 			path.join(
@@ -39,7 +41,7 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 				'Library',
 				'Application Support',
 				'Qui',
-				'docker',
+				'podman',
 				'downloads',
 			),
 		)
@@ -49,7 +51,7 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 				'Library',
 				'Application Support',
 				'Qui',
-				'docker',
+				'podman',
 				'gazelle',
 				'config',
 			),
@@ -60,7 +62,7 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 				'Library',
 				'Application Support',
 				'Qui',
-				'docker',
+				'podman',
 				'gazelle',
 				'data',
 			),
@@ -71,7 +73,7 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 				'Library',
 				'Application Support',
 				'Qui',
-				'docker',
+				'podman',
 				'gazelle',
 				'repo',
 			),
@@ -116,11 +118,67 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 		expect(args).toContain('UMASK=022')
 	})
 
-	it('ensures docker data directories have 0755 traversal permissions (BR-desktop-29)', () => {
+	it('names the host data root podman on every platform (BR-desktop-55)', () => {
+		for (const platform of ['darwin', 'win32', 'linux']) {
+			const dirs = podmanDataDirs(path.join('home', 'ada'), platform)
+			expect(path.basename(path.dirname(dirs.quiConfig))).toBe('podman')
+			expect(path.basename(path.dirname(dirs.downloads))).toBe('podman')
+			expect(
+				path.basename(
+					legacyContainerDataRoot(path.join('home', 'ada'), platform),
+				),
+			).toBe('docker')
+		}
+	})
+
+	it('renames the legacy docker data root to podman once (BR-desktop-55)', () => {
 		const home = path.join('Users', 'ada')
-		const dirs = dockerDataDirs(home, 'darwin')
+		const legacy = legacyContainerDataRoot(home, 'darwin')
+		const next = path.dirname(podmanDataDirs(home, 'darwin').quiConfig)
+		const present = new Set([legacy])
+		const renames: Array<[string, string]> = []
+		const fs = {
+			exists: (filePath: string) => present.has(filePath),
+			rename: (from: string, to: string) => {
+				renames.push([from, to])
+				present.delete(from)
+				present.add(to)
+			},
+		}
+		expect(migrateLegacyContainerDataRoot(home, 'darwin', fs)).toBe(true)
+		expect(renames).toEqual([[legacy, next]])
+		expect(migrateLegacyContainerDataRoot(home, 'darwin', fs)).toBe(false)
+		expect(renames).toHaveLength(1)
+	})
+
+	it('prefers an existing podman data root over the legacy docker root (BR-desktop-55)', () => {
+		const home = path.join('Users', 'ada')
+		const legacy = legacyContainerDataRoot(home, 'darwin')
+		const next = path.dirname(podmanDataDirs(home, 'darwin').quiConfig)
+		const renames: Array<[string, string]> = []
+		const migrated = migrateLegacyContainerDataRoot(home, 'darwin', {
+			exists: filePath => filePath === legacy || filePath === next,
+			rename: (from, to) => renames.push([from, to]),
+		})
+		expect(migrated).toBe(false)
+		expect(renames).toEqual([])
+	})
+
+	it('does nothing when no legacy docker data root exists (BR-desktop-55)', () => {
+		const migrated = migrateLegacyContainerDataRoot('/home/ada', 'linux', {
+			exists: () => false,
+			rename: () => {
+				throw new Error('must not rename')
+			},
+		})
+		expect(migrated).toBe(false)
+	})
+
+	it('ensures podman data directories have 0755 traversal permissions (BR-desktop-29)', () => {
+		const home = path.join('Users', 'ada')
+		const dirs = podmanDataDirs(home, 'darwin')
 		const chmodCalls: Array<{ path: string; mode: number }> = []
-		ensureDockerDataPermissions(dirs, (p, mode) => {
+		ensurePodmanDataPermissions(dirs, (p, mode) => {
 			chmodCalls.push({ path: p, mode })
 		})
 
@@ -148,7 +206,7 @@ describe('Docker data survives container replacement (BR-desktop-11)', () => {
 	})
 })
 
-describe('Docker image prompt (BR-desktop-13)', () => {
+describe('Podman image prompt (BR-desktop-13)', () => {
 	const local =
 		'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 	const other =
@@ -182,8 +240,8 @@ describe('Docker image prompt (BR-desktop-13)', () => {
 	})
 })
 
-describe('Docker container config arguments & inspect parsing', () => {
-	it('builds Qui docker run args matching user configuration', () => {
+describe('Podman container config arguments & inspect parsing', () => {
+	it('builds Qui podman run args matching user configuration', () => {
 		const args = quiConfigToRunArgs({
 			port: 7480,
 			configPath: '/custom/qui/config',
@@ -212,7 +270,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 		expect(args.at(-1)).toBe('ghcr.io/autobrr/qui:latest')
 	})
 
-	it('builds qBittorrent docker run args matching user configuration', () => {
+	it('builds qBittorrent podman run args matching user configuration', () => {
 		const args = qbitConfigToRunArgs({
 			port: 8090,
 			peerPort: 6890,
@@ -236,7 +294,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 		expect(args.at(-1)).toBe('lscr.io/linuxserver/qbittorrent:latest')
 	})
 
-	it('parses docker inspect json into QuiContainerConfig correctly', () => {
+	it('parses podman inspect json into QuiContainerConfig correctly', () => {
 		const inspect = JSON.stringify([
 			{
 				Config: {
@@ -253,7 +311,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 			},
 		])
 
-		const fallback = defaultQuiConfig(dockerDataDirs('/home', 'darwin'))
+		const fallback = defaultQuiConfig(podmanDataDirs('/home', 'darwin'))
 		const parsed = parseInspectToQuiConfig(inspect, fallback)
 		expect(parsed.port).toBe(7476)
 		expect(parsed.configPath).toBe('/host/qui')
@@ -261,7 +319,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 		expect(parsed.logLevel).toBe('DEBUG')
 	})
 
-	it('parses docker inspect json into QBitContainerConfig correctly', () => {
+	it('parses podman inspect json into QBitContainerConfig correctly', () => {
 		const inspect = JSON.stringify([
 			{
 				Config: {
@@ -279,7 +337,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 			},
 		])
 
-		const fallback = defaultQBitConfig(dockerDataDirs('/home', 'darwin'))
+		const fallback = defaultQBitConfig(podmanDataDirs('/home', 'darwin'))
 		const parsed = parseInspectToQBitConfig(inspect, fallback)
 		expect(parsed.port).toBe(8080)
 		expect(parsed.peerPort).toBe(6881)
@@ -303,7 +361,7 @@ describe('Docker container config arguments & inspect parsing', () => {
 			},
 		}
 
-		const qbitConfigDir = '/mock/appdata/docker/qbittorrent'
+		const qbitConfigDir = '/mock/appdata/podman/qbittorrent'
 		const confPath = path.join(qbitConfigDir, 'qBittorrent', 'qBittorrent.conf')
 
 		// First run: conf doesn't exist, should create dir and write pre-seeded config
@@ -380,6 +438,15 @@ DNS = 10.2.0.1
 		expect(res.address).toBe('10.2.0.2/32')
 	})
 
+	it('prefers the first IPv4 CIDR when Address is dual-stack (BR-desktop-50)', () => {
+		const sampleConf = `[Interface]
+PrivateKey = aaaaaa111111=
+Address = 10.2.0.2/32, 2a07:b944::2:2/128
+`
+		const res = parseWireGuardConf(sampleConf)
+		expect(res.address).toBe('10.2.0.2/32')
+	})
+
 	it('generates Gluetun VPN container run arguments and attaches qBittorrent (BR-desktop-51)', () => {
 		const vpnArgs = vpnContainerRunArgs({
 			provider: 'protonvpn',
@@ -403,5 +470,21 @@ DNS = 10.2.0.1
 		)
 		expect(qbitAttachedArgs).toContain('--network=container:qui-vpn')
 		expect(qbitAttachedArgs).not.toContain('-p')
+	})
+
+	it('places SERVER_COUNTRIES before the Gluetun image so it is not a container command (BR-desktop-54)', () => {
+		const vpnArgs = vpnContainerRunArgs({
+			provider: 'protonvpn',
+			wireguardPrivateKey: 'my-key=',
+			wireguardAddress: '10.2.0.2/32',
+			serverCountry: 'United States',
+		})
+		const imageIndex = vpnArgs.lastIndexOf('qmcgaw/gluetun:latest')
+		expect(imageIndex).toBeGreaterThan(-1)
+		expect(vpnArgs.slice(imageIndex + 1)).toEqual([])
+		const countryIndex = vpnArgs.indexOf('SERVER_COUNTRIES=United States')
+		expect(countryIndex).toBeGreaterThan(-1)
+		expect(countryIndex).toBeLessThan(imageIndex)
+		expect(vpnArgs[countryIndex - 1]).toBe('-e')
 	})
 })

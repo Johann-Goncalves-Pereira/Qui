@@ -8,6 +8,7 @@ import {
 	existsSync,
 	mkdirSync,
 	readFileSync,
+	renameSync,
 	writeFileSync,
 } from 'node:fs'
 import path from 'node:path'
@@ -37,20 +38,57 @@ export interface ContainerDataDirs {
 	gazelleRepo: string
 }
 
-export type DockerDataDirs = ContainerDataDirs
 export type PodmanDataDirs = ContainerDataDirs
+
+/** Host root for Podman companion data, with `segment` as the last path part. */
+function containerDataRoot(
+	home: string,
+	platform: string,
+	segment: string,
+): string {
+	return platform === 'darwin'
+		? path.join(home, 'Library', 'Application Support', 'Qui', segment)
+		: platform === 'win32'
+			? path.join(home, 'AppData', 'Roaming', 'Qui', segment)
+			: path.join(home, '.local', 'share', 'qui-desktop', segment)
+}
+
+/** Pre-Podman-naming host root (`…/Qui/docker`); only used for one-time migration. */
+export function legacyContainerDataRoot(
+	home: string,
+	platform: string,
+): string {
+	return containerDataRoot(home, platform, 'docker')
+}
+
+/**
+ * One-time rename of the legacy host data root to the Podman-named root.
+ * Skipped when the Podman root already exists, so a new tree is never clobbered.
+ * Returns true only when the rename happened.
+ */
+export function migrateLegacyContainerDataRoot(
+	home: string,
+	platform: string,
+	fs: {
+		exists: (filePath: string) => boolean
+		rename: (from: string, to: string) => void
+	} = { exists: existsSync, rename: renameSync },
+): boolean {
+	const next = containerDataRoot(home, platform, 'podman')
+	const legacy = legacyContainerDataRoot(home, platform)
+	if (fs.exists(next) || !fs.exists(legacy)) {
+		return false
+	}
+	fs.rename(legacy, next)
+	return true
+}
 
 /** Host directories that survive container removal. Qui keeps its account database here. */
 export function containerDataDirs(
 	home: string,
 	platform: string,
 ): ContainerDataDirs {
-	const root =
-		platform === 'darwin'
-			? path.join(home, 'Library', 'Application Support', 'Qui', 'docker')
-			: platform === 'win32'
-				? path.join(home, 'AppData', 'Roaming', 'Qui', 'docker')
-				: path.join(home, '.local', 'share', 'qui-desktop', 'docker')
+	const root = containerDataRoot(home, platform, 'podman')
 	return {
 		quiConfig: path.join(root, 'qui'),
 		qbitConfig: path.join(root, 'qbittorrent'),
@@ -61,17 +99,16 @@ export function containerDataDirs(
 	}
 }
 
-export const dockerDataDirs = containerDataDirs
 export const podmanDataDirs = containerDataDirs
 
 /**
- * Ensures that the Docker data directories and their host parent directories
+ * Ensures that the Podman data directories and their host parent directories
  * have traversal permissions (0755) so that container runtimes running unprivileged
  * UIDs (e.g. linuxserver/qbittorrent UID 1000/911) can traverse virtiofs/bind mounts
  * without encountering EPERM (Operation not permitted).
  */
-export function ensureDockerDataPermissions(
-	dirs: DockerDataDirs,
+export function ensurePodmanDataPermissions(
+	dirs: PodmanDataDirs,
 	chmod: (filePath: string, mode: number) => void = chmodSync,
 ): void {
 	const paths = [
@@ -125,9 +162,16 @@ export function parseWireGuardConf(content: string): {
 } {
 	const privateKeyMatch = content.match(/PrivateKey\s*=\s*([^\r\n]+)/i)
 	const addressMatch = content.match(/Address\s*=\s*([^\r\n]+)/i)
+	const rawAddress = addressMatch ? addressMatch[1].trim() : '10.2.0.2/32'
+	// Gluetun WireGuard addresses: prefer the first IPv4 CIDR when Proton
+	// ships dual-stack (e.g. "10.2.0.2/32, 2a07:…/128").
+	const ipv4 = rawAddress
+		.split(',')
+		.map(part => part.trim())
+		.find(part => /^\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2}$/.test(part))
 	return {
 		privateKey: privateKeyMatch ? privateKeyMatch[1].trim() : '',
-		address: addressMatch ? addressMatch[1].trim() : '10.2.0.2/32',
+		address: ipv4 ?? rawAddress,
 	}
 }
 
@@ -140,6 +184,10 @@ export function vpnContainerRunArgs(
 	},
 	vpnImage = VPN_IMAGE,
 ): string[] {
+	// All flags and -e pairs must come before the image. Anything after the
+	// image is the container command; Gluetun then exits with
+	// "command is unknown: -e" and qBittorrent cannot attach
+	// (--network=container:qui-vpn → container is stopped).
 	const args = [
 		'run',
 		'-d',
@@ -161,13 +209,11 @@ export function vpnContainerRunArgs(
 		`WIREGUARD_PRIVATE_KEY=${vpnConfig.wireguardPrivateKey ?? ''}`,
 		'-e',
 		`WIREGUARD_ADDRESSES=${vpnConfig.wireguardAddress ?? '10.2.0.2/32'}`,
-		'--restart',
-		'unless-stopped',
-		vpnImage,
 	]
 	if (vpnConfig.serverCountry) {
 		args.push('-e', `SERVER_COUNTRIES=${vpnConfig.serverCountry}`)
 	}
+	args.push('--restart', 'unless-stopped', vpnImage)
 	return args
 }
 
@@ -313,7 +359,7 @@ export function patchQBitConfigAuthBypass(confContent: string): string {
 /**
  * Ensures that qBittorrent has an initial configuration file on clean install.
  * By pre-seeding AuthSubnetWhitelist and LocalHostAuth=false, Qui communicating
- * via the Docker network / loopback does not get locked out by random password
+ * via the Podman network / loopback does not get locked out by random password
  * generation or brute-force IP bans. Existing configs missing the bypass are
  * patched before the companion container starts.
  */
@@ -494,7 +540,7 @@ export function qbitConfigToRunArgs(config: QBitContainerConfig): string[] {
 }
 
 export function defaultQuiConfig(
-	dirs: DockerDataDirs,
+	dirs: PodmanDataDirs,
 	image: string = QUI_IMAGE,
 ): QuiContainerConfig {
 	return {
@@ -513,7 +559,7 @@ export function defaultQuiConfig(
 }
 
 export function defaultQBitConfig(
-	dirs: DockerDataDirs,
+	dirs: PodmanDataDirs,
 	image: string = QBIT_IMAGE,
 ): QBitContainerConfig {
 	return {

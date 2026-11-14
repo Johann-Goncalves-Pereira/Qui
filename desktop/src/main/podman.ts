@@ -38,10 +38,10 @@ import {
 	quiEmbeddedImageArchiveRelativePath,
 } from '../shared/qui-image.js'
 import {
-	type DockerContainerStatus,
-	DockerContainerStatusSchema,
-	type DockerUpdateInfo,
-	DockerUpdateInfoSchema,
+	type PodmanContainerStatus,
+	PodmanContainerStatusSchema,
+	type PodmanUpdateInfo,
+	PodmanUpdateInfoSchema,
 	type QBitContainerConfig,
 	QBitContainerConfigSchema,
 	type QuiContainerConfig,
@@ -51,12 +51,13 @@ import {
 import {
 	defaultQBitConfig,
 	defaultQuiConfig,
-	dockerDataDirs,
-	ensureDockerDataPermissions,
+	ensurePodmanDataPermissions,
 	imageDigestHasUpdate,
+	legacyContainerDataRoot,
 	parseInspectToQBitConfig,
 	parseInspectToQuiConfig,
 	parseQBitCredentialsFromLogs,
+	podmanDataDirs,
 	qbitConfigToRunArgs,
 	qbitContainerRunArgs,
 	quiConfigToRunArgs,
@@ -66,16 +67,16 @@ import {
 
 const execFileAsync = promisify(execFile)
 
-export interface DockerExecOptions {
+export interface PodmanExecOptions {
 	cwd?: string
 	timeout?: number
 }
 
-export interface DockerExecutor {
+export interface PodmanExecutor {
 	exec(
 		command: string,
 		args: string[],
-		options?: DockerExecOptions,
+		options?: PodmanExecOptions,
 	): Promise<{ stdout: string; stderr: string }>
 }
 
@@ -93,7 +94,6 @@ const DEFAULT_EXEC_PATH = [
 	.join(':')
 
 export const PODMAN_BINARY_NOT_FOUND = 'podman binary not found'
-export const DOCKER_BINARY_NOT_FOUND = PODMAN_BINARY_NOT_FOUND
 /** Surfaced on the Failed to start Qui splash when the engine stays unreachable. */
 export const PODMAN_ENGINE_NOT_READY =
 	'Podman is not reachable. Start the machine with `podman machine start` (or `podman machine init` then start), then use Tray → Reload Qui web app.'
@@ -109,9 +109,6 @@ export function podmanBinaryCandidates(homeDir: string): readonly string[] {
 	]
 }
 
-/** Legacy alias for backwards compatibility with tests and callers. */
-export const dockerBinaryCandidates = podmanBinaryCandidates
-
 export function resolvePodmanBinary(
 	exists: (candidate: string) => boolean,
 	homeDir: string,
@@ -124,24 +121,18 @@ export function resolvePodmanBinary(
 	throw new Error(PODMAN_BINARY_NOT_FOUND)
 }
 
-/** Legacy alias for backwards compatibility. */
-export const resolveDockerBinary = resolvePodmanBinary
-
-export class CliDockerExecutor implements DockerExecutor {
+export class CliPodmanExecutor implements PodmanExecutor {
 	constructor(
 		private readonly locateBinary: () => string = () =>
-			resolveDockerBinary(existsSync, homedir()),
+			resolvePodmanBinary(existsSync, homedir()),
 	) {}
 
 	async exec(
 		command: string,
 		args: string[],
-		options?: DockerExecOptions,
+		options?: PodmanExecOptions,
 	): Promise<{ stdout: string; stderr: string }> {
-		const executable =
-			command === 'docker' || command === 'podman'
-				? this.locateBinary()
-				: command
+		const executable = command === 'podman' ? this.locateBinary() : command
 		const pathValue = [path.dirname(executable), DEFAULT_EXEC_PATH].join(
 			path.delimiter,
 		)
@@ -169,9 +160,9 @@ async function defaultBinaryFetch(url: string): Promise<Uint8Array> {
 	return new Uint8Array(await response.arrayBuffer())
 }
 
-export class DockerManager {
+export class PodmanManager {
 	constructor(
-		private readonly executor: DockerExecutor = new CliDockerExecutor(),
+		private readonly executor: PodmanExecutor = new CliPodmanExecutor(),
 		private readonly mkdir: (dir: string) => void = dir => {
 			mkdirSync(dir, { recursive: true })
 		},
@@ -204,7 +195,7 @@ export class DockerManager {
 	): Promise<void> {
 		let raw: string
 		try {
-			const { stdout } = await this.executor.exec('docker', [
+			const { stdout } = await this.executor.exec('podman', [
 				'inspect',
 				'--format',
 				INSPECT_ALIGN_FORMAT,
@@ -229,31 +220,37 @@ export class DockerManager {
 		if (mounted && extraMounted && image === desiredImage) {
 			return
 		}
-		await this.executor.exec('docker', ['stop', name])
+		await this.executor.exec('podman', ['stop', name])
 		if (!mounted) {
 			this.mkdir(hostDir)
-			await this.executor.exec('docker', [
-				'cp',
-				`${name}:${containerDir}/.`,
-				hostDir,
-			])
+			// The host data root was renamed docker → podman (BR-desktop-55), so a
+			// container created before that still points at the vanished legacy path.
+			// Its data already moved with the rename; copying from it would fail.
+			const mountSource = mountEntries
+				.find(entry => entry.startsWith(`${containerDir}=`))
+				?.slice(containerDir.length + 1)
+			const legacyRoot = legacyContainerDataRoot(homedir(), process.platform)
+			const sourceMigrated =
+				!!mountSource?.startsWith(legacyRoot) && !this.fileExists(mountSource)
+			if (!sourceMigrated) {
+				await this.executor.exec('podman', [
+					'cp',
+					`${name}:${containerDir}/.`,
+					hostDir,
+				])
+			}
 		}
-		await this.executor.exec('docker', ['rm', name])
+		await this.executor.exec('podman', ['rm', name])
 	}
 
-	async isDockerAvailable(): Promise<boolean> {
+	async isPodmanAvailable(): Promise<boolean> {
 		try {
-			// Podman has no Docker-compatible `.ServerVersion` template field; a
-			// successful `info` (exit 0) is enough to know the engine is reachable.
-			await this.executor.exec('docker', ['info'])
+			// A successful `podman info` (exit 0) is enough to know the engine is reachable.
+			await this.executor.exec('podman', ['info'])
 			return true
 		} catch {
 			return false
 		}
-	}
-
-	async isPodmanAvailable(): Promise<boolean> {
-		return this.isDockerAvailable()
 	}
 
 	/**
@@ -283,9 +280,9 @@ export class DockerManager {
 		containerName: string,
 		port: number,
 		image: string,
-	): Promise<DockerContainerStatus> {
+	): Promise<PodmanContainerStatus> {
 		try {
-			const { stdout } = await this.executor.exec('docker', [
+			const { stdout } = await this.executor.exec('podman', [
 				'inspect',
 				'--format',
 				'{{.State.Status}}|{{.State.Running}}',
@@ -294,7 +291,7 @@ export class DockerManager {
 			const [status, running] = stdout.trim().split('|')
 			const state = running === 'true' ? 'running' : 'stopped'
 
-			return Schema.decodeUnknownSync(DockerContainerStatusSchema)({
+			return Schema.decodeUnknownSync(PodmanContainerStatusSchema)({
 				name: containerName,
 				state,
 				status: status ?? 'unknown',
@@ -302,7 +299,7 @@ export class DockerManager {
 				port,
 			})
 		} catch {
-			return Schema.decodeUnknownSync(DockerContainerStatusSchema)({
+			return Schema.decodeUnknownSync(PodmanContainerStatusSchema)({
 				name: containerName,
 				state: 'not_found',
 				status: 'not_installed',
@@ -313,11 +310,11 @@ export class DockerManager {
 	}
 
 	async ensureContainersRunning(): Promise<{
-		qui: DockerContainerStatus
-		qbit: DockerContainerStatus
+		qui: PodmanContainerStatus
+		qbit: PodmanContainerStatus
 	}> {
-		const dirs = dockerDataDirs(homedir(), process.platform)
-		ensureDockerDataPermissions(dirs)
+		const dirs = podmanDataDirs(homedir(), process.platform)
+		ensurePodmanDataPermissions(dirs)
 		const quiStatus = await this.ensureContainer(
 			QUI_CONTAINER_NAME,
 			this.quiImage,
@@ -335,7 +332,7 @@ export class DockerManager {
 		return { qui: quiStatus, qbit: qbitStatus }
 	}
 
-	async getGazelleStatus(): Promise<DockerContainerStatus> {
+	async getGazelleStatus(): Promise<PodmanContainerStatus> {
 		return this.getContainerStatus(
 			GAZELLE_CONTAINER_NAME,
 			DEFAULT_GAZELLE_PORT,
@@ -394,8 +391,6 @@ export class DockerManager {
 		cwd: string,
 	): Promise<{ stdout: string; stderr: string }> {
 		const candidates: Array<{ cmd: string; args: string[] }> = [
-			{ cmd: 'docker', args: ['compose', ...composeArgs] },
-			{ cmd: 'docker-compose', args: composeArgs },
 			{ cmd: 'podman', args: ['compose', ...composeArgs] },
 			{ cmd: 'podman-compose', args: composeArgs },
 		]
@@ -423,12 +418,12 @@ export class DockerManager {
 		}
 		throw (
 			lastError ??
-			new Error('Neither podman compose nor docker compose succeeded')
+			new Error('Neither podman compose nor podman-compose succeeded')
 		)
 	}
 
-	async startGazelle(): Promise<DockerContainerStatus> {
-		const dirs = dockerDataDirs(homedir(), process.platform)
+	async startGazelle(): Promise<PodmanContainerStatus> {
+		const dirs = podmanDataDirs(homedir(), process.platform)
 		this.mkdir(dirs.gazelleConfig)
 		this.mkdir(dirs.gazelleData)
 		this.mkdir(dirs.gazelleRepo)
@@ -451,14 +446,14 @@ export class DockerManager {
 		return this.getGazelleStatus()
 	}
 
-	async stopGazelle(): Promise<DockerContainerStatus> {
-		const dirs = dockerDataDirs(homedir(), process.platform)
+	async stopGazelle(): Promise<PodmanContainerStatus> {
+		const dirs = podmanDataDirs(homedir(), process.platform)
 		try {
 			const composeFile = path.join(dirs.gazelleRepo, 'docker-compose.yml')
 			if (this.fileExists(composeFile)) {
 				await this.composeExec(['stop'], dirs.gazelleRepo)
 			} else {
-				await this.executor.exec('docker', ['stop', GAZELLE_CONTAINER_NAME])
+				await this.executor.exec('podman', ['stop', GAZELLE_CONTAINER_NAME])
 			}
 		} catch {
 			// Container/stack may already be stopped or absent
@@ -466,15 +461,15 @@ export class DockerManager {
 		return this.getGazelleStatus()
 	}
 
-	async restartGazelle(): Promise<DockerContainerStatus> {
-		const dirs = dockerDataDirs(homedir(), process.platform)
+	async restartGazelle(): Promise<PodmanContainerStatus> {
+		const dirs = podmanDataDirs(homedir(), process.platform)
 		try {
 			const composeFile = path.join(dirs.gazelleRepo, 'docker-compose.yml')
 			if (this.fileExists(composeFile)) {
 				await this.composeExec(['restart'], dirs.gazelleRepo)
 				return this.getGazelleStatus()
 			}
-			await this.executor.exec('docker', ['restart', GAZELLE_CONTAINER_NAME])
+			await this.executor.exec('podman', ['restart', GAZELLE_CONTAINER_NAME])
 			return this.getGazelleStatus()
 		} catch {
 			return this.startGazelle()
@@ -486,7 +481,7 @@ export class DockerManager {
 		image: string,
 		port: number,
 		runArgs: string[],
-	): Promise<DockerContainerStatus> {
+	): Promise<PodmanContainerStatus> {
 		const current = await this.getContainerStatus(name, port, image)
 
 		if (current.state === 'running') {
@@ -494,19 +489,19 @@ export class DockerManager {
 		}
 
 		if (current.state === 'stopped') {
-			await this.executor.exec('docker', ['start', name])
+			await this.executor.exec('podman', ['start', name])
 			return this.getContainerStatus(name, port, image)
 		}
 
 		await this.pullIfMissing(image)
-		await this.executor.exec('docker', runArgs)
+		await this.executor.exec('podman', runArgs)
 		return this.getContainerStatus(name, port, image)
 	}
 
-	async checkForImageUpdate(imageName: string): Promise<DockerUpdateInfo> {
+	async checkForImageUpdate(imageName: string): Promise<PodmanUpdateInfo> {
 		try {
 			// Get local image repo digest
-			const { stdout: localDigestOut } = await this.executor.exec('docker', [
+			const { stdout: localDigestOut } = await this.executor.exec('podman', [
 				'inspect',
 				'--format',
 				'{{range .RepoDigests}}{{.}}{{end}}',
@@ -516,37 +511,24 @@ export class DockerManager {
 
 			// The raw manifest lists every platform digest. An update exists only
 			// when none of those digests are already local.
-			let remoteText = ''
-			try {
-				const { stdout: remoteOut } = await this.executor.exec('docker', [
-					'buildx',
-					'imagetools',
-					'inspect',
-					'--raw',
-					imageName,
-				])
-				remoteText = remoteOut
-			} catch {
-				const { stdout: manifestOut } = await this.executor.exec('docker', [
-					'manifest',
-					'inspect',
-					imageName,
-				])
-				remoteText = manifestOut
-			}
+			const { stdout: remoteText } = await this.executor.exec('podman', [
+				'manifest',
+				'inspect',
+				imageName,
+			])
 
 			const hasUpdate = imageDigestHasUpdate(localDigest, remoteText)
 			const remoteDigest =
 				remoteText.match(/sha256:[a-f0-9]{64}/i)?.[0] ?? 'unknown'
 
-			return Schema.decodeUnknownSync(DockerUpdateInfoSchema)({
+			return Schema.decodeUnknownSync(PodmanUpdateInfoSchema)({
 				hasUpdate,
 				image: imageName,
 				localDigest: localDigest || 'unknown',
 				remoteDigest: remoteDigest || 'unknown',
 			})
 		} catch {
-			return Schema.decodeUnknownSync(DockerUpdateInfoSchema)({
+			return Schema.decodeUnknownSync(PodmanUpdateInfoSchema)({
 				hasUpdate: false,
 				image: imageName,
 				localDigest: 'unknown',
@@ -560,15 +542,15 @@ export class DockerManager {
 		image: string,
 	): Promise<boolean> {
 		try {
-			const dirs = dockerDataDirs(homedir(), process.platform)
-			await this.executor.exec('docker', ['pull', image])
-			await this.executor.exec('docker', ['stop', containerName])
-			await this.executor.exec('docker', ['rm', containerName])
+			const dirs = podmanDataDirs(homedir(), process.platform)
+			await this.executor.exec('podman', ['pull', image])
+			await this.executor.exec('podman', ['stop', containerName])
+			await this.executor.exec('podman', ['rm', containerName])
 			const runArgs =
 				containerName === QUI_CONTAINER_NAME
 					? quiContainerRunArgs(image, dirs.quiConfig, dirs.downloads)
 					: qbitContainerRunArgs(image, dirs.qbitConfig, dirs.downloads)
-			await this.executor.exec('docker', runArgs)
+			await this.executor.exec('podman', runArgs)
 			return true
 		} catch {
 			return false
@@ -579,14 +561,14 @@ export class DockerManager {
 	 * Ensure `image` exists locally.
 	 * 1. If inspect succeeds, image is ready.
 	 * 2. Check for embedded archive inside the application bundle (process.resourcesPath).
-	 *    If present, docker load it instantly without network dependencies.
-	 * 3. Fallback to `docker pull`.
+	 *    If present, podman load it instantly without network dependencies.
+	 * 3. Fallback to `podman pull`.
 	 * 4. Fallback to retagging `qui-desktop:local` if present.
 	 * 5. Fallback to downloading release archive from GitHub Releases.
 	 */
 	private async pullIfMissing(image: string): Promise<void> {
 		try {
-			await this.executor.exec('docker', ['image', 'inspect', image])
+			await this.executor.exec('podman', ['image', 'inspect', image])
 			return
 		} catch {
 			// missing locally
@@ -595,7 +577,7 @@ export class DockerManager {
 		// Third-party images (such as qBittorrent or Gazelle) must only be pulled from their registry,
 		// never retagged from local qui-desktop or embedded Qui release bundles.
 		if (!isQuiForkImage(image)) {
-			await this.executor.exec('docker', ['pull', image])
+			await this.executor.exec('podman', ['pull', image])
 			return
 		}
 
@@ -607,16 +589,16 @@ export class DockerManager {
 			)
 			if (this.fileExists(embeddedArchive)) {
 				try {
-					await this.executor.exec('docker', ['load', '-i', embeddedArchive], {
+					await this.executor.exec('podman', ['load', '-i', embeddedArchive], {
 						timeout: 600_000,
 					})
-					await this.executor.exec('docker', [
+					await this.executor.exec('podman', [
 						'image',
 						'inspect',
 						QUI_IMAGE_LOCAL,
 					])
 					if (image !== QUI_IMAGE_LOCAL) {
-						await this.executor.exec('docker', ['tag', QUI_IMAGE_LOCAL, image])
+						await this.executor.exec('podman', ['tag', QUI_IMAGE_LOCAL, image])
 					}
 					return
 				} catch {
@@ -626,19 +608,19 @@ export class DockerManager {
 		}
 
 		try {
-			await this.executor.exec('docker', ['pull', image])
+			await this.executor.exec('podman', ['pull', image])
 			return
 		} catch (pullError) {
 			if (image === QUI_IMAGE_LOCAL) {
 				throw pullError
 			}
 			try {
-				await this.executor.exec('docker', [
+				await this.executor.exec('podman', [
 					'image',
 					'inspect',
 					QUI_IMAGE_LOCAL,
 				])
-				await this.executor.exec('docker', ['tag', QUI_IMAGE_LOCAL, image])
+				await this.executor.exec('podman', ['tag', QUI_IMAGE_LOCAL, image])
 				return
 			} catch {
 				// fall through to Releases archive
@@ -666,12 +648,12 @@ export class DockerManager {
 		)
 		writeFileSync(archivePath, bytes)
 		try {
-			await this.executor.exec('docker', ['load', '-i', archivePath], {
+			await this.executor.exec('podman', ['load', '-i', archivePath], {
 				timeout: 600_000,
 			})
-			await this.executor.exec('docker', ['image', 'inspect', QUI_IMAGE_LOCAL])
+			await this.executor.exec('podman', ['image', 'inspect', QUI_IMAGE_LOCAL])
 			if (desiredImage !== QUI_IMAGE_LOCAL) {
-				await this.executor.exec('docker', [
+				await this.executor.exec('podman', [
 					'tag',
 					QUI_IMAGE_LOCAL,
 					desiredImage,
@@ -687,10 +669,10 @@ export class DockerManager {
 	}
 
 	async getQuiConfig(): Promise<QuiContainerConfig> {
-		const dirs = dockerDataDirs(homedir(), process.platform)
+		const dirs = podmanDataDirs(homedir(), process.platform)
 		const fallback = defaultQuiConfig(dirs)
 		try {
-			const { stdout } = await this.executor.exec('docker', [
+			const { stdout } = await this.executor.exec('podman', [
 				'inspect',
 				QUI_CONTAINER_NAME,
 			])
@@ -701,11 +683,11 @@ export class DockerManager {
 	}
 
 	async getQBitConfig(): Promise<QBitContainerConfig> {
-		const dirs = dockerDataDirs(homedir(), process.platform)
+		const dirs = podmanDataDirs(homedir(), process.platform)
 		const fallback = defaultQBitConfig(dirs)
 		let config = fallback
 		try {
-			const { stdout } = await this.executor.exec('docker', [
+			const { stdout } = await this.executor.exec('podman', [
 				'inspect',
 				QBIT_CONTAINER_NAME,
 			])
@@ -715,7 +697,7 @@ export class DockerManager {
 		}
 
 		try {
-			const { stdout: logs } = await this.executor.exec('docker', [
+			const { stdout: logs } = await this.executor.exec('podman', [
 				'logs',
 				'--tail',
 				'1000',
@@ -750,18 +732,18 @@ export class DockerManager {
 				this.mkdir(config.dataPath)
 			}
 			try {
-				await this.executor.exec('docker', ['stop', QUI_CONTAINER_NAME])
+				await this.executor.exec('podman', ['stop', QUI_CONTAINER_NAME])
 			} catch {
 				// Container might not be running
 			}
 			try {
-				await this.executor.exec('docker', ['rm', QUI_CONTAINER_NAME])
+				await this.executor.exec('podman', ['rm', QUI_CONTAINER_NAME])
 			} catch {
 				// Container might not exist
 			}
 			await this.pullIfMissing(config.image)
 			const args = quiConfigToRunArgs(config)
-			await this.executor.exec('docker', args)
+			await this.executor.exec('podman', args)
 			return { success: true }
 		} catch (err) {
 			const error = err instanceof Error ? err.message : String(err)
@@ -778,7 +760,7 @@ export class DockerManager {
 			)
 			this.mkdir(config.configPath)
 			this.mkdir(config.downloadsPath)
-			ensureDockerDataPermissions({
+			ensurePodmanDataPermissions({
 				quiConfig: path.join(path.dirname(config.configPath), 'qui'),
 				qbitConfig: config.configPath,
 				downloads: config.downloadsPath,
@@ -787,18 +769,18 @@ export class DockerManager {
 				gazelleRepo: '',
 			})
 			try {
-				await this.executor.exec('docker', ['stop', QBIT_CONTAINER_NAME])
+				await this.executor.exec('podman', ['stop', QBIT_CONTAINER_NAME])
 			} catch {
 				// Container might not be running
 			}
 			try {
-				await this.executor.exec('docker', ['rm', QBIT_CONTAINER_NAME])
+				await this.executor.exec('podman', ['rm', QBIT_CONTAINER_NAME])
 			} catch {
 				// Container might not exist
 			}
 			await this.pullIfMissing(config.image)
 			const args = qbitConfigToRunArgs(config)
-			await this.executor.exec('docker', args)
+			await this.executor.exec('podman', args)
 			return { success: true }
 		} catch (err) {
 			const error = err instanceof Error ? err.message : String(err)
@@ -811,28 +793,28 @@ export class DockerManager {
 	): Promise<{ success: boolean; error?: string }> {
 		try {
 			const config = Schema.decodeUnknownSync(VpnConfigSchema)(rawConfig)
-			const dirs = dockerDataDirs(homedir(), process.platform)
+			const dirs = podmanDataDirs(homedir(), process.platform)
 
 			// 1. Stop and remove existing qbittorrent container
 			try {
-				await this.executor.exec('docker', ['stop', QBIT_CONTAINER_NAME])
+				await this.executor.exec('podman', ['stop', QBIT_CONTAINER_NAME])
 			} catch {
 				// Container might not be running
 			}
 			try {
-				await this.executor.exec('docker', ['rm', QBIT_CONTAINER_NAME])
+				await this.executor.exec('podman', ['rm', QBIT_CONTAINER_NAME])
 			} catch {
 				// Container might not exist
 			}
 
 			// 2. Stop and remove existing VPN container
 			try {
-				await this.executor.exec('docker', ['stop', VPN_CONTAINER_NAME])
+				await this.executor.exec('podman', ['stop', VPN_CONTAINER_NAME])
 			} catch {
 				// Container might not be running
 			}
 			try {
-				await this.executor.exec('docker', ['rm', VPN_CONTAINER_NAME])
+				await this.executor.exec('podman', ['rm', VPN_CONTAINER_NAME])
 			} catch {
 				// Container might not exist
 			}
@@ -841,7 +823,8 @@ export class DockerManager {
 				// Spin up Gluetun container
 				await this.pullIfMissing(VPN_IMAGE)
 				const vpnArgs = vpnContainerRunArgs(config)
-				await this.executor.exec('docker', vpnArgs)
+				await this.executor.exec('podman', vpnArgs)
+				await this.waitForContainerRunning(VPN_CONTAINER_NAME)
 
 				// Spin up qBittorrent attached to VPN container network namespace
 				await this.pullIfMissing(QBIT_IMAGE)
@@ -851,7 +834,7 @@ export class DockerManager {
 					dirs.downloads,
 					{ vpnContainer: VPN_CONTAINER_NAME },
 				)
-				await this.executor.exec('docker', qbitArgs)
+				await this.executor.exec('podman', qbitArgs)
 			} else {
 				// Spin up qBittorrent standalone
 				await this.pullIfMissing(QBIT_IMAGE)
@@ -860,7 +843,7 @@ export class DockerManager {
 					dirs.qbitConfig,
 					dirs.downloads,
 				)
-				await this.executor.exec('docker', qbitArgs)
+				await this.executor.exec('podman', qbitArgs)
 			}
 
 			return { success: true }
@@ -870,7 +853,7 @@ export class DockerManager {
 		}
 	}
 
-	async getVpnStatus(): Promise<DockerContainerStatus> {
+	async getVpnStatus(): Promise<PodmanContainerStatus> {
 		return this.getContainerStatus(
 			VPN_CONTAINER_NAME,
 			DEFAULT_QBIT_PORT,
@@ -878,11 +861,51 @@ export class DockerManager {
 		)
 	}
 
+	/** Poll until the named container reports Running, or throw with logs. */
+	private async waitForContainerRunning(
+		containerName: string,
+		timeoutMs = 45_000,
+		intervalMs = 500,
+	): Promise<void> {
+		const deadline = Date.now() + timeoutMs
+		while (Date.now() < deadline) {
+			const status = await this.getContainerStatus(
+				containerName,
+				DEFAULT_QBIT_PORT,
+				VPN_IMAGE,
+			)
+			if (status.state === 'running') {
+				return
+			}
+			if (status.state === 'not_found') {
+				throw new Error(
+					`VPN sidecar ${containerName} was not created. Check Podman and try Save & Apply again.`,
+				)
+			}
+			await new Promise(resolve => setTimeout(resolve, intervalMs))
+		}
+		let logs = ''
+		try {
+			const { stdout, stderr } = await this.executor.exec('podman', [
+				'logs',
+				'--tail',
+				'40',
+				containerName,
+			])
+			logs = (stdout || stderr || '').trim()
+		} catch {
+			// ignore log fetch failures
+		}
+		throw new Error(
+			`VPN sidecar ${containerName} did not stay running within ${timeoutMs}ms.${logs ? ` Logs:\n${logs}` : ''}`,
+		)
+	}
+
 	async restartContainer(
 		containerName: string,
 	): Promise<{ success: boolean; error?: string }> {
 		try {
-			await this.executor.exec('docker', ['restart', containerName])
+			await this.executor.exec('podman', ['restart', containerName])
 			return { success: true }
 		} catch (err) {
 			const error = err instanceof Error ? err.message : String(err)
@@ -890,8 +913,3 @@ export class DockerManager {
 		}
 	}
 }
-
-export const PodmanManager = DockerManager
-export const CliPodmanExecutor = CliDockerExecutor
-export type PodmanExecutor = DockerExecutor
-export type PodmanExecOptions = DockerExecOptions

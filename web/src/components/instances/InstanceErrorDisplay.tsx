@@ -20,7 +20,7 @@ import { AlertCircle, Check, ChevronDown, Copy, Edit, KeyRound, XCircle } from "
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
-import { useDockerServices } from "@/hooks/useDockerServices"
+import { usePodmanServices } from "@/hooks/usePodmanServices"
 import { toast } from "sonner"
 
 interface InstanceErrorDisplayProps {
@@ -55,7 +55,7 @@ export function InstanceErrorDisplay({
   const [isDecryptionOpen, setIsDecryptionOpen] = useState(compact)
   const [isRecentErrorsOpen, setIsRecentErrorsOpen] = useState(compact)
   const { formatTimestamp } = useDateTimeFormatters()
-  const { getQBitConfig } = useDockerServices()
+  const { getQBitConfig } = usePodmanServices()
   const [copiedContainerPass, setCopiedContainerPass] = useState(false)
   const [isCopyingPass, setIsCopyingPass] = useState(false)
 

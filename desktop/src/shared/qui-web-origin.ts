@@ -11,7 +11,7 @@ export interface ResolveQuiWebOriginOptions {
 	envOrigin?: string
 	/** When true (`QUI_DESKTOP_DEV=1`), use Vite. */
 	desktopDev?: boolean
-	/** Production / Docker Qui port. */
+	/** Production / Podman Qui port. */
 	quiPort?: number
 }
 

@@ -58,7 +58,7 @@ export async function waitForQuiHttpReady(
 export type WrappedQuiOpenResult = 'opened' | 'unavailable'
 
 /**
- * Start Docker, wait until Qui answers HTTP, then open the real web UI.
+ * Start Podman, wait until Qui answers HTTP, then open the real web UI.
  * A status line is shown first so the window is not an empty shell
  * while containers are still stopped.
  */
@@ -71,7 +71,7 @@ export async function openWrappedQui(steps: {
 }): Promise<WrappedQuiOpenResult> {
 	await steps.showStatus(
 		'Starting Qui…',
-		'Ensuring Docker containers (qui, qbit) are running…',
+		'Ensuring Podman containers (qui, qbit) are running…',
 	)
 	await steps.ensureContainers()
 	await steps.showStatus(

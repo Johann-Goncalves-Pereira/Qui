@@ -14,7 +14,7 @@ import {
 } from 'electron'
 import { APP_NAME, QUI_IMAGE } from '../shared/constants.js'
 import type {
-	DockerContainerStatus,
+	PodmanContainerStatus,
 	TorrentTransferStats,
 } from '../shared/types.js'
 
@@ -80,14 +80,14 @@ export class AppTray {
 		activeCount: 0,
 		totalCount: 0,
 	}
-	private quiStatus: DockerContainerStatus = {
+	private quiStatus: PodmanContainerStatus = {
 		name: 'qui',
 		state: 'unknown',
 		status: 'checking',
 		image: QUI_IMAGE,
 		port: 7476,
 	}
-	private qbitStatus: DockerContainerStatus = {
+	private qbitStatus: PodmanContainerStatus = {
 		name: 'qbittorrent-nox',
 		state: 'unknown',
 		status: 'checking',
@@ -122,9 +122,9 @@ export class AppTray {
 		}
 	}
 
-	updateDockerStatus(
-		qui: DockerContainerStatus,
-		qbit: DockerContainerStatus,
+	updatePodmanStatus(
+		qui: PodmanContainerStatus,
+		qbit: PodmanContainerStatus,
 	): void {
 		this.quiStatus = qui
 		this.qbitStatus = qbit
@@ -169,7 +169,7 @@ export class AppTray {
 			},
 			{ type: 'separator' },
 			{
-				label: 'Docker Containers',
+				label: 'Podman Containers',
 				submenu: [
 					{
 						label: `Qui Service: ${this.quiStatus.state} (${this.quiStatus.status})`,
@@ -181,7 +181,7 @@ export class AppTray {
 					},
 					{ type: 'separator' },
 					{
-						label: 'Check for Docker Updates...',
+						label: 'Check for Podman Updates...',
 						click: () => {
 							void this.callbacks.onCheckUpdates()
 						},

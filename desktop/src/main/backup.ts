@@ -15,7 +15,7 @@ import {
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { CURRENT_APP_VERSION } from '../shared/constants.js'
-import { type DockerDataDirs, dockerDataDirs } from './container-layout.js'
+import { type PodmanDataDirs, podmanDataDirs } from './container-layout.js'
 
 export interface BackupMeta {
 	backupPath: string
@@ -46,7 +46,7 @@ export function backupStorageRoot(
 export interface BackupOptions {
 	home?: string
 	platform?: string
-	dataDirs?: DockerDataDirs
+	dataDirs?: PodmanDataDirs
 	userDataDir?: string
 }
 
@@ -62,7 +62,7 @@ export async function createPreUpdateBackup(
 	const home = options.home || homedir()
 	const platform = options.platform || process.platform
 	const root = backupStorageRoot(home, platform)
-	const dirs = options.dataDirs || dockerDataDirs(home, platform)
+	const dirs = options.dataDirs || podmanDataDirs(home, platform)
 	const userDataDir =
 		options.userDataDir ||
 		(platform === 'darwin'

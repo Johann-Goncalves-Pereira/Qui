@@ -21,31 +21,31 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { type QuiContainerConfig, useDockerServices } from "@/hooks/useDockerServices"
+import { type QuiContainerConfig, usePodmanServices } from "@/hooks/usePodmanServices"
 import { Check, Copy, Info, Loader2, RotateCw } from "lucide-react"
 import type { TFunction } from "i18next"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-interface QuiDockerConfigDialogProps {
+interface QuiPodmanConfigDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 function containerStateLabel(state: string, t: TFunction<"common">): string {
-  const key = `docker.state.${state}` as const
+  const key = `podman.state.${state}` as const
   const translated = t(key)
   return translated === key ? state : translated
 }
 
-export function QuiDockerConfigDialog({
+export function QuiPodmanConfigDialog({
   open,
   onOpenChange,
-}: QuiDockerConfigDialogProps) {
+}: QuiPodmanConfigDialogProps) {
   const { t } = useTranslation("common")
   const { getQuiConfig, saveQuiConfig, restartContainer, statuses } =
-    useDockerServices()
+    usePodmanServices()
 
   const [config, setConfig] = useState<QuiContainerConfig>({
     port: 7476,
@@ -86,14 +86,14 @@ export function QuiDockerConfigDialog({
       setIsSaving(true)
       const res = await saveQuiConfig(config)
       if (res.success) {
-        toast.success(t("docker.toast.quiSaved"))
+        toast.success(t("podman.toast.quiSaved"))
         onOpenChange(false)
       } else {
-        toast.error(res.error || t("docker.toast.saveFailed"))
+        toast.error(res.error || t("podman.toast.saveFailed"))
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("docker.toast.genericSaveError")
+        err instanceof Error ? err.message : t("podman.toast.genericSaveError")
       )
     } finally {
       setIsSaving(false)
@@ -105,23 +105,23 @@ export function QuiDockerConfigDialog({
       setIsRestarting(true)
       const res = await restartContainer("qui")
       if (res.success) {
-        toast.success(t("docker.toast.quiRestartStarted"))
+        toast.success(t("podman.toast.quiRestartStarted"))
       } else {
-        toast.error(res.error || t("docker.toast.restartFailed"))
+        toast.error(res.error || t("podman.toast.restartFailed"))
       }
     } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
-          : t("docker.toast.genericRestartError")
+          : t("podman.toast.genericRestartError")
       )
     } finally {
       setIsRestarting(false)
     }
   }
 
-  const dockerRunSnippet = [
-    "docker run -d",
+  const podmanRunSnippet = [
+    "podman run -d",
     "--name qui",
     `-p ${config.port}:7476`,
     `-v "${config.configPath}":/config`,
@@ -140,12 +140,12 @@ export function QuiDockerConfigDialog({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(dockerRunSnippet)
+      await navigator.clipboard.writeText(podmanRunSnippet)
       setCopied(true)
-      toast.success(t("docker.toast.copyCommandSuccess"))
+      toast.success(t("podman.toast.copyCommandSuccess"))
     } catch (err) {
-      console.error("[QuiDockerConfigDialog] clipboard write failed:", err)
-      toast.error(t("docker.toast.copyCommandFailed"))
+      console.error("[QuiPodmanConfigDialog] clipboard write failed:", err)
+      toast.error(t("podman.toast.copyCommandFailed"))
     }
   }
 
@@ -155,7 +155,7 @@ export function QuiDockerConfigDialog({
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-              <span>{t("docker.qui.title")}</span>
+              <span>{t("podman.qui.title")}</span>
               <span
                 className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                   statuses.qui.state === "running"
@@ -169,7 +169,7 @@ export function QuiDockerConfigDialog({
           </div>
           <DialogDescription className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
             <Info className="h-3.5 w-3.5 flex-shrink-0" />
-            {t("docker.qui.description")}
+            {t("podman.qui.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -177,7 +177,7 @@ export function QuiDockerConfigDialog({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="qui-port" className="text-xs font-medium">
-                {t("docker.fields.hostWebUiPort")}
+                {t("podman.fields.hostWebUiPort")}
               </Label>
               <Input
                 id="qui-port"
@@ -192,13 +192,13 @@ export function QuiDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.quiPortMappedHelp")}
+                {t("podman.fields.quiPortMappedHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-image" className="text-xs font-medium">
-                {t("docker.fields.dockerImage")}
+                {t("podman.fields.podmanImage")}
               </Label>
               <Input
                 id="qui-image"
@@ -209,19 +209,19 @@ export function QuiDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.quiImageHelp")}
+                {t("podman.fields.quiImageHelp")}
               </p>
             </div>
           </div>
 
           <div className="space-y-3 rounded-lg border border-border/50 p-3 bg-muted/20">
             <div className="text-xs font-medium text-foreground">
-              {t("docker.fields.volumeBindMounts")}
+              {t("podman.fields.volumeBindMounts")}
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-config-path" className="text-xs">
-                {t("docker.fields.hostConfigDirQui")}
+                {t("podman.fields.hostConfigDirQui")}
               </Label>
               <Input
                 id="qui-config-path"
@@ -232,13 +232,13 @@ export function QuiDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.hostConfigDirQuiHelp")}
+                {t("podman.fields.hostConfigDirQuiHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-data-path" className="text-xs">
-                {t("docker.fields.hostDataDir")}
+                {t("podman.fields.hostDataDir")}
               </Label>
               <Input
                 id="qui-data-path"
@@ -246,11 +246,11 @@ export function QuiDockerConfigDialog({
                 onChange={(e) =>
                   setConfig((c) => ({ ...c, dataPath: e.target.value }))
                 }
-                placeholder={t("docker.fields.dataPathPlaceholder")}
+                placeholder={t("podman.fields.dataPathPlaceholder")}
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.hostDataDirHelp")}
+                {t("podman.fields.hostDataDirHelp")}
               </p>
             </div>
           </div>
@@ -258,7 +258,7 @@ export function QuiDockerConfigDialog({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="qui-puid" className="text-xs">
-                {t("docker.fields.puid")}
+                {t("podman.fields.puid")}
               </Label>
               <Input
                 id="qui-puid"
@@ -269,13 +269,13 @@ export function QuiDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.puidHelp")}
+                {t("podman.fields.puidHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-pgid" className="text-xs">
-                {t("docker.fields.pgid")}
+                {t("podman.fields.pgid")}
               </Label>
               <Input
                 id="qui-pgid"
@@ -286,13 +286,13 @@ export function QuiDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.pgidHelp")}
+                {t("podman.fields.pgidHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-umask" className="text-xs">
-                {t("docker.fields.umask")}
+                {t("podman.fields.umask")}
               </Label>
               <Input
                 id="qui-umask"
@@ -303,7 +303,7 @@ export function QuiDockerConfigDialog({
                 className="h-8 text-xs font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.umaskHelpQui")}
+                {t("podman.fields.umaskHelpQui")}
               </p>
             </div>
           </div>
@@ -311,7 +311,7 @@ export function QuiDockerConfigDialog({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1.5 md:col-span-3">
               <Label htmlFor="qui-base-url" className="text-xs">
-                {t("docker.fields.baseUrl")}
+                {t("podman.fields.baseUrl")}
               </Label>
               <Input
                 id="qui-base-url"
@@ -323,13 +323,13 @@ export function QuiDockerConfigDialog({
                 placeholder="https://qui.example.com"
               />
               <p className="text-[11px] text-muted-foreground">
-                {t("docker.fields.baseUrlHelp")}
+                {t("podman.fields.baseUrlHelp")}
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-log-level" className="text-xs">
-                {t("docker.fields.logLevel")}
+                {t("podman.fields.logLevel")}
               </Label>
               <Select
                 value={config.logLevel || "INFO"}
@@ -338,20 +338,20 @@ export function QuiDockerConfigDialog({
                 }
               >
                 <SelectTrigger id="qui-log-level" className="h-8 text-xs">
-                  <SelectValue placeholder={t("docker.fields.logLevelPlaceholder")} />
+                  <SelectValue placeholder={t("podman.fields.logLevelPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DEBUG">
-                    {t("docker.fields.logLevelOption.DEBUG")}
+                    {t("podman.fields.logLevelOption.DEBUG")}
                   </SelectItem>
                   <SelectItem value="INFO">
-                    {t("docker.fields.logLevelOption.INFO")}
+                    {t("podman.fields.logLevelOption.INFO")}
                   </SelectItem>
                   <SelectItem value="WARN">
-                    {t("docker.fields.logLevelOption.WARN")}
+                    {t("podman.fields.logLevelOption.WARN")}
                   </SelectItem>
                   <SelectItem value="ERROR">
-                    {t("docker.fields.logLevelOption.ERROR")}
+                    {t("podman.fields.logLevelOption.ERROR")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -359,7 +359,7 @@ export function QuiDockerConfigDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-restart" className="text-xs">
-                {t("docker.fields.restartPolicy")}
+                {t("podman.fields.restartPolicy")}
               </Label>
               <Select
                 value={config.restartPolicy || "unless-stopped"}
@@ -369,21 +369,21 @@ export function QuiDockerConfigDialog({
               >
                 <SelectTrigger id="qui-restart" className="h-8 text-xs">
                   <SelectValue
-                    placeholder={t("docker.fields.restartPolicyPlaceholder")}
+                    placeholder={t("podman.fields.restartPolicyPlaceholder")}
                   />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unless-stopped">
-                    {t("docker.fields.restartPolicyOption.unlessStopped")}
+                    {t("podman.fields.restartPolicyOption.unlessStopped")}
                   </SelectItem>
                   <SelectItem value="always">
-                    {t("docker.fields.restartPolicyOption.always")}
+                    {t("podman.fields.restartPolicyOption.always")}
                   </SelectItem>
                   <SelectItem value="on-failure">
-                    {t("docker.fields.restartPolicyOption.onFailure")}
+                    {t("podman.fields.restartPolicyOption.onFailure")}
                   </SelectItem>
                   <SelectItem value="no">
-                    {t("docker.fields.restartPolicyOption.no")}
+                    {t("podman.fields.restartPolicyOption.no")}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -391,7 +391,7 @@ export function QuiDockerConfigDialog({
 
             <div className="space-y-1.5">
               <Label htmlFor="qui-tz" className="text-xs">
-                {t("docker.fields.timezone")}
+                {t("podman.fields.timezone")}
               </Label>
               <Input
                 id="qui-tz"
@@ -405,7 +405,7 @@ export function QuiDockerConfigDialog({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium">
-                {t("docker.fields.dockerCommandPreview")}
+                {t("podman.fields.podmanCommandPreview")}
               </Label>
               <Button
                 type="button"
@@ -419,11 +419,11 @@ export function QuiDockerConfigDialog({
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}
-                {copied ? t("docker.fields.copied") : t("docker.fields.copy")}
+                {copied ? t("podman.fields.copied") : t("podman.fields.copy")}
               </Button>
             </div>
             <pre className="p-2.5 rounded bg-muted/60 text-[11px] font-mono whitespace-pre-wrap overflow-x-auto text-muted-foreground border border-border/40">
-              {dockerRunSnippet}
+              {podmanRunSnippet}
             </pre>
           </div>
         </div>
@@ -442,7 +442,7 @@ export function QuiDockerConfigDialog({
             ) : (
               <RotateCw className="h-3.5 w-3.5" />
             )}
-            {t("docker.actions.restartContainer")}
+            {t("podman.actions.restartContainer")}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -453,7 +453,7 @@ export function QuiDockerConfigDialog({
               onClick={() => onOpenChange(false)}
               className="text-xs"
             >
-              {t("docker.actions.cancel")}
+              {t("podman.actions.cancel")}
             </Button>
             <Button
               type="button"
@@ -463,7 +463,7 @@ export function QuiDockerConfigDialog({
               className="text-xs"
             >
               {isSaving && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              {t("docker.actions.saveApply")}
+              {t("podman.actions.saveApply")}
             </Button>
           </div>
         </DialogFooter>

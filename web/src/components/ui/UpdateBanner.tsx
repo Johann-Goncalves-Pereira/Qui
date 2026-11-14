@@ -62,7 +62,7 @@ export function UpdateBanner() {
     }
   }, [])
 
-  // Standalone browser / Docker container update query
+  // Standalone browser / container image update query
   const { data: updateInfo } = useQuery({
     queryKey: ["latest-version"],
     queryFn: () => api.getLatestVersion(),

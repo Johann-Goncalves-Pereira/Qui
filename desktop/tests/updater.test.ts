@@ -204,7 +204,7 @@ describe('AppReleaseUpdater and semver helpers', () => {
 		let containerUpdatedWith: string | null = null
 		let webUiReloaded = false
 
-		const mockDockerManager: Parameters<typeof updater.applyUpdate>[1] = {
+		const mockPodmanManager: Parameters<typeof updater.applyUpdate>[1] = {
 			updateAndRestartContainer: async (_name: string, image: string) => {
 				containerUpdatedWith = image
 			},
@@ -212,7 +212,7 @@ describe('AppReleaseUpdater and semver helpers', () => {
 
 		const result = await updater.applyUpdate(
 			null,
-			mockDockerManager,
+			mockPodmanManager,
 			() => {
 				webUiReloaded = true
 			},
@@ -252,14 +252,14 @@ describe('AppReleaseUpdater and semver helpers', () => {
 			async () => true,
 		)
 
-		const mockDockerManager: Parameters<typeof updater.applyUpdate>[1] = {
+		const mockPodmanManager: Parameters<typeof updater.applyUpdate>[1] = {
 			updateAndRestartContainer: async () => {},
 		}
 
 		let reloaded = false
 		const result = await updater.applyUpdate(
 			null,
-			mockDockerManager,
+			mockPodmanManager,
 			() => {
 				reloaded = true
 			},

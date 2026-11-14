@@ -19,7 +19,7 @@ export interface ApplicationMenuCallbacks {
 	onOpenQuiConfigFolder?: () => void
 	onOpenQbitConfigFolder?: () => void
 	onCheckAppUpdates?: () => Promise<void> | void
-	onCheckDockerUpdates?: () => Promise<void> | void
+	onCheckPodmanUpdates?: () => Promise<void> | void
 	onNavigateSettings?: () => void
 	onNavigateTorrents?: () => void
 	onReloadQui?: () => void
@@ -127,9 +127,9 @@ export function buildApplicationMenuTemplate(
 				},
 			},
 			{
-				label: 'Check for Docker Updates...',
+				label: 'Check for Podman Updates...',
 				click: () => {
-					void cb.onCheckDockerUpdates?.()
+					void cb.onCheckPodmanUpdates?.()
 				},
 			},
 			{ type: 'separator' },

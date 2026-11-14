@@ -14,7 +14,7 @@ import { changedSecret } from "@/lib/cross-seed-utils"
 import type { CrossSeedAutomationSettings } from "@/types"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { GazelleDockerControl } from "./GazelleDockerControl"
+import { GazellePodmanControl } from "./GazellePodmanControl"
 
 /** Gazelle (OPS/RED) keys live on the cross-seed settings; this card saves only those three fields. */
 export function GazelleSettingsCard() {
@@ -45,7 +45,7 @@ function GazelleCard({ settings }: { settings: CrossSeedAutomationSettings }) {
         <CardDescription>{t("gazelle.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <GazelleDockerControl />
+        <GazellePodmanControl />
 
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">

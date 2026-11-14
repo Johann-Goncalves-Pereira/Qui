@@ -5,9 +5,9 @@
 
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { useDockerServices } from "./useDockerServices"
+import { usePodmanServices } from "./usePodmanServices"
 
-describe("useDockerServices hook", () => {
+describe("usePodmanServices hook", () => {
   const originalQuiDesktop = window.quiDesktop
 
   afterEach(() => {
@@ -17,7 +17,7 @@ describe("useDockerServices hook", () => {
 
   it("returns default container status and ports in container/web environment", () => {
     delete (window as { quiDesktop?: unknown }).quiDesktop
-    const { result } = renderHook(() => useDockerServices())
+    const { result } = renderHook(() => usePodmanServices())
 
     expect(result.current.statuses.qui.name).toBe("qui")
     expect(result.current.statuses.qui.state).toBe("running")
@@ -45,10 +45,10 @@ describe("useDockerServices hook", () => {
     })
 
     window.quiDesktop = {
-      getDockerStatus: mockGetStatus,
+      getPodmanStatus: mockGetStatus,
     }
 
-    const { result } = renderHook(() => useDockerServices())
+    const { result } = renderHook(() => usePodmanServices())
 
     await act(async () => {
       await result.current.refreshStatus()
@@ -67,7 +67,7 @@ describe("useDockerServices hook", () => {
       saveQBitConfig: mockSaveQBit,
     }
 
-    const { result } = renderHook(() => useDockerServices())
+    const { result } = renderHook(() => usePodmanServices())
 
     await act(async () => {
       await result.current.saveQuiConfig({

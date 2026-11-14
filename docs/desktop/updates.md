@@ -3,7 +3,7 @@
 **Status:** shipped
 
 Downloadable Qui Desktop builds check GitHub Releases for a newer **shell**
-version and check Docker digests for the **Qui container** image. There is no
+version and check Podman image digests for the **Qui container** image. There is no
 silent in-app install yet (no Apple Developer ID signing / `electron-updater`).
 
 ## Who this is for
@@ -14,7 +14,7 @@ developing against this repo. Developers who build from source should use
 
 ## Install (first time)
 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and leave it running.
+1. Install [Podman](https://podman.io/) (for example `brew install podman`), run `podman machine init` once, then `podman machine start`. Leave the machine running.
 2. Open the latest release on GitHub:  
    https://github.com/Johann-Goncalves-Pereira/Qui/releases
 3. Download the macOS **`.dmg`** (preferred) or **`.zip`**.
@@ -27,7 +27,7 @@ developing against this repo. Developers who build from source should use
    containers start automatically.
 
 Data lives under `~/Library/Application Support/Qui/` (config bind mounts,
-Electron caches, dismissed Docker digests).
+Electron caches, dismissed Podman digests).
 
 ## Update the app shell (Qui.app)
 
@@ -50,7 +50,7 @@ on `Johann-Goncalves-Pereira/Qui`.
 3. Replace `/Applications/Qui.app`.
 4. Open Qui again.
 
-## Update Docker images (Qui / qBittorrent)
+## Update Podman images (Qui / qBittorrent)
 
 Packaged (downloadable) builds default the Qui **web/API** image to **this
 fork’s** GHCR package pinned to the application version (falling back to `latest`):
@@ -64,7 +64,7 @@ app. It is **not** `ghcr.io/autobrr/qui` (vanilla upstream).
 Local / unpackaged Electron defaults to `qui-desktop:local` (rebuild with
 `./scripts/desktop-refresh`).
 
-1. Tray → **Check for Docker Updates…**, or wait for the launch prompt when a
+1. Tray → **Check for Podman Updates…**, or wait for the launch prompt when a
    remote digest differs from local.
 2. Choose **Update Now** to pull and recreate containers. Account data in the
    desktop data folder is kept.
@@ -112,7 +112,7 @@ If the fork GHCR tag is not pullable yet (package not published / token lacks
    `./scripts/desktop-refresh` or `make desktop-publish-qui-image`), or
 2. **Downloading** `qui-desktop-image-<arch>.tar.gz` from the matching
    desktop release tag (`/releases/download/v<semver>/…`) and running
-   `docker load`, then tagging it as the packaged name.
+   `podman load`, then tagging it as the packaged name.
 
 Maintainers: `make desktop-publish-qui-image` always writes that archive under
 `desktop/release/`; `make desktop-publish-release` uploads it with the `.dmg`.
@@ -127,7 +127,7 @@ Upstream web UI update banners and the `InstallUpdateButton` modal (which instru
 When updates are detected, Qui Desktop presents a native dialog specifically tailored to desktop components (`BR-desktop-30`):
 - **Component Types:**
   - `desktop-shell`: Electron Desktop native application (`Qui.app`). Requires downloading the new application build, replacing the binary in `/Applications`, and restarting the app.
-  - `qui`: Qui Web & API Docker container. Container is pulled and restarted; the desktop window automatically reloads when ready.
+  - `qui`: Qui Web & API Podman container. Container is pulled and restarted; the desktop window automatically reloads when ready.
   - `qbittorrent-nox`: Companion BitTorrent client container. Container is pulled and restarted; active torrent connections briefly reconnect.
 - **Reload Impact:** Every prompt explicitly explains whether the update requires an application restart, a container restart, or an automated web view reload.
 
@@ -180,11 +180,11 @@ When the user initiates **Download & Update**, the application never redirects e
 ## Homebrew Cask Automated Updates & Native Alert Suppression (`BR-desktop-44`)
 
 - **Native Alert Sheet Suppression:** Intrusive macOS alert sheets (`dialog.showMessageBox`) are suppressed when updates are found on launch or manual check. The main process emits `updater:show-dialog` via IPC, exclusively opening the in-app `DesktopUpdateDialog`.
-- **Automated Homebrew Upgrades:** For desktop installations managed via Homebrew Cask (`/opt/homebrew/Caskroom/qui` or `brew list --cask qui`), clicking **Download & Update** internally executes `brew update` to refresh tap metadata, followed by `brew upgrade --cask qui` to update `Qui.app` on disk. The matching Docker container is updated in lockstep, the in-memory app version is advanced, and the web interface reloads seamlessly with the new release version.
+- **Automated Homebrew Upgrades:** For desktop installations managed via Homebrew Cask (`/opt/homebrew/Caskroom/qui` or `brew list --cask qui`), clicking **Download & Update** internally executes `brew update` to refresh tap metadata, followed by `brew upgrade --cask qui` to update `Qui.app` on disk. The matching Podman container is updated in lockstep, the in-memory app version is advanced, and the web interface reloads seamlessly with the new release version.
 
 ## Companion Container Updates & Root Router Hosting (`BR-desktop-45`, `BR-web-17`)
 
-- **Native Container Alert Suppression:** When Docker companion updates (`qbittorrent-nox`, `qui`) are detected on startup or check (`checkAndPromptDockerUpdates`), native macOS `dialog.showMessageBox` alert sheets are completely eliminated. The main process emits `updater:show-container-dialog` with component metadata.
+- **Native Container Alert Suppression:** When Podman companion updates (`qbittorrent-nox`, `qui`) are detected on startup or check (`checkAndPromptPodmanUpdates`), native macOS `dialog.showMessageBox` alert sheets are completely eliminated. The main process emits `updater:show-container-dialog` with component metadata.
 - **Router Root Hosting (`__root.tsx`):** `DesktopUpdateHost` is mounted at the root router route (`web/src/routes/__root.tsx`), ensuring that both shell and container update dialogs trigger on all screens—including initial onboarding (`/setup`), login (`/login`), and dashboard views.
 - **In-App Container Dialog (`ContainerUpdateDialog`):** Displays component badges, descriptions, reload/restart impacts, pre-update backup assurances, and action controls (**Later** / **Update Now**).
 - **Gatekeeper Quarantine Removal:** Following `brew upgrade --cask qui` or cask installations, `xattr -cr /Applications/Qui.app` is executed automatically (and specified in `Casks/qui.rb` postflight) to strip `com.apple.quarantine` and avoid Gatekeeper verification blockage.

@@ -16,8 +16,8 @@ const mockGetQBitConfig = vi.fn().mockResolvedValue({
   isTemporaryPassword: true,
 })
 
-vi.mock("@/hooks/useDockerServices", () => ({
-  useDockerServices: () => ({
+vi.mock("@/hooks/usePodmanServices", () => ({
+  usePodmanServices: () => ({
     getQBitConfig: mockGetQBitConfig,
   }),
 }))

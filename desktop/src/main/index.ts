@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { Schema } from 'effect'
@@ -33,17 +33,17 @@ import { BiometricAuthService } from './auth.js'
 import { createPreUpdateBackup } from './backup.js'
 import { isCheckoutUrl, openCheckoutWindow } from './checkout-window.js'
 import {
-	dockerDataDirs,
-	ensureDockerDataPermissions,
+	ensurePodmanDataPermissions,
 	ensureQbitPreseedConfig,
+	migrateLegacyContainerDataRoot,
 	parseWireGuardConf,
+	podmanDataDirs,
 	updatesWorthPrompting,
 } from './container-layout.js'
 import {
 	type ContainerUpdateTarget,
 	formatContainerUpdatePrompt,
 } from './container-updater-dialog.js'
-import { DockerManager } from './docker.js'
 import { registerElectronmonMainModules } from './electronmon.js'
 import {
 	findMagnetUrlInArgs,
@@ -51,6 +51,7 @@ import {
 	registerMagnetProtocolHandler,
 } from './magnet.js'
 import { registerApplicationMenu } from './menu.js'
+import { PodmanManager } from './podman.js'
 import { openWrappedQui, waitForQuiHttpReady } from './qui-ready.js'
 import { startupPageUrl } from './startup-page.js'
 import { computeStatsPollInterval } from './stats-polling.js'
@@ -119,10 +120,10 @@ const quiImage = resolveQuiImage({
 	version: CURRENT_APP_VERSION,
 })
 
-const dockerManager = new DockerManager(undefined, undefined, quiImage)
+const podmanManager = new PodmanManager(undefined, undefined, quiImage)
 const biometricAuth = new BiometricAuthService()
-/** Suppress repeat Docker image dialogs in one session (tray can force a recheck). */
-let dockerImageUpdatePromptShownThisSession = false
+/** Suppress repeat Podman image dialogs in one session (tray can force a recheck). */
+let podmanImageUpdatePromptShownThisSession = false
 let pendingContainerUpdates: ContainerUpdateTarget[] = []
 const apiClient = new QuiApiClient(quiWebOrigin)
 const appUpdater = new AppReleaseUpdater()
@@ -209,7 +210,7 @@ async function loadQuiWebUi(): Promise<void> {
 					if (desktopDev) {
 						return
 					}
-					await dockerManager.ensurePodmanEngineReady({
+					await podmanManager.ensurePodmanEngineReady({
 						onStartingMachine: async () => {
 							await presentStartupPage(
 								win,
@@ -218,28 +219,29 @@ async function loadQuiWebUi(): Promise<void> {
 							)
 						},
 					})
-					const dirs = dockerDataDirs(homedir(), process.platform)
+					migrateLegacyContainerDataRoot(homedir(), process.platform)
+					const dirs = podmanDataDirs(homedir(), process.platform)
 					for (const dir of [dirs.quiConfig, dirs.qbitConfig, dirs.downloads]) {
 						mkdirSync(dir, { recursive: true })
 					}
-					ensureDockerDataPermissions(dirs)
+					ensurePodmanDataPermissions(dirs)
 					ensureQbitPreseedConfig(dirs.qbitConfig)
-					await dockerManager.alignContainer(
+					await podmanManager.alignContainer(
 						QUI_CONTAINER_NAME,
 						quiImage,
 						dirs.quiConfig,
 						'/config',
 						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
-					await dockerManager.alignContainer(
+					await podmanManager.alignContainer(
 						QBIT_CONTAINER_NAME,
 						QBIT_IMAGE,
 						dirs.qbitConfig,
 						'/config',
 						[{ hostDir: dirs.downloads, containerDir: '/downloads' }],
 					)
-					const { qui, qbit } = await dockerManager.ensureContainersRunning()
-					if (tray) tray.updateDockerStatus(qui, qbit)
+					const { qui, qbit } = await podmanManager.ensureContainersRunning()
+					if (tray) tray.updatePodmanStatus(qui, qbit)
 				},
 				waitForHttp: () => waitForQuiHttpReady({ baseUrl: quiWebOrigin }),
 				openWeb: async () => {
@@ -252,7 +254,7 @@ async function loadQuiWebUi(): Promise<void> {
 			})
 		} catch (error) {
 			const detail =
-				error instanceof Error ? error.message : 'Docker or Qui failed to start'
+				error instanceof Error ? error.message : 'Podman or Qui failed to start'
 			await presentStartupPage(win, 'Failed to start Qui', detail)
 		} finally {
 			openingQui = null
@@ -277,80 +279,80 @@ function registerIpcHandlers(): void {
 		),
 	)
 
-	ipcMain.handle('docker:status', async () => {
-		const qui = await dockerManager.getContainerStatus(
+	ipcMain.handle('podman:status', async () => {
+		const qui = await podmanManager.getContainerStatus(
 			QUI_CONTAINER_NAME,
 			DEFAULT_QUI_PORT,
 			quiImage,
 		)
-		const qbit = await dockerManager.getContainerStatus(
+		const qbit = await podmanManager.getContainerStatus(
 			QBIT_CONTAINER_NAME,
 			DEFAULT_QBIT_PORT,
 			QBIT_IMAGE,
 		)
-		const gazelle = await dockerManager.getGazelleStatus()
+		const gazelle = await podmanManager.getGazelleStatus()
 		return { qui, qbit, gazelle }
 	})
 
-	ipcMain.handle('docker:check-updates', async () => {
-		const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
-		const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
+	ipcMain.handle('podman:check-updates', async () => {
+		const quiUpdate = await podmanManager.checkForImageUpdate(quiImage)
+		const qbitUpdate = await podmanManager.checkForImageUpdate(QBIT_IMAGE)
 		return [quiUpdate, qbitUpdate]
 	})
 
 	ipcMain.handle(
-		'docker:apply-update',
+		'podman:apply-update',
 		async (
 			_event,
 			{ containerName, image }: { containerName: string; image: string },
 		) => {
-			return dockerManager.updateAndRestartContainer(containerName, image)
+			return podmanManager.updateAndRestartContainer(containerName, image)
 		},
 	)
 
-	ipcMain.handle('docker:get-qui-config', async () =>
-		dockerManager.getQuiConfig(),
+	ipcMain.handle('podman:get-qui-config', async () =>
+		podmanManager.getQuiConfig(),
 	)
 
-	ipcMain.handle('docker:get-qbit-config', async () =>
-		dockerManager.getQBitConfig(),
+	ipcMain.handle('podman:get-qbit-config', async () =>
+		podmanManager.getQBitConfig(),
 	)
 
-	ipcMain.handle('docker:save-qui-config', async (_event, config: unknown) =>
-		dockerManager.applyQuiConfig(config),
+	ipcMain.handle('podman:save-qui-config', async (_event, config: unknown) =>
+		podmanManager.applyQuiConfig(config),
 	)
 
-	ipcMain.handle('docker:save-qbit-config', async (_event, config: unknown) =>
-		dockerManager.applyQBitConfig(config),
+	ipcMain.handle('podman:save-qbit-config', async (_event, config: unknown) =>
+		podmanManager.applyQBitConfig(config),
 	)
 
 	ipcMain.handle(
-		'docker:restart-container',
+		'podman:restart-container',
 		async (_event, containerName: unknown) => {
 			if (typeof containerName !== 'string') {
 				return { success: false, error: 'Invalid container name' }
 			}
-			return dockerManager.restartContainer(containerName)
+			return podmanManager.restartContainer(containerName)
 		},
 	)
 
-	ipcMain.handle('docker:gazelle:status', async () => {
-		return dockerManager.getGazelleStatus()
+	ipcMain.handle('podman:gazelle:status', async () => {
+		return podmanManager.getGazelleStatus()
 	})
 
-	ipcMain.handle('docker:gazelle:start', async () => {
-		return dockerManager.startGazelle()
+	ipcMain.handle('podman:gazelle:start', async () => {
+		return podmanManager.startGazelle()
 	})
 
-	ipcMain.handle('docker:gazelle:stop', async () => {
-		return dockerManager.stopGazelle()
+	ipcMain.handle('podman:gazelle:stop', async () => {
+		return podmanManager.stopGazelle()
 	})
 
-	ipcMain.handle('docker:gazelle:restart', async () => {
-		return dockerManager.restartGazelle()
+	ipcMain.handle('podman:gazelle:restart', async () => {
+		return podmanManager.restartGazelle()
 	})
 
-	ipcMain.handle('docker:gazelle:open-web', async () => {
+	ipcMain.handle('podman:gazelle:open-web', async () => {
 		await shell.openExternal(GAZELLE_WEB_ORIGIN)
 	})
 
@@ -362,11 +364,11 @@ function registerIpcHandlers(): void {
 	ipcMain.handle('vpn:save-config', async (_event, config: unknown) => {
 		const vault = vpnVault()
 		vault.save(config)
-		return dockerManager.applyVpnConfig(config)
+		return podmanManager.applyVpnConfig(config)
 	})
 
 	ipcMain.handle('vpn:status', async () => {
-		return dockerManager.getVpnStatus()
+		return podmanManager.getVpnStatus()
 	})
 
 	ipcMain.handle('vpn:open-auth-page', async (_event, provider?: string) => {
@@ -403,7 +405,7 @@ function registerIpcHandlers(): void {
 				: undefined
 		return appUpdater.applyUpdate(
 			mainWindow,
-			dockerManager,
+			podmanManager,
 			() => loadQuiWebUi(),
 			targetVer,
 		)
@@ -412,8 +414,8 @@ function registerIpcHandlers(): void {
 	ipcMain.handle('updater:apply-container-updates', async () => {
 		try {
 			if (pendingContainerUpdates.length === 0) {
-				const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
-				const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
+				const quiUpdate = await podmanManager.checkForImageUpdate(quiImage)
+				const qbitUpdate = await podmanManager.checkForImageUpdate(QBIT_IMAGE)
 				pendingContainerUpdates = updatesWorthPrompting(
 					[quiUpdate, qbitUpdate],
 					{},
@@ -428,7 +430,7 @@ function registerIpcHandlers(): void {
 			}
 
 			try {
-				await createPreUpdateBackup('docker-update')
+				await createPreUpdateBackup('podman-update')
 			} catch {
 				// Non-fatal backup failure
 			}
@@ -436,7 +438,7 @@ function registerIpcHandlers(): void {
 			for (const u of pendingContainerUpdates) {
 				const name =
 					u.image === quiImage ? QUI_CONTAINER_NAME : QBIT_CONTAINER_NAME
-				await dockerManager.updateAndRestartContainer(name, u.image)
+				await podmanManager.updateAndRestartContainer(name, u.image)
 			}
 
 			const hasQuiUpdate = pendingContainerUpdates.some(
@@ -535,13 +537,21 @@ function registerIpcHandlers(): void {
 }
 
 function dismissalFile(): string {
+	return path.join(app.getPath('userData'), 'dismissed-podman-digests.json')
+}
+
+/** Pre-Podman-naming dismissal file; read-only fallback (BR-desktop-55). */
+function legacyDismissalFile(): string {
 	return path.join(app.getPath('userData'), 'dismissed-docker-digests.json')
 }
 
 function readDismissedDigests(): Record<string, string> {
+	const file = existsSync(dismissalFile())
+		? dismissalFile()
+		: legacyDismissalFile()
 	try {
 		return Schema.decodeUnknownSync(DismissedDigestsSchema)(
-			JSON.parse(readFileSync(dismissalFile(), 'utf8')),
+			JSON.parse(readFileSync(file, 'utf8')),
 		)
 	} catch {
 		return {}
@@ -592,22 +602,22 @@ function vpnVault(): VpnVault {
 	)
 }
 
-async function checkAndPromptDockerUpdates(options?: {
+async function checkAndPromptPodmanUpdates(options?: {
 	force?: boolean
 }): Promise<void> {
 	try {
-		if (!options?.force && dockerImageUpdatePromptShownThisSession) {
+		if (!options?.force && podmanImageUpdatePromptShownThisSession) {
 			return
 		}
-		const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
-		const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
+		const quiUpdate = await podmanManager.checkForImageUpdate(quiImage)
+		const qbitUpdate = await podmanManager.checkForImageUpdate(QBIT_IMAGE)
 
 		const updates = updatesWorthPrompting(
 			[quiUpdate, qbitUpdate],
 			options?.force ? {} : readDismissedDigests(),
 		)
 		if (updates.length > 0 && mainWindow && !mainWindow.isDestroyed()) {
-			dockerImageUpdatePromptShownThisSession = true
+			podmanImageUpdatePromptShownThisSession = true
 			pendingContainerUpdates = updates
 			const promptDetails = formatContainerUpdatePrompt(updates, quiImage)
 			mainWindow.webContents.send(
@@ -633,15 +643,15 @@ async function promptDesktopUpdates(): Promise<boolean> {
 	}
 	try {
 		const info = await appUpdater.checkForUpdates()
-		const quiUpdate = await dockerManager.checkForImageUpdate(quiImage)
-		const qbitUpdate = await dockerManager.checkForImageUpdate(QBIT_IMAGE)
+		const quiUpdate = await podmanManager.checkForImageUpdate(quiImage)
+		const qbitUpdate = await podmanManager.checkForImageUpdate(QBIT_IMAGE)
 		const updates = updatesWorthPrompting([quiUpdate, qbitUpdate], {})
 
 		if (info.hasUpdate) {
 			await appUpdater.promptUpdateIfAvailable(mainWindow, info)
 		}
 		if (updates.length > 0) {
-			await checkAndPromptDockerUpdates({ force: true })
+			await checkAndPromptPodmanUpdates({ force: true })
 		} else if (!info.hasUpdate) {
 			mainWindow.webContents.send('updater:status', {
 				type: 'info',
@@ -709,23 +719,23 @@ async function bootstrapApp(): Promise<void> {
 				await apiClient.resumeAll()
 			},
 			onOpenDownloadsFolder: () => {
-				const dirs = dockerDataDirs(homedir(), process.platform)
+				const dirs = podmanDataDirs(homedir(), process.platform)
 				void shell.openPath(dirs.downloads)
 			},
 			onOpenQuiConfigFolder: () => {
-				const dirs = dockerDataDirs(homedir(), process.platform)
+				const dirs = podmanDataDirs(homedir(), process.platform)
 				void shell.openPath(dirs.quiConfig)
 			},
 			onOpenQbitConfigFolder: () => {
-				const dirs = dockerDataDirs(homedir(), process.platform)
+				const dirs = podmanDataDirs(homedir(), process.platform)
 				void shell.openPath(dirs.qbitConfig)
 			},
 			onCheckAppUpdates: async () => {
 				const info = await appUpdater.checkForUpdates()
 				await appUpdater.promptUpdateIfAvailable(mainWindow, info)
 			},
-			onCheckDockerUpdates: async () => {
-				await checkAndPromptDockerUpdates({ force: true })
+			onCheckPodmanUpdates: async () => {
+				await checkAndPromptPodmanUpdates({ force: true })
 			},
 			onNavigateSettings: () => {
 				if (mainWindow) {
@@ -776,7 +786,7 @@ async function bootstrapApp(): Promise<void> {
 			}
 		},
 		onCheckUpdates: async () => {
-			await checkAndPromptDockerUpdates({ force: true })
+			await checkAndPromptPodmanUpdates({ force: true })
 		},
 		onCheckAppUpdates: async () => {
 			const info = await appUpdater.checkForUpdates()

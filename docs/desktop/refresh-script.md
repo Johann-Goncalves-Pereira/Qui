@@ -2,7 +2,7 @@
 
 **Status:** shipped
 
-One command rebuilds the local Qui Docker image from this checkout and clears
+One command rebuilds the local Qui Podman image from this checkout and clears
 Electron web caches so `/Applications/Qui.app` (or `pnpm start`) shows the
 current UI — including features that were merged but missing because an old
 image or service worker was still serving assets.
@@ -18,7 +18,7 @@ rebuilding the image every time.
 
 ## Prerequisites
 
-- Docker Desktop running
+- Podman installed with the machine running (`podman machine start`)
 - Repo root as cwd
 - `pnpm` if you use `--install-app`
 
@@ -60,12 +60,13 @@ Only refresh the container image (app already installed):
 
 1. Optional `git pull --ff-only` (`--pull`)
 2. `make frontend` — builds `web/dist` and copies into `internal/web/dist`
-3. `docker build -t qui-desktop:local -f distrib/docker/Dockerfile .`  
+3. `podman build -t qui-desktop:local -f distrib/docker/Dockerfile .`  
    The root host binary `qui` / `qui.exe` is listed in `.dockerignore` so a
    macOS Mach-O cannot be copied into the Linux image.
-4. Stops and removes the existing `qui` container, then `docker run` with the
+4. Stops and removes the existing `qui` container, then `podman run` with the
    same bind mounts the desktop app expects under
-   `~/Library/Application Support/Qui/docker/…`
+   `~/Library/Application Support/Qui/podman/…` (an existing `…/Qui/docker/`
+   folder is renamed first when `…/Qui/podman/` does not exist)
 5. Deletes Electron `Service Worker`, `Cache`, and `Code Cache` for Qui
 6. Optional `--install-app` / `--open`
 
@@ -82,8 +83,8 @@ Only refresh the container image (app already installed):
 | Symptom | Fix |
 | --- | --- |
 | Build fails on `qui: syntax error` in the image | Ensure `.dockerignore` contains `qui`; remove a stale host `./qui` from the build context if you overrode ignore |
-| UI still old after refresh | Quit Qui fully, re-run the script, confirm `docker images qui-desktop:local` has a new Created time |
-| Port 7476 busy | `docker ps` and stop the old container; the script removes `qui` by name |
+| UI still old after refresh | Quit Qui fully, re-run the script, confirm `podman images qui-desktop:local` has a new Created time |
+| Port 7476 busy | `podman ps` and stop the old container; the script removes `qui` by name |
 | Want fork GHCR instead of local | Packaged builds use `ghcr.io/johann-goncalves-pereira/qui:latest`, or set `QUI_DESKTOP_IMAGE` — see [updates.md](updates.md). Never use upstream `autobrr/qui` if you need fork UI. |
 
 ## Related spec

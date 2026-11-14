@@ -88,12 +88,14 @@ keeps serving on the host loopback.
 - `BR-desktop-51` in `docs/specs/catalog.md` — enabled VPN runs Gluetun as `qui-vpn` and attaches qBittorrent with `--network=container:qui-vpn`.
 - `BR-desktop-52` in `docs/specs/catalog.md` — VPN settings round-trip through encrypted `VpnVault`.
 - `BR-desktop-53` in `docs/specs/catalog.md` — VPN card exposes a How to enable link to this GitHub wiki page.
+- `BR-desktop-54` in `docs/specs/catalog.md` — Gluetun run args place every `-e` / flag **before** the image so Podman does not pass them as the container command.
 
 ## Troubleshoot
 
 | Symptom | What to check |
 | ------- | ------------- |
 | Stuck on **Connecting / Starting...** | Podman machine is running (`podman machine start`). First apply may pull `qmcgaw/gluetun:latest`. |
+| Apply fails with `cannot get namespace path` / `container is stopped` | The `qui-vpn` sidecar exited. Check `podman logs qui-vpn`. A past bug put `SERVER_COUNTRIES` after the image (`command is unknown: -e`); that is fixed by `BR-desktop-54`. Also use **IPv4 only** in Client IP (`10.2.0.2/32`), and set **Server Country** to match the Proton peer (e.g. `United States` for `US-FL#…`). |
 | Apply fails | Private key non-empty; country is a plain country name Gluetun accepts (`Netherlands`, `Switzerland`, `United States`, …). |
 | Key/IP empty after drop | File must be a Proton WireGuard `.conf` with `[Interface]` `PrivateKey` and preferably `Address`. |
 | Regenerated config on Proton | Drop the new `.conf` again and Save & Apply. Old keys stop working when Proton revokes the certificate. |

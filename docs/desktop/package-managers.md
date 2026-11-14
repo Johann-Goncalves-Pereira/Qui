@@ -98,7 +98,7 @@ brew upgrade --cask qui
 
 #### Complete Uninstallation (Zap)
 
-To uninstall Qui and cleanly remove all local configurations, Docker bind-mount
+To uninstall Qui and cleanly remove all local configurations, Podman bind-mount
 caches, Electron storage, and macOS preferences:
 
 ```bash
@@ -106,7 +106,7 @@ brew uninstall --cask --zap qui
 ```
 
 The `zap` stanza removes:
-- `~/Library/Application Support/Qui` (Docker config bind mounts, local digest caches, SafeStorage vault)
+- `~/Library/Application Support/Qui` (Podman config bind mounts, local digest caches, SafeStorage vault)
 - `~/Library/Caches/com.autobrr.qui.desktop`
 - `~/Library/Caches/com.autobrr.qui.desktop.ShipIt`
 - `~/Library/Preferences/com.autobrr.qui.desktop.plist`
@@ -250,7 +250,7 @@ graph TD
   ```json
   {
     "version": "1.0.0",
-    "description": "Native qBittorrent desktop manager with Electron and Docker companion services",
+    "description": "Native qBittorrent desktop manager with Electron and Podman companion services",
     "homepage": "https://github.com/Johann-Goncalves-Pereira/Qui",
     "license": "GPL-2.0-or-later",
     "architecture": {
@@ -300,7 +300,7 @@ graph TD
 #### 1. Flatpak (Flathub)
 
 - **Application ID:** `com.autobrr.Qui`
-- **Docker Socket Consideration:** Because Flatpak runs in a strict sandbox, accessing the Docker daemon CLI requires specific filesystem permissions in the manifest:
+- **Podman Socket Consideration:** Because Flatpak runs in a strict sandbox, accessing the Podman CLI and API socket requires specific filesystem permissions in the manifest:
   ```yaml
   finish-args:
     - --share=ipc
@@ -308,14 +308,13 @@ graph TD
     - --socket=x11
     - --socket=wayland
     - --device=dri
-    - --filesystem=/var/run/docker.sock
-    - --filesystem=xdg-run/docker.sock
+    - --filesystem=xdg-run/podman
   ```
 - **Manifest Structure:** `com.autobrr.Qui.yml` pulling the pre-built Linux tarball or AppImage, extracting to `/app`, and installing desktop entry and icons.
 
 #### 2. Snapcraft (Snap)
 
-- **Confinement:** `classic` or `strict` with `docker` plug:
+- **Confinement:** `classic` (the Podman CLI runs on the host) or `strict` with host-command access:
   ```yaml
   name: qui
   base: core24
@@ -329,7 +328,7 @@ graph TD
   apps:
     qui:
       command: Qui
-      plugs: [network, network-bind, x11, wayland, docker]
+      plugs: [network, network-bind, x11, wayland]
   ```
 
 #### 3. Arch User Repository (AUR)
@@ -341,11 +340,11 @@ graph TD
   pkgname=qui-desktop-bin
   pkgver=1.0.0
   pkgrel=1
-  pkgdesc="Qui Desktop - Native qBittorrent desktop manager with Electron and Docker companion services"
+  pkgdesc="Qui Desktop - Native qBittorrent desktop manager with Electron and Podman companion services"
   arch=('x86_64' 'aarch64')
   url="https://github.com/Johann-Goncalves-Pereira/Qui"
   license=('GPL-2.0-or-later')
-  depends=('gtk3' 'nss' 'libxss' 'docker')
+  depends=('gtk3' 'nss' 'libxss' 'podman')
   source_x86_64=("https://github.com/Johann-Goncalves-Pereira/Qui/releases/download/v${pkgver}/Qui-${pkgver}.AppImage")
   sha256sums_x86_64=('<sha256>')
 

@@ -3,17 +3,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { homedir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { legacyContainerDataRoot } from '../src/main/container-layout.js'
 import {
-	DOCKER_BINARY_NOT_FOUND,
-	type DockerExecOptions,
-	type DockerExecutor,
-	DockerManager,
-	dockerBinaryCandidates,
+	PODMAN_BINARY_NOT_FOUND,
 	PODMAN_ENGINE_NOT_READY,
-	resolveDockerBinary,
-} from '../src/main/docker.js'
+	type PodmanExecOptions,
+	type PodmanExecutor,
+	PodmanManager,
+	podmanBinaryCandidates,
+	resolvePodmanBinary,
+} from '../src/main/podman.js'
 import {
 	DEFAULT_GAZELLE_PORT,
 	DEFAULT_QUI_PORT,
@@ -26,18 +28,18 @@ import {
 	QUI_IMAGE_RELEASE,
 } from '../src/shared/constants.js'
 
-class MockDockerExecutor implements DockerExecutor {
+class MockPodmanExecutor implements PodmanExecutor {
 	public executedCommands: Array<{
 		command: string
 		args: string[]
-		options?: DockerExecOptions
+		options?: PodmanExecOptions
 	}> = []
 	public responses: Record<string, { stdout: string; stderr: string }> = {}
 
 	async exec(
 		command: string,
 		args: string[],
-		options?: DockerExecOptions,
+		options?: PodmanExecOptions,
 	): Promise<{ stdout: string; stderr: string }> {
 		this.executedCommands.push({ command, args, options })
 		const key = `${command} ${args.join(' ')}`
@@ -54,10 +56,10 @@ class MockDockerExecutor implements DockerExecutor {
 	}
 }
 
-describe('Docker CLI resolution (BR-desktop-10)', () => {
+describe('Podman CLI resolution (BR-desktop-10)', () => {
 	it('checks the Podman user CLI, Homebrew, /usr/local, and system paths', () => {
 		const home = path.join('Users', 'example')
-		expect(dockerBinaryCandidates(home)).toEqual([
+		expect(podmanBinaryCandidates(home)).toEqual([
 			'/opt/homebrew/bin/podman',
 			'/usr/local/bin/podman',
 			path.join(home, '.local', 'bin', 'podman'),
@@ -69,7 +71,7 @@ describe('Docker CLI resolution (BR-desktop-10)', () => {
 	it('uses the first candidate that exists', () => {
 		const home = path.join('Users', 'example')
 		const homebrew = '/opt/homebrew/bin/podman'
-		const resolved = resolveDockerBinary(
+		const resolved = resolvePodmanBinary(
 			candidate => candidate === homebrew,
 			home,
 		)
@@ -78,49 +80,49 @@ describe('Docker CLI resolution (BR-desktop-10)', () => {
 
 	it('reports podman binary not found when every candidate is missing', () => {
 		expect(() =>
-			resolveDockerBinary(() => false, path.join('Users', 'example')),
-		).toThrow(DOCKER_BINARY_NOT_FOUND)
+			resolvePodmanBinary(() => false, path.join('Users', 'example')),
+		).toThrow(PODMAN_BINARY_NOT_FOUND)
 	})
 })
 
-describe('DockerManager', () => {
-	it('checks if docker is available when docker info succeeds', async () => {
-		const mock = new MockDockerExecutor()
-		mock.responses['docker info'] = {
+describe('PodmanManager', () => {
+	it('checks if podman is available when podman info succeeds', async () => {
+		const mock = new MockPodmanExecutor()
+		mock.responses['podman info'] = {
 			stdout: 'host:\n  arch: arm64\n',
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
-		const available = await manager.isDockerAvailable()
+		const manager = new PodmanManager(mock)
+		const available = await manager.isPodmanAvailable()
 		expect(available).toBe(true)
 	})
 
-	it('returns false when docker info fails', async () => {
-		const mock: DockerExecutor = {
+	it('returns false when podman info fails', async () => {
+		const mock: PodmanExecutor = {
 			async exec() {
-				throw new Error('Docker daemon not running')
+				throw new Error('Podman machine not running')
 			},
 		}
 
-		const manager = new DockerManager(mock)
-		const available = await manager.isDockerAvailable()
+		const manager = new PodmanManager(mock)
+		const available = await manager.isPodmanAvailable()
 		expect(available).toBe(false)
 	})
 
 	describe('ensurePodmanEngineReady (BR-desktop-49)', () => {
 		it('does not run machine start when Podman info already succeeds', async () => {
-			const mock = new MockDockerExecutor()
-			mock.responses['docker info'] = {
+			const mock = new MockPodmanExecutor()
+			mock.responses['podman info'] = {
 				stdout: 'host:\n  arch: arm64\n',
 				stderr: '',
 			}
-			const manager = new DockerManager(mock)
+			const manager = new PodmanManager(mock)
 			await manager.ensurePodmanEngineReady()
 			expect(
 				mock.executedCommands.some(
 					c =>
-						(c.command === 'podman' || c.command === 'docker') &&
+						c.command === 'podman' &&
 						c.args[0] === 'machine' &&
 						c.args[1] === 'start',
 				),
@@ -129,12 +131,9 @@ describe('DockerManager', () => {
 
 		it('runs machine start once when info fails then succeeds after start', async () => {
 			let infoCalls = 0
-			const mock: DockerExecutor = {
+			const mock: PodmanExecutor = {
 				async exec(command, args) {
-					if (
-						(command === 'docker' || command === 'podman') &&
-						args[0] === 'info'
-					) {
+					if (command === 'podman' && args[0] === 'info') {
 						infoCalls += 1
 						if (infoCalls === 1) {
 							throw new Error('connection refused')
@@ -142,7 +141,7 @@ describe('DockerManager', () => {
 						return { stdout: 'host:\n  arch: arm64\n', stderr: '' }
 					}
 					if (
-						(command === 'podman' || command === 'docker') &&
+						command === 'podman' &&
 						args[0] === 'machine' &&
 						args[1] === 'start'
 					) {
@@ -151,7 +150,7 @@ describe('DockerManager', () => {
 					throw new Error(`unexpected ${command} ${args.join(' ')}`)
 				},
 			}
-			const manager = new DockerManager(mock)
+			const manager = new PodmanManager(mock)
 			let startingNotified = 0
 			await manager.ensurePodmanEngineReady({
 				onStartingMachine: () => {
@@ -163,16 +162,13 @@ describe('DockerManager', () => {
 		})
 
 		it('throws PODMAN_ENGINE_NOT_READY when machine start fails', async () => {
-			const mock: DockerExecutor = {
+			const mock: PodmanExecutor = {
 				async exec(command, args) {
-					if (
-						(command === 'docker' || command === 'podman') &&
-						args[0] === 'info'
-					) {
+					if (command === 'podman' && args[0] === 'info') {
 						throw new Error('connection refused')
 					}
 					if (
-						(command === 'podman' || command === 'docker') &&
+						command === 'podman' &&
 						args[0] === 'machine' &&
 						args[1] === 'start'
 					) {
@@ -181,7 +177,7 @@ describe('DockerManager', () => {
 					return { stdout: '', stderr: '' }
 				},
 			}
-			const manager = new DockerManager(mock)
+			const manager = new PodmanManager(mock)
 			await expect(manager.ensurePodmanEngineReady()).rejects.toThrow(
 				PODMAN_ENGINE_NOT_READY,
 			)
@@ -189,16 +185,13 @@ describe('DockerManager', () => {
 
 		it('throws PODMAN_ENGINE_NOT_READY when info still fails after machine start', async () => {
 			let machineStarts = 0
-			const mock: DockerExecutor = {
+			const mock: PodmanExecutor = {
 				async exec(command, args) {
-					if (
-						(command === 'docker' || command === 'podman') &&
-						args[0] === 'info'
-					) {
+					if (command === 'podman' && args[0] === 'info') {
 						throw new Error('connection refused')
 					}
 					if (
-						(command === 'podman' || command === 'docker') &&
+						command === 'podman' &&
 						args[0] === 'machine' &&
 						args[1] === 'start'
 					) {
@@ -208,7 +201,7 @@ describe('DockerManager', () => {
 					return { stdout: '', stderr: '' }
 				},
 			}
-			const manager = new DockerManager(mock)
+			const manager = new PodmanManager(mock)
 			await expect(manager.ensurePodmanEngineReady()).rejects.toThrow(
 				PODMAN_ENGINE_NOT_READY,
 			)
@@ -217,16 +210,13 @@ describe('DockerManager', () => {
 
 		it('attempts machine start at most once per ensure call', async () => {
 			let machineStarts = 0
-			const mock: DockerExecutor = {
+			const mock: PodmanExecutor = {
 				async exec(command, args) {
-					if (
-						(command === 'docker' || command === 'podman') &&
-						args[0] === 'info'
-					) {
+					if (command === 'podman' && args[0] === 'info') {
 						throw new Error('connection refused')
 					}
 					if (
-						(command === 'podman' || command === 'docker') &&
+						command === 'podman' &&
 						args[0] === 'machine' &&
 						args[1] === 'start'
 					) {
@@ -236,7 +226,7 @@ describe('DockerManager', () => {
 					return { stdout: '', stderr: '' }
 				},
 			}
-			const manager = new DockerManager(mock)
+			const manager = new PodmanManager(mock)
 			await expect(manager.ensurePodmanEngineReady()).rejects.toThrow(
 				PODMAN_ENGINE_NOT_READY,
 			)
@@ -245,15 +235,15 @@ describe('DockerManager', () => {
 	})
 
 	it('inspects container status correctly when running', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			'docker inspect --format {{.State.Status}}|{{.State.Running}} qui'
+			'podman inspect --format {{.State.Status}}|{{.State.Running}} qui'
 		] = {
 			stdout: 'running|true\n',
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const status = await manager.getContainerStatus(
 			QUI_CONTAINER_NAME,
 			DEFAULT_QUI_PORT,
@@ -267,13 +257,13 @@ describe('DockerManager', () => {
 	})
 
 	it('returns not_found when container inspect fails', async () => {
-		const mock: DockerExecutor = {
+		const mock: PodmanExecutor = {
 			async exec() {
 				throw new Error('No such container')
 			},
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const status = await manager.getContainerStatus(
 			QUI_CONTAINER_NAME,
 			DEFAULT_QUI_PORT,
@@ -285,28 +275,28 @@ describe('DockerManager', () => {
 	})
 
 	it('starts stopped containers during ensureContainersRunning', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			'docker inspect --format {{.State.Status}}|{{.State.Running}} qui'
+			'podman inspect --format {{.State.Status}}|{{.State.Running}} qui'
 		] = {
 			stdout: 'exited|false\n',
 			stderr: '',
 		}
 		mock.responses[
-			'docker inspect --format {{.State.Status}}|{{.State.Running}} qbittorrent-nox'
+			'podman inspect --format {{.State.Status}}|{{.State.Running}} qbittorrent-nox'
 		] = {
 			stdout: 'running|true\n',
 			stderr: '',
 		}
-		mock.responses['docker start qui'] = { stdout: 'qui\n', stderr: '' }
+		mock.responses['podman start qui'] = { stdout: 'qui\n', stderr: '' }
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		await manager.ensureContainersRunning()
 
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'start' &&
 					c.args[1] === 'qui',
 			),
@@ -314,21 +304,21 @@ describe('DockerManager', () => {
 	})
 
 	it('detects available updates when image digests differ', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			`docker inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
+			`podman inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
 		] = {
 			stdout:
 				'ghcr.io/autobrr/qui@sha256:1111111111111111111111111111111111111111111111111111111111111111',
 			stderr: '',
 		}
-		mock.responses[`docker buildx imagetools inspect --raw ${QUI_IMAGE}`] = {
+		mock.responses[`podman manifest inspect ${QUI_IMAGE}`] = {
 			stdout:
 				'{"mediaType":"application/vnd.docker.distribution.manifest.list.v2+json","digest":"sha256:2222222222222222222222222222222222222222222222222222222222222222"}',
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const update = await manager.checkForImageUpdate(QUI_IMAGE)
 
 		expect(update.hasUpdate).toBe(true)
@@ -340,20 +330,20 @@ describe('DockerManager', () => {
 			'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 		const other =
 			'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			`docker inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
+			`podman inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
 		] = {
 			stdout:
 				`ghcr.io/autobrr/qui@${remote}\n` + `ghcr.io/autobrr/qui@${other}\n`,
 			stderr: '',
 		}
-		mock.responses[`docker buildx imagetools inspect --raw ${QUI_IMAGE}`] = {
+		mock.responses[`podman manifest inspect ${QUI_IMAGE}`] = {
 			stdout: `{"digest":"${remote}"}`,
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const update = await manager.checkForImageUpdate(QUI_IMAGE)
 
 		expect(update.hasUpdate).toBe(false)
@@ -364,19 +354,19 @@ describe('DockerManager', () => {
 			'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
 		const index =
 			'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			`docker inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
+			`podman inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
 		] = {
 			stdout: `qui-desktop@${local}`,
 			stderr: '',
 		}
-		mock.responses[`docker buildx imagetools inspect --raw ${QUI_IMAGE}`] = {
+		mock.responses[`podman manifest inspect ${QUI_IMAGE}`] = {
 			stdout: `{"manifests":[{"digest":"${index}"},{"digest":"${local}"}]}`,
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const update = await manager.checkForImageUpdate(QUI_IMAGE)
 		expect(update.hasUpdate).toBe(false)
 	})
@@ -384,34 +374,34 @@ describe('DockerManager', () => {
 	it('detects no updates when image digests match', async () => {
 		const digest =
 			'sha256:3333333333333333333333333333333333333333333333333333333333333333'
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			`docker inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
+			`podman inspect --format {{range .RepoDigests}}{{.}}{{end}} ${QUI_IMAGE}`
 		] = {
 			stdout: `ghcr.io/autobrr/qui@${digest}`,
 			stderr: '',
 		}
-		mock.responses[`docker buildx imagetools inspect --raw ${QUI_IMAGE}`] = {
+		mock.responses[`podman manifest inspect ${QUI_IMAGE}`] = {
 			stdout: `{"digest":"${digest}"}`,
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const update = await manager.checkForImageUpdate(QUI_IMAGE)
 
 		expect(update.hasUpdate).toBe(false)
 	})
 
 	it('copies config before removing a container that has no host mount', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			'docker inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
+			'podman inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
 		] = {
 			stdout: 'ghcr.io/autobrr/qui:latest||\n',
 			stderr: '',
 		}
 		const created: string[] = []
-		const manager = new DockerManager(mock, dir => {
+		const manager = new PodmanManager(mock, dir => {
 			created.push(dir)
 		})
 
@@ -426,15 +416,43 @@ describe('DockerManager', () => {
 		])
 	})
 
-	it('realigns container when missing required extra mount (BR-desktop-16)', async () => {
-		const mock = new MockDockerExecutor()
+	it('skips the config copy when the container still mounts a renamed legacy docker data root (BR-desktop-55)', async () => {
+		const mock = new MockPodmanExecutor()
+		const legacySource = path.join(
+			legacyContainerDataRoot(homedir(), process.platform),
+			'qui',
+		)
 		mock.responses[
-			'docker inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
+			'podman inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
+		] = {
+			stdout: `${QUI_IMAGE}||/config=${legacySource};\n`,
+			stderr: '',
+		}
+		const manager = new PodmanManager(
+			mock,
+			() => {},
+			QUI_IMAGE,
+			() => false,
+		)
+
+		await manager.alignContainer('qui', QUI_IMAGE, '/host/qui', '/config')
+
+		expect(mock.executedCommands.map(c => c.args[0])).toEqual([
+			'inspect',
+			'stop',
+			'rm',
+		])
+	})
+
+	it('realigns container when missing required extra mount (BR-desktop-16)', async () => {
+		const mock = new MockPodmanExecutor()
+		mock.responses[
+			'podman inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
 		] = {
 			stdout: `${QUI_IMAGE}||/config=/host/qui;\n`,
 			stderr: '',
 		}
-		const manager = new DockerManager(mock, () => {})
+		const manager = new PodmanManager(mock, () => {})
 
 		await manager.alignContainer('qui', QUI_IMAGE, '/host/qui', '/config', [
 			{ hostDir: '/host/dl', containerDir: '/downloads' },
@@ -448,9 +466,9 @@ describe('DockerManager', () => {
 	})
 
 	it('leaves the container alone when the copy fails', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			'docker inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
+			'podman inspect --format {{.Config.Image}}||{{range .Mounts}}{{.Destination}}={{.Source}};{{end}} qui'
 		] = {
 			stdout: 'old:image||\n',
 			stderr: '',
@@ -462,7 +480,7 @@ describe('DockerManager', () => {
 			}
 			return original(command, args)
 		}
-		const manager = new DockerManager(mock, () => {})
+		const manager = new PodmanManager(mock, () => {})
 
 		await expect(
 			manager.alignContainer('qui', QUI_IMAGE, '/host/qui', '/config'),
@@ -475,8 +493,8 @@ describe('DockerManager', () => {
 	})
 
 	it('updates and restarts container cleanly', async () => {
-		const mock = new MockDockerExecutor()
-		const manager = new DockerManager(mock)
+		const mock = new MockPodmanExecutor()
+		const manager = new PodmanManager(mock)
 
 		const success = await manager.updateAndRestartContainer(
 			QUI_CONTAINER_NAME,
@@ -493,8 +511,8 @@ describe('DockerManager', () => {
 	})
 
 	it('applies custom Qui container config and recreates container', async () => {
-		const mock = new MockDockerExecutor()
-		const manager = new DockerManager(mock, () => {})
+		const mock = new MockPodmanExecutor()
+		const manager = new PodmanManager(mock, () => {})
 
 		const res = await manager.applyQuiConfig({
 			port: 7476,
@@ -517,8 +535,8 @@ describe('DockerManager', () => {
 	})
 
 	it('applies custom qBittorrent container config and recreates container', async () => {
-		const mock = new MockDockerExecutor()
-		const manager = new DockerManager(mock, () => {})
+		const mock = new MockPodmanExecutor()
+		const manager = new PodmanManager(mock, () => {})
 
 		const res = await manager.applyQBitConfig({
 			port: 8080,
@@ -537,9 +555,9 @@ describe('DockerManager', () => {
 		expect(mock.executedCommands.some(c => c.args[0] === 'run')).toBe(true)
 	})
 
-	it('getQBitConfig parses credentials from docker logs (BR-desktop-43)', async () => {
-		const mock = new MockDockerExecutor()
-		mock.responses[`docker inspect ${QBIT_CONTAINER_NAME}`] = {
+	it('getQBitConfig parses credentials from podman logs (BR-desktop-43)', async () => {
+		const mock = new MockPodmanExecutor()
+		mock.responses[`podman inspect ${QBIT_CONTAINER_NAME}`] = {
 			stdout: JSON.stringify([
 				{
 					Config: {
@@ -558,13 +576,13 @@ describe('DockerManager', () => {
 			]),
 			stderr: '',
 		}
-		mock.responses[`docker logs --tail 1000 ${QBIT_CONTAINER_NAME}`] = {
+		mock.responses[`podman logs --tail 1000 ${QBIT_CONTAINER_NAME}`] = {
 			stdout:
 				'The WebUI administrator username is: admin\nA temporary password is provided for this session: secretSessionKey123\n',
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const config = await manager.getQBitConfig()
 
 		expect(config.port).toBe(8080)
@@ -574,26 +592,26 @@ describe('DockerManager', () => {
 	})
 
 	it('restarts a named container via restartContainer', async () => {
-		const mock = new MockDockerExecutor()
-		const manager = new DockerManager(mock)
+		const mock = new MockPodmanExecutor()
+		const manager = new PodmanManager(mock)
 
 		const res = await manager.restartContainer(QUI_CONTAINER_NAME)
 		expect(res.success).toBe(true)
 		expect(mock.executedCommands).toEqual([
-			{ command: 'docker', args: ['restart', QUI_CONTAINER_NAME] },
+			{ command: 'podman', args: ['restart', QUI_CONTAINER_NAME] },
 		])
 	})
 
 	it('inspects Gazelle container status (BR-desktop-15)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+			`podman inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
 		] = {
 			stdout: 'running|true\n',
 			stderr: '',
 		}
 
-		const manager = new DockerManager(mock)
+		const manager = new PodmanManager(mock)
 		const status = await manager.getGazelleStatus()
 
 		expect(status.name).toBe(GAZELLE_CONTAINER_NAME)
@@ -603,7 +621,7 @@ describe('DockerManager', () => {
 	})
 
 	it('starts Gazelle container by cloning repo and provisioning compose stack (BR-desktop-15)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		let inspectCalls = 0
 		mock.exec = async (command, args, options) => {
 			mock.executedCommands.push({ command, args, options })
@@ -619,7 +637,7 @@ describe('DockerManager', () => {
 		}
 
 		const writtenFiles: Record<string, string> = {}
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			() => {},
 			QUI_IMAGE,
@@ -639,7 +657,7 @@ describe('DockerManager', () => {
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'compose' &&
 					c.args[1] === 'up',
 			),
@@ -652,7 +670,7 @@ describe('DockerManager', () => {
 	})
 
 	it('writes restart: unless-stopped and mitigates Puppeteer preview crash (BR-desktop-38)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		let inspectCalls = 0
 		mock.exec = async (command, args, options) => {
 			mock.executedCommands.push({ command, args, options })
@@ -668,13 +686,13 @@ describe('DockerManager', () => {
 
 		const writtenFiles: Record<string, string> = {}
 		const fileStore: Record<string, string> = {
-			'/Users/ukvdavi/Library/Application Support/Qui/docker/gazelle/repo/docker-compose.yml':
+			'/Users/ukvdavi/Library/Application Support/Qui/podman/gazelle/repo/docker-compose.yml':
 				'services:\n  web:\n    build: .\n',
-			'/Users/ukvdavi/Library/Application Support/Qui/docker/gazelle/repo/bin/build-stylesheet-gallery.mjs':
+			'/Users/ukvdavi/Library/Application Support/Qui/podman/gazelle/repo/bin/build-stylesheet-gallery.mjs':
 				'puppeteer.launch().catch((err) => {\n    console.error(err);\n    process.exitCode = 1;\n});\n',
 		}
 
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			() => {},
 			QUI_IMAGE,
@@ -704,8 +722,8 @@ describe('DockerManager', () => {
 		expect(galleryEntry?.[1]).toContain('process.exitCode = 0')
 	})
 
-	it('falls back to docker-compose binary when docker compose command is missing (BR-desktop-15)', async () => {
-		const mock = new MockDockerExecutor()
+	it('falls back to podman-compose before any docker binary when podman compose is missing (BR-desktop-15, BR-desktop-55)', async () => {
+		const mock = new MockPodmanExecutor()
 		let inspectCalls = 0
 		mock.exec = async (command, args, options) => {
 			mock.executedCommands.push({ command, args, options })
@@ -716,38 +734,73 @@ describe('DockerManager', () => {
 				}
 				return { stdout: 'running|true\n', stderr: '' }
 			}
-			if (command === 'docker' && args[0] === 'compose') {
-				throw new Error('docker: unknown command: docker compose')
+			if (command === 'podman' && args[0] === 'compose') {
+				throw new Error('podman: unknown command: compose')
 			}
 			return { stdout: '', stderr: '' }
 		}
 
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			() => {},
 			QUI_IMAGE,
-			() => true, // compose file already exists
+			() => true,
 			() => {},
 		)
-		const status = await manager.startGazelle()
-		expect(status.state).toBe('running')
+		await manager.startGazelle()
 		expect(
 			mock.executedCommands.some(
-				c => c.command === 'docker-compose' && c.args[0] === 'up',
+				c => c.command === 'podman-compose' && c.args[0] === 'up',
 			),
 		).toBe(true)
+		expect(
+			mock.executedCommands.some(
+				c => c.command === 'docker-compose' || c.command === 'docker',
+			),
+		).toBe(false)
+	})
+
+	it('fails closed when neither podman compose nor podman-compose is available (BR-desktop-15, BR-desktop-55)', async () => {
+		const mock = new MockPodmanExecutor()
+		mock.exec = async (command, args, options) => {
+			mock.executedCommands.push({ command, args, options })
+			if (args[0] === 'inspect') {
+				throw new Error('No such container')
+			}
+			if (command === 'podman' && args[0] === 'compose') {
+				throw new Error('podman: unknown command: compose')
+			}
+			if (command === 'podman-compose') {
+				throw new Error('podman-compose: ENOENT')
+			}
+			return { stdout: '', stderr: '' }
+		}
+
+		const manager = new PodmanManager(
+			mock,
+			() => {},
+			QUI_IMAGE,
+			() => true,
+			() => {},
+		)
+		await expect(manager.startGazelle()).rejects.toThrow(/podman/i)
+		expect(
+			mock.executedCommands.some(
+				c => c.command === 'docker-compose' || c.command === 'docker',
+			),
+		).toBe(false)
 	})
 
 	it('stops and restarts Gazelle compose stack cleanly (BR-desktop-15)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.responses[
-			`docker inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
+			`podman inspect --format {{.State.Status}}|{{.State.Running}} ${GAZELLE_CONTAINER_NAME}`
 		] = {
 			stdout: 'exited|false\n',
 			stderr: '',
 		}
 
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			() => {},
 			QUI_IMAGE,
@@ -759,7 +812,7 @@ describe('DockerManager', () => {
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'compose' &&
 					c.args[1] === 'stop',
 			),
@@ -770,7 +823,7 @@ describe('DockerManager', () => {
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'compose' &&
 					c.args[1] === 'restart',
 			),
@@ -778,7 +831,7 @@ describe('DockerManager', () => {
 	})
 
 	it('wraps Gazelle provisioning errors with helpful diagnostics (BR-desktop-15)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.exec = async (command, args) => {
 			if (args[0] === 'inspect') {
 				throw new Error('No such container')
@@ -789,7 +842,7 @@ describe('DockerManager', () => {
 			return { stdout: '', stderr: '' }
 		}
 
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			() => {},
 			QUI_IMAGE,
@@ -803,7 +856,7 @@ describe('DockerManager', () => {
 	})
 
 	it('retags qui-desktop:local when fork GHCR pull fails (BR-desktop-17)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		let quiStatusCalls = 0
 		mock.exec = async (command, args, options) => {
 			mock.executedCommands.push({ command, args, options })
@@ -845,13 +898,13 @@ describe('DockerManager', () => {
 			return { stdout: '', stderr: '' }
 		}
 
-		const manager = new DockerManager(mock, undefined, QUI_IMAGE_RELEASE)
+		const manager = new PodmanManager(mock, undefined, QUI_IMAGE_RELEASE)
 		await manager.ensureContainersRunning()
 
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'tag' &&
 					c.args[1] === QUI_IMAGE_LOCAL &&
 					c.args[2] === QUI_IMAGE_RELEASE,
@@ -860,7 +913,7 @@ describe('DockerManager', () => {
 	})
 
 	it('loads fork image from GitHub Releases when GHCR and local tag are missing (BR-desktop-17)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		let quiStatusCalls = 0
 		let localInspectAfterLoad = false
 		mock.exec = async (command, args, options) => {
@@ -915,7 +968,7 @@ describe('DockerManager', () => {
 			return new Uint8Array([1, 2, 3])
 		}
 
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			undefined,
 			QUI_IMAGE_RELEASE,
@@ -928,13 +981,13 @@ describe('DockerManager', () => {
 
 		expect(
 			mock.executedCommands.some(
-				c => c.command === 'docker' && c.args[0] === 'load',
+				c => c.command === 'podman' && c.args[0] === 'load',
 			),
 		).toBe(true)
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'tag' &&
 					c.args[1] === QUI_IMAGE_LOCAL &&
 					c.args[2] === QUI_IMAGE_RELEASE,
@@ -943,7 +996,7 @@ describe('DockerManager', () => {
 	})
 
 	it('loads embedded archive directly from resourcesPath before network pull (BR-desktop-32)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		let quiStatusCalls = 0
 		let localInspectAfterLoad = false
 		mock.exec = async (command, args, options) => {
@@ -994,7 +1047,7 @@ describe('DockerManager', () => {
 			return filePath.includes('qui-desktop-image-arm64.tar.gz')
 		}
 
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			undefined,
 			'ghcr.io/johann-goncalves-pereira/qui:0.0.9',
@@ -1006,9 +1059,9 @@ describe('DockerManager', () => {
 		)
 		await manager.ensureContainersRunning()
 
-		// Verify docker load was executed with embedded archive path
+		// Verify podman load was executed with embedded archive path
 		const loadCmd = mock.executedCommands.find(
-			c => c.command === 'docker' && c.args[0] === 'load',
+			c => c.command === 'podman' && c.args[0] === 'load',
 		)
 		expect(loadCmd).toBeDefined()
 		expect(loadCmd?.args[1]).toBe('-i')
@@ -1020,7 +1073,7 @@ describe('DockerManager', () => {
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'tag' &&
 					c.args[1] === QUI_IMAGE_LOCAL &&
 					c.args[2] === 'ghcr.io/johann-goncalves-pereira/qui:0.0.9',
@@ -1029,7 +1082,7 @@ describe('DockerManager', () => {
 	})
 
 	it('pullIfMissing pulls third-party images directly without retagging qui-desktop:local (BR-desktop-43)', async () => {
-		const mock = new MockDockerExecutor()
+		const mock = new MockPodmanExecutor()
 		mock.exec = async (command, args, options) => {
 			mock.executedCommands.push({ command, args, options })
 			if (args[0] === 'image' && args[1] === 'inspect') {
@@ -1038,7 +1091,7 @@ describe('DockerManager', () => {
 			return { stdout: '', stderr: '' }
 		}
 
-		const manager = new DockerManager(
+		const manager = new PodmanManager(
 			mock,
 			() => {},
 			QUI_IMAGE_RELEASE,
@@ -1062,7 +1115,7 @@ describe('DockerManager', () => {
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'pull' &&
 					c.args[1] === 'lscr.io/linuxserver/qbittorrent:latest',
 			),
@@ -1072,7 +1125,7 @@ describe('DockerManager', () => {
 		expect(
 			mock.executedCommands.some(
 				c =>
-					c.command === 'docker' &&
+					c.command === 'podman' &&
 					c.args[0] === 'tag' &&
 					c.args[2] === 'lscr.io/linuxserver/qbittorrent:latest',
 			),
