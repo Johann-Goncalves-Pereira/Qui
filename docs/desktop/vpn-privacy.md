@@ -43,7 +43,8 @@ top of that tab.
 On the page Qui opened, scroll past **Proton VPN clients**. You only need the
 **WireGuard configuration** section.
 
-![Proton WireGuard download page with numbered callouts](assets/proton-wireguard-download-annotated.png)
+<img width="1886" height="2149" alt="image" src="https://github.com/user-attachments/assets/2f9b6121-dd47-47cb-8867-794044fad5e3" />
+
 
 | Step | What to do |
 | ---- | ---------- |
