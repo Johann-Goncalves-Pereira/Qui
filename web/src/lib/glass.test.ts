@@ -111,9 +111,9 @@ describe("glass frost (BR-desktop-05)", () => {
       "utf8"
     )
     const rule = css.slice(css.indexOf("html[data-glass=\"on\"]"))
-    expect(rule).toContain("[data-slot=\"filter-sidebar\"]")
+    expect(rule).toContain("[data-qui-area=\"filter-sidebar\"]")
     expect(rule).toMatch(/html\[data-glass="on"\]\s+\.bg-sidebar\s*\{[^}]*color-mix\(/)
-    expect(rule).toMatch(/html\[data-glass="on"\]\s+\[data-slot="filter-sidebar"\]\s*\{[^}]*color-mix\(/)
+    expect(rule).toMatch(/html\[data-glass="on"\]\s+\[data-qui-area="filter-sidebar"\]\s*\{[^}]*color-mix\(/)
   })
 })
 

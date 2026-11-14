@@ -12,7 +12,9 @@ import "@/i18n"
 import { Statistics } from "@/pages/Statistics"
 import { server } from "@/test/msw/server"
 import type { StatisticsBar } from "@/lib/statistics"
-import type { LiveTrackerGroup, TransferHistoryInstance, TransferHistoryRow, TransferHistoryTorrent } from "@/types"
+import type { EventDay } from "@/lib/statistics-events"
+import type { LibraryPoint } from "@/lib/statistics-library"
+import type { LiveTrackerGroup, TransferHistoryInstance, TransferHistoryLibraryRow, TransferHistoryRow, TransferHistoryTorrent } from "@/types"
 
 const mocks = vi.hoisted(() => {
   const t = (key: string, options?: Record<string, unknown>) => {
@@ -40,6 +42,16 @@ vi.mock("@/components/statistics/TransferChart", () => ({
     </ul>
   ),
 }))
+vi.mock("@/components/statistics/LibraryGrowthChart", () => ({
+  LibraryGrowthChart: ({ points }: { points: LibraryPoint[] }) => (
+    <div data-testid="growth-chart" data-points={JSON.stringify(points.map(point => [point.torrents, point.totalSize, point.uniqueSize]))} />
+  ),
+}))
+vi.mock("@/components/statistics/EventsChart", () => ({
+  EventsChart: ({ days }: { days: EventDay[] }) => (
+    <div data-testid="events-chart" data-events={JSON.stringify(days.map(day => [day.added, day.completed, day.deleted]))} />
+  ),
+}))
 vi.mock("@/components/statistics/GroupChart", () => ({
   GroupChart: ({ bars }: { bars: StatisticsBar[] }) => <div data-testid="group-chart" data-bars={bars.length} />,
 }))
@@ -65,6 +77,7 @@ let answer: (request: TransferRequest) => TransferHistoryRow[]
 let torrentAnswer: (request: TransferRequest) => TransferHistoryRow[]
 let requests: TransferRequest[]
 let liveGroups: (instanceId: number) => LiveTrackerGroup[]
+let libraryAnswer: (instanceId: number) => TransferHistoryLibraryRow[]
 // While set, the transfer route waits for it before it answers: for each bucket, or only for holdBucket.
 let hold: Promise<void> | undefined
 let holdBucket: string | undefined
@@ -81,6 +94,16 @@ function torrentRow(hash: string, name: string, uploaded: number, torrent: Parti
     torrent: { name, trackerGroup: "a.test", deleted: false, statisticsCrossSeed: false, uploadFirst24h: null, ...torrent },
     ...extra,
   })
+}
+
+/** A library row of the UTC day that is daysAgo days before today. */
+function libraryRow(daysAgo: number, sizes: Partial<TransferHistoryLibraryRow>): TransferHistoryLibraryRow {
+  const now = new Date()
+  return { day: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - daysAgo * DAY).toISOString(), added: 0, completed: 0, deleted: 0, ...sizes }
+}
+
+async function growthPoints(): Promise<unknown> {
+  return JSON.parse((await screen.findByTestId("growth-chart")).getAttribute("data-points") ?? "")
 }
 
 function recordedDaysAgo(instanceId: number, name: string, days: number): TransferHistoryInstance {
@@ -137,7 +160,10 @@ beforeEach(() => {
   answer = () => []
   torrentAnswer = () => []
   liveGroups = () => []
+  libraryAnswer = () => []
   server.use(
+    http.get("*/api/instances/:id/transfer-history/library", ({ params }) => HttpResponse.json({ rows: libraryAnswer(Number(params.id)) })),
+    http.get("*/api/instances/:id/transfer-history/deletes", () => HttpResponse.json({ deletes: [], counts: { automation: 0, user: 0, other: 0 } })),
     http.get("*/api/instances/:id/tracker-groups", ({ params }) => HttpResponse.json({ groups: liveGroups(Number(params.id)) })),
     http.get("*/api/transfer-history/status", () => HttpResponse.json({ instances: statuses })),
     http.get("*/api/instances", () => HttpResponse.json(configuredIds.map(id => ({ id, name: `instance ${id}`, isActive: true })))),
@@ -202,6 +228,41 @@ describe("Statistics", () => {
     await vi.waitFor(() => expect(requests.filter(request => request.bucket === "hour").length).toBe(2))
     expect(requests.find(request => request.bucket === "hour")).toMatchObject({ from: new Date(2026, 0, 5).toISOString(), to: new Date(2026, 0, 7).toISOString(), timeZone: null })
     expect(await screen.findByText(/^customRange\.range from=/)).toBeTruthy()
+  })
+
+  // regression: #4132
+  it("does not keep the deleted torrents of a custom range when only its last day changes", async () => {
+    let releaseSecond = () => {}
+    const second = new Promise<void>(resolve => {
+      releaseSecond = resolve
+    })
+    const firstTo = new Date(2026, 0, 7).toISOString()
+    server.use(http.get("*/api/instances/:id/transfer-history/deletes", async ({ request }) => {
+      const to = new URL(request.url).searchParams.get("to")
+      if (to !== firstTo) {
+        await second
+      }
+      const name = to === firstTo ? "First.Range-GRP" : "Second.Range-GRP"
+      return HttpResponse.json({
+        deletes: [{ time: new Date(2026, 0, 5, 12).toISOString(), hash: name, name, trackerGroup: "a.test", uploaded: 1, downloaded: 1, cause: { kind: "user" } }],
+        counts: { automation: 0, user: 1, other: 0 },
+      })
+    }))
+    const applyRange = (last: string) => {
+      fireEvent.click(screen.getAllByText(/^(periods\.custom|customRange\.range from=)/)[0])
+      fireEvent.change(screen.getByLabelText("customRange.from"), { target: { value: "2026-01-05" } })
+      fireEvent.change(screen.getByLabelText("customRange.to"), { target: { value: last } })
+      fireEvent.click(screen.getByText("customRange.apply"))
+    }
+    renderPage()
+    await screen.findByText("periods.custom")
+    applyRange("2026-01-06")
+    await screen.findAllByTitle("First.Range-GRP")
+
+    applyRange("2026-01-07")
+    await vi.waitFor(() => expect(screen.queryAllByTitle("First.Range-GRP")).toHaveLength(0))
+    releaseSecond()
+    await screen.findAllByTitle("Second.Range-GRP")
   })
 
   it("moves a preset period forward while the page stays open, and keeps the old numbers until the new ones load", async () => {
@@ -412,8 +473,8 @@ describe("Statistics", () => {
     server.use(http.get("*/api/transfer-history/status", () => HttpResponse.json({ error: "database is locked" }, { status: 500 })))
     renderPage()
 
-    // The line at the top of the page, the table, and the top torrents show it.
-    await vi.waitFor(() => expect(screen.getAllByText("errors.load message=database is locked")).toHaveLength(3))
+    // The line at the top of the page, the table, the top torrents, the library growth, the adds and deletes, and the deleted torrents show it.
+    await vi.waitFor(() => expect(screen.getAllByText("errors.load message=database is locked")).toHaveLength(6))
   })
 
   it("says that a period with no transfer has none", async () => {
@@ -789,5 +850,199 @@ describe("Statistics", () => {
     await vi.waitFor(() => expect(within(table).getAllByRole("row")).toHaveLength(2))
     expect(table.textContent).not.toContain("Private.Release.Name-GRP")
     expect(table.textContent).not.toContain("a.test")
+  })
+  it("adds the library of the instances together for each day, with the newest Unique size as the fifth number", async () => {
+    libraryAnswer = instanceId => [
+      libraryRow(1, { torrents: instanceId, totalSize: instanceId * 4096, uniqueSize: instanceId * 1024 }),
+      libraryRow(0, { torrents: instanceId * 10, totalSize: instanceId * 8192, uniqueSize: instanceId * 2048 }),
+    ]
+    renderPage()
+
+    expect(await growthPoints()).toEqual([[3, 12288, 3072], [30, 24576, 6144]])
+    await expectTile("tiles.unique", "6 KiB | tiles.uniqueTotal size=24 KiB")
+    expect(screen.getByText("growth.description torrents=30")).toBeTruthy()
+    expect(screen.queryByText("growth.gapNote")).toBeNull()
+  })
+
+  it("leaves a gap in the Unique size of a day without a Copy groups build, and takes the fifth number from the day before", async () => {
+    libraryAnswer = instanceId => [
+      libraryRow(3, { torrents: 1, totalSize: 4096, uniqueSize: 1024 }),
+      // Instance 1 has no build on this day, so the sum of the two instances would draw a drop.
+      libraryRow(1, { torrents: 1, totalSize: 4096, uniqueSize: instanceId === 1 ? undefined : 1024 }),
+      libraryRow(0, { torrents: 1, totalSize: 4096 }),
+    ]
+    renderPage()
+
+    // qui stored nothing for the day 2 days ago, so both lines have a gap there.
+    expect(await growthPoints()).toEqual([[2, 8192, 2048], [null, null, null], [2, 8192, null], [2, 8192, null]])
+    await expectTile("tiles.unique", "2 KiB | tiles.uniqueTotal size=8 KiB")
+    expect(screen.getByText("growth.gapNote")).toBeTruthy()
+  })
+
+  it("adds the adds, completions, and deletes of the instances together for each UTC day of the period", async () => {
+    libraryAnswer = instanceId => [libraryRow(2, { added: instanceId, completed: 1, deleted: 0 }), libraryRow(0, { added: 0, completed: 0, deleted: instanceId * 2 })]
+    renderPage()
+
+    const chart = await screen.findByTestId("events-chart")
+    const days: number[][] = JSON.parse(chart.getAttribute("data-events") ?? "[]")
+    expect(days.slice(-3)).toEqual([[3, 2, 0], [0, 0, 0], [0, 0, 6]])
+  })
+
+  it("leaves a gap on a day on which an instance that qui records has no row, and ends a removed instance at its last row", async () => {
+    statuses = [recordedDaysAgo(1, "Seedbox", 400), recordedDaysAgo(2, "Old box", 400), recordedDaysAgo(3, "Home", 400)]
+    // Instance 1 has no row 2 days ago and none yet today. Instance 2 is removed after 3 days ago, so its last row ends it.
+    libraryAnswer = instanceId => [3, 2, 1, 0].filter(daysAgo => instanceId === 1 ? daysAgo === 3 || daysAgo === 1 : instanceId === 2 ? daysAgo === 3 : true)
+      .map(daysAgo => libraryRow(daysAgo, { torrents: 1, totalSize: instanceId * 1024, uniqueSize: instanceId * 1024 }))
+    configuredIds = [1, 3]
+    renderPage()
+
+    expect(await growthPoints()).toEqual([[3, 6144, 6144], [null, null, null], [2, 4096, 4096], [null, null, null]])
+    await expectTile("tiles.unique", "4 KiB | tiles.uniqueTotal size=4 KiB")
+  })
+
+  it("leaves a gap, not a zero, after the last row of a removed instance", async () => {
+    configuredIds = []
+    statuses = [recordedDaysAgo(1, "Old box", 400)]
+    libraryAnswer = () => [libraryRow(3, { torrents: 1, totalSize: 4096, uniqueSize: 2048 }), libraryRow(2, { torrents: 1, totalSize: 4096, uniqueSize: 2048 })]
+    renderPage()
+
+    expect(await growthPoints()).toEqual([[1, 4096, 2048], [1, 4096, 2048], [null, null, null], [null, null, null]])
+    await expectTile("tiles.unique", "2 KiB | tiles.uniqueTotal size=4 KiB")
+  })
+
+  it("leaves a gap on each day when an instance that qui records has no row in the period", async () => {
+    libraryAnswer = instanceId => instanceId === 1 ? [libraryRow(1, { torrents: 1, totalSize: 4096, uniqueSize: 2048 }), libraryRow(0, { torrents: 1, totalSize: 4096, uniqueSize: 2048 })] : []
+    renderPage()
+
+    expect(await growthPoints()).toEqual([[null, null, null], [null, null, null]])
+  })
+
+  it("says that the period has no Unique size before the first Copy groups build", async () => {
+    libraryAnswer = () => [libraryRow(0, { torrents: 1, totalSize: 4096 })]
+    renderPage()
+
+    await expectTile("tiles.unique", "– | tiles.uniqueNone")
+  })
+})
+
+describe("Statistics year view", () => {
+  const KiB = 1024
+
+  function daysAgo(days: number): Date {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() - days)
+  }
+
+  function dayRow(group: string, day: Date, uploaded: number, gapSeconds = 0): TransferHistoryRow {
+    return row(group, uploaded, 0, { start: day.toISOString(), width: "day", gapSeconds })
+  }
+
+  function inputDate(day: Date): string {
+    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`
+  }
+
+  async function applyRange(first: Date, last: Date) {
+    // After a custom range, the button of the picker shows that range.
+    fireEvent.click(await screen.findByText(/^(periods\.custom|customRange\.range from=.*)$/))
+    fireEvent.change(screen.getByLabelText("customRange.from"), { target: { value: inputDate(first) } })
+    fireEvent.change(screen.getByLabelText("customRange.to"), { target: { value: inputDate(last) } })
+    fireEvent.click(screen.getByText("customRange.apply"))
+  }
+
+  function calendarCells(): HTMLElement[] {
+    return [...screen.getByRole("list", { name: "yearView.calendar" }).querySelectorAll<HTMLElement>("li[aria-label]")]
+  }
+
+  async function expectRecord(label: string, expected: string) {
+    await vi.waitFor(() => {
+      const value = screen.getByText(label).nextElementSibling
+      expect(`${value?.textContent} | ${value?.nextElementSibling?.textContent ?? ""}`).toBe(expected)
+    })
+  }
+
+  it("shows the year view for a range of 121 days and the stacked bars for 120 days", async () => {
+    answer = ({ instanceId, bucket }) => instanceId === 1 && bucket === "day" ? [dayRow("a.test", daysAgo(150), KiB)] : []
+    renderPage()
+    await applyRange(daysAgo(200), daysAgo(80))
+
+    expect(await screen.findByRole("list", { name: "yearView.calendar" })).toBeTruthy()
+    expect(screen.getByText("yearView.title")).toBeTruthy()
+    expect(screen.queryByText("chart.download")).toBeNull()
+
+    await applyRange(daysAgo(200), daysAgo(81))
+
+    await vi.waitFor(() => expect(screen.getByText("chart.title")).toBeTruthy())
+    expect(screen.queryByRole("list", { name: "yearView.calendar" })).toBeNull()
+    expect(screen.getByText("chart.download")).toBeTruthy()
+  })
+
+  it("takes the best day, the best month, and the weekend share from the rows of the transfer query, and marks a Recording gap", async () => {
+    // A Saturday early in a month at least 80 days ago, the Monday after it, and a Wednesday of the next month.
+    let saturday = daysAgo(80)
+    while (saturday.getDay() !== 6 || saturday.getDate() > 20) {
+      saturday = new Date(saturday.getFullYear(), saturday.getMonth(), saturday.getDate() - 1)
+    }
+    const monday = new Date(saturday.getFullYear(), saturday.getMonth(), saturday.getDate() + 2)
+    let other = new Date(saturday.getFullYear(), saturday.getMonth() + 1, 15)
+    while (other.getDay() !== 3) {
+      other = new Date(other.getFullYear(), other.getMonth(), other.getDate() + 1)
+    }
+    answer = ({ instanceId, bucket }) => instanceId === 1 && bucket === "day"
+      ? [dayRow("a.test", saturday, 300 * KiB), dayRow("b.test", monday, 100 * KiB, 5400), dayRow("a.test", other, 600 * KiB)]
+      : []
+    renderPage()
+    fireEvent.mouseDown(await screen.findByText("periods.1y"), { button: 0 })
+
+    await expectRecord("yearView.bestDay", `600 KiB | ${other.toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}`)
+    await expectRecord("yearView.bestMonth", `${other.toLocaleDateString("en", { month: "long", year: "numeric" })} | 600 KiB`)
+    await expectRecord("yearView.weekends", "30% | yearView.weekendsDetail")
+    expect(screen.getByTestId("chart").getAttribute("data-uploaded")).toBe(String(1000 * KiB))
+
+    const gaps = calendarCells().filter(cell => cell.dataset.gap)
+    expect(gaps).toHaveLength(1)
+    expect(gaps[0].getAttribute("aria-label")).toContain("uploaded=100 KiB")
+    expect(gaps[0].getAttribute("aria-label")).toContain("chart.gap duration=1h 30m")
+  })
+
+  it("shows the last 53 weeks of all time on a history of more than two years", async () => {
+    statuses = [recordedDaysAgo(1, "Seedbox", 800)]
+    configuredIds = [1]
+    answer = ({ bucket }) => bucket === "day" ? [dayRow("a.test", daysAgo(790), 900 * KiB), dayRow("a.test", daysAgo(1), 100 * KiB)] : []
+    renderPage()
+    fireEvent.mouseDown(await screen.findByText("periods.all"), { button: 0 })
+
+    await expectRecord("yearView.bestDay", `900 KiB | ${daysAgo(790).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}`)
+    const cells = calendarCells()
+    expect(cells).toHaveLength(53 * 7)
+    const date = (day: Date) => day.toLocaleDateString("en", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+    expect(cells[0].getAttribute("aria-label")).toBe(`yearView.day date=${date(daysAgo(370))} uploaded=0 B`)
+    expect(cells[cells.length - 2].getAttribute("aria-label")).toBe(`yearView.day date=${date(daysAgo(1))} uploaded=100 KiB`)
+    // The monthly bars cover the whole period.
+    expect(screen.getByTestId("chart").getAttribute("data-uploaded")).toBe(String(1000 * KiB))
+  })
+
+  it("shows the date and the upload of a tapped day above the calendar", async () => {
+    answer = ({ instanceId, bucket }) => instanceId === 1 && bucket === "day" ? [dayRow("a.test", daysAgo(1), 100 * KiB)] : []
+    renderPage()
+    fireEvent.mouseDown(await screen.findByText("periods.1y"), { button: 0 })
+    await screen.findByRole("list", { name: "yearView.calendar" })
+    const cell = calendarCells().find(cell => cell.getAttribute("aria-label")?.includes("uploaded=100 KiB"))!
+
+    fireEvent.click(cell)
+
+    const readout = screen.getByText(cell.getAttribute("aria-label")!)
+    expect(readout.tagName).toBe("SPAN")
+  })
+
+  it("shows weeks in the chart of the detail band of a long period", async () => {
+    answer = ({ bucket }) => bucket === "day" ? [dayRow("a.test", daysAgo(1), KiB)] : []
+    renderPage()
+    fireEvent.mouseDown(await screen.findByText("periods.1y"), { button: 0 })
+    await screen.findByRole("list", { name: "yearView.calendar" })
+    fireEvent.click(await within(await screen.findByRole("table")).findByText("a.test"))
+
+    expect(await screen.findByText("detail.chartWeek group=a.test")).toBeTruthy()
+    // 365 days touch 53 or 54 weeks from Monday on.
+    await vi.waitFor(() => expect([53, 54]).toContain(Number(screen.getByTestId("group-chart").getAttribute("data-bars"))))
   })
 })

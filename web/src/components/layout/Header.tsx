@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { TorrentManagementBar } from "@/components/torrents/TorrentManagementBar"
 import { SystemNoticeMenuItems } from "@/components/layout/SystemNoticeMenuItems"
+import { themeArea } from "@/lib/theme-areas"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -352,6 +353,7 @@ export function Header({
   // sibling above the header without reindenting the whole header tree.
   const headerElement = (
     <header
+      {...themeArea("app-header")}
       className={cn(
         "sticky top-0 z-50 hidden md:flex flex-wrap lg:flex-nowrap items-start lg:items-center justify-between sm:border-b bg-background pl-2 pr-4 md:pl-4 md:pr-4 lg:static py-2 lg:py-0 transition-[padding] duration-300 ease-out relative",
         sidebarCollapsed

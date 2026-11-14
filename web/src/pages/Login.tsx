@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { navigateAfterAuth } from "@/lib/add-intent"
 import { api } from "@/lib/api"
 import { unlockDesktopAccount } from "@/lib/desktop-account"
+import { themeArea } from "@/lib/theme-areas"
 import { useQuery } from "@tanstack/react-query"
 import { useForm } from "@tanstack/react-form"
 import { useNavigate } from "@tanstack/react-router"
@@ -140,7 +141,7 @@ export function Login() {
   // Show loading state while checking OIDC config
   if (oidcConfig === null) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div {...themeArea("login")} className="flex h-screen items-center justify-center bg-background">
         <div className="text-center">{t("login.loading")}</div>
       </div>
     )
@@ -151,7 +152,7 @@ export function Login() {
   const showOIDC = oidcConfig?.enabled || oidcUnavailable
 
   return (
-    <div className="flex h-screen items-center justify-center bg-background px-4 sm:px-6">
+    <div {...themeArea("login")} className="flex h-screen items-center justify-center bg-background px-4 sm:px-6">
       <BlurFade duration={0.5} delay={0.1} blur="10px" className="w-full max-w-md">
         <Card className="relative overflow-hidden w-full shadow-xl">
           <ShineBorder shineColor={["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"]} />
