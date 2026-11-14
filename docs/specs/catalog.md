@@ -90,5 +90,6 @@ behavior exists.
 | `BR-web-17` | `ContainerUpdateDialog` renders component badges, reload requirements, data safety guarantees, and action controls, hosted alongside `DesktopUpdateDialog` in `DesktopUpdateHost` at router root for multi-route update availability | docs/desktop/updates.md | web/updater | web/src/components/ui/ContainerUpdateDialog.test.tsx, web/src/components/ui/DesktopUpdateHost.test.tsx | `asserted-unit` |
 | `BR-desktop-47` | Desktop shell registers as the default OS handler for magnet protocol, verifies isDefaultProtocolClient status, and seamlessly buffers and routes magnet URLs to Qui /add endpoint | docs/desktop/magnet-links.md | desktop/magnet | tests/magnet.test.ts | `asserted-unit` |
 | `BR-desktop-48` | Suppress intrusive update check and alert prompts on application launch so alerts never interrupt startup, while modernizing Casks/qui.rb to postflight_steps | docs/desktop/updates.md | desktop/updater | tests/cask.test.ts, tests/updater.test.ts | `asserted-unit` |
+| `BR-desktop-49` | Before ensuring containers, desktop verifies Podman answers `info`; if not, runs `podman machine start` once and rechecks; persistent failure shows a recoverable Failed to start Qui message that mentions starting the Podman machine (not a 120s HTTP hang) | docs/desktop/overview.md | desktop/docker | tests/docker.test.ts | `asserted-unit` |
 
 

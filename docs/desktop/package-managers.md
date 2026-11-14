@@ -22,7 +22,7 @@ in [`Casks/qui.rb`](../../Casks/qui.rb).
 
 - macOS 12+ (Apple Silicon `arm64` or Intel `x64`).
 - [Homebrew](https://brew.sh) installed.
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) or OrbStack installed and running.
+- [Podman](https://podman.io/) installed (Homebrew: `brew install podman`) with a running **Podman machine** (`podman machine init` once, then `podman machine start`). Qui Desktop uses the Podman CLI to run the Qui and qBittorrent containers; on launch it may start an existing machine automatically if `podman info` fails.
 
 ---
 
