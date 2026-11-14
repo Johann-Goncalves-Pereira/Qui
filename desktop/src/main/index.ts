@@ -209,6 +209,15 @@ async function loadQuiWebUi(): Promise<void> {
 					if (desktopDev) {
 						return
 					}
+					await dockerManager.ensurePodmanEngineReady({
+						onStartingMachine: async () => {
+							await presentStartupPage(
+								win,
+								'Starting Qui…',
+								'Starting Podman machine…',
+							)
+						},
+					})
 					const dirs = dockerDataDirs(homedir(), process.platform)
 					for (const dir of [dirs.quiConfig, dirs.qbitConfig, dirs.downloads]) {
 						mkdirSync(dir, { recursive: true })
@@ -239,7 +248,7 @@ async function loadQuiWebUi(): Promise<void> {
 				},
 				unavailableMessage: desktopDev
 					? `Nothing is serving ${quiWebOrigin}. Start make dev (Vite on 5173, API on 7476), then reload.`
-					: `Nothing is serving ${quiWebOrigin} yet. Check Docker, then use Tray → Reload Qui web app.`,
+					: `Nothing is serving ${quiWebOrigin} yet. Check Podman (podman machine start), then use Tray → Reload Qui web app.`,
 			})
 		} catch (error) {
 			const detail =
