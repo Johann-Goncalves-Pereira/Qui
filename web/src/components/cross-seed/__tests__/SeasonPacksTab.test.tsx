@@ -55,11 +55,13 @@ vi.mock("@/lib/api", () => ({
 }))
 
 import type { CrossSeedAutomationSettings, SeasonPackRun } from "@/types"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { SeasonPacksTab } from "../SeasonPacksTab"
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  vi.unstubAllGlobals()
   localStorage.clear()
 })
 
@@ -67,7 +69,9 @@ function renderTab() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <SeasonPacksTab settings={mocks.settings as unknown as CrossSeedAutomationSettings} />
+      <TooltipProvider>
+        <SeasonPacksTab settings={mocks.settings as unknown as CrossSeedAutomationSettings} />
+      </TooltipProvider>
     </QueryClientProvider>
   )
 }

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { TooltipProvider } from "@/components/ui/tooltip"
 import i18n from "@/i18n"
 import type { Torrent } from "@/types"
 import { cleanup, render } from "@testing-library/react"
@@ -85,5 +86,26 @@ describe("popularity and private columns", () => {
     expect(cellText("private", { private: true })).toBe("Yes")
     cleanup()
     expect(cellText("private", { private: false })).toBe("No")
+  })
+})
+
+describe("name column", () => {
+  afterEach(cleanup)
+
+  function nameCell(original: Partial<Torrent>): string {
+    const column = createColumns({ incognitoMode: false }, i18n.getFixedT(null, "torrents"))
+      .find(col => "accessorKey" in col && col.accessorKey === "name")!
+    const cell = column.cell as (ctx: { row: { original: Torrent } }) => ReactElement
+    return render(cell({ row: { original: { name: "Example.Show.S01E01-GRP", ...original } as Torrent } }), { wrapper: TooltipProvider }).container.textContent ?? ""
+  }
+
+  it("shows the badge of a helper torrent", () => {
+    expect(nameCell({ qui_helper: "transfer" })).toBe("Transfer helperExample.Show.S01E01-GRP")
+    expect(nameCell({ qui_helper: "share" })).toBe("Share helperExample.Show.S01E01-GRP")
+  })
+
+  // The server sets qui_helper only from the helper registry, never from a tag.
+  it("shows no badge on a torrent that is no helper", () => {
+    expect(nameCell({ tags: "qui-transfer" })).toBe("Example.Show.S01E01-GRP")
   })
 })

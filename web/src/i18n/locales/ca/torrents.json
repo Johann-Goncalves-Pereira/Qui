@@ -67,6 +67,8 @@
     "externalPrograms": "Programes externs",
     "exportTorrent": "Exporta el torrent",
     "exportTorrents": "Exporta els torrents ({{count}})",
+    "transferToInstance": "Transfereix a una instància…",
+    "shareWithSomeone": "Comparteix amb algú…",
     "copy": "Copia...",
     "copyName": "Copia el nom",
     "copyHash": "Copia el hash",
@@ -650,6 +652,9 @@
     "trackerDown": "Tracker caigut",
     "unregistered": "No registrat",
     "trackerError": "Error del tracker",
+    "helperTransfer": "Ajudant de transferència",
+    "helperShare": "Ajudant de compartició",
+    "helperHint": "qui ha afegit aquest torrent per a una transferència o una compartició. Els seus fitxers pertanyen a un altre torrent.",
     "now": "ara",
     "yes": "Sí",
     "no": "No"
@@ -667,19 +672,11 @@
     "incognito": "Incògnit",
     "add": "Afegeix",
     "tasks": "Tasques",
-    "done": "Fet",
     "actionsForCount": "Accions per a {{count}} torrent(s)",
     "actionsForAll": "Accions per als {{count}} torrent(s)",
     "selection": {
       "selectedCount": "{{count}} seleccionats",
       "allSelectedCount": "Tots {{count}} seleccionats"
-    },
-    "searchModal": {
-      "title": "Cerca torrents",
-      "description": "Cerca per nom, categoria o etiquetes. Admet patrons glob com ara *.mkv o *1080p*.",
-      "placeholder": "Cerca torrents...",
-      "globExamples": "*.mkv, *1080p*, *S[0-9][0-9]E[0-9][0-9]*",
-      "autoSearches": "Cerca automàticament mentre escrius"
     },
     "ratio": "Ràtio:",
     "added": "Afegit {{time}}"
@@ -1396,36 +1393,18 @@
   "crossSeedDialog": {
     "title": "Cerca cross-seed",
     "torrentLabel": "Torrent",
-    "category": "Categoria: {{category}}",
-    "size": "Mida: {{size}}",
-    "servedFromCache": "Servit des de la memòria cau",
-    "freshSearch": "Cerca nova",
-    "cached": "A la memòria cau {{time}}",
-    "expires": "Caduca {{time}}",
-    "refreshFromIndexers": "Actualitza des dels indexadors",
     "partialResults": "Resultats parcials: hi ha indexadors que no han respost",
     "arrLookupFailed": "Ha fallat la cerca d'ID de metadades: s'ha cercat només pel títol i els resultats poden ser incomplets",
     "arrNoIds": "No s'ha trobat cap ID de metadades d'aquesta release: s'ha cercat només pel títol",
     "torznabFailed": "La cerca de Torznab ha fallat: només es mostren resultats de RED/OPS",
-    "searchScope": "Abast de la cerca",
     "noIndexers": "No hi ha cap indexador de Torznab disponible",
     "noIndexersHelp": "Afegeix o activa indexadors de Torznab a Configuració per cercar cross-seed.",
-    "capabilityNote": "Nota sobre les capacitats",
-    "capabilityDescription": "Aquests indexadors no tenen les capacitats o categories necessàries per a aquest torrent i el servidor els ometrà:",
-    "smartFilteringActive": "Filtratge intel·ligent actiu",
-    "indexersFiltered_one": "{{count}} indexador filtrat",
-    "indexersFiltered_other": "{{count}} indexadors filtrats",
-    "excludedDescription": "Ja sembres aquesta release des d'aquests trackers, així que queden exclosos de la cerca.",
     "searchingIndexers": "S'està cercant als indexadors…",
     "noMatchesFound": "No s'ha trobat cap coincidència a la teva cerca.",
-    "selectReleasesToAdd": "Selecciona les releases que vols afegir",
     "selectAll": "Selecciona-ho tot",
-    "clear": "Neteja",
     "tagAddedTorrents": "Etiqueta els torrents afegits",
     "startPaused": "Inicia'ls aturats",
-    "latestAddAttempt": "Últim intent d'addició",
     "close": "Tanca",
-    "addSelected": "Afegeix els seleccionats",
     "adding": "S'estan afegint…",
     "retry": "Torna-ho a provar",
     "seeders": "{{count}} llavors",
@@ -1437,38 +1416,47 @@
     "addedToBlocklist": "S'ha afegit a la llista de bloqueig",
     "missingInstance": "Falta la instància per a la llista de bloqueig",
     "trace": {
-      "title": "Desglossament de la cerca",
-      "summaryBadge": "{{total}} candidats, {{matches}} coincidències",
-      "summary": "S'han retornat {{total}} candidats. Rebutjats: {{release}} per release no coincident, {{size}} per mida no coincident, {{late}} pel filtre de contingut, {{duplicates}} duplicats. En queden {{matches}} de coincidents.",
-      "indexersHeading": "Indexadors",
+      "title": "Detalls de la cerca",
       "status": {
-        "searched": "cercat",
         "notCovered": "incomplet",
-        "error": "error",
-        "excluded": "exclòs"
+        "error": "error"
       },
-      "candidateCount": "{{count}} candidats",
       "rejectionsHeading": "Candidats rebutjats",
       "reasonCount": "{{reason}} · {{count}}",
       "moreCandidates": "+{{count}} més amb aquest motiu",
       "copyReport": "Copia l'informe",
       "copied": "S'ha copiat l'informe al porta-retalls",
-      "copyFailed": "No s'ha pogut copiar l'informe"
+      "copyFailed": "No s'ha pogut copiar l'informe",
+      "rejectedCount_one": "{{count}} candidat rebutjat",
+      "rejectedCount_other": "{{count}} candidats rebutjats",
+      "stats": {
+        "returned": "Candidats de Torznab",
+        "release": "Llançament diferent",
+        "size": "Mida diferent",
+        "late": "Filtre de contingut",
+        "duplicates": "Duplicats",
+        "matches": "Coincidències de Torznab"
+      }
     },
     "scope": {
-      "allIndexers": "Tots els indexadors",
-      "selectCustom": "Selecció personalitzada",
-      "selectedCount": "{{count}} seleccionats",
-      "selectIndexers": "Selecciona els indexadors",
-      "availableIndexers": "Indexadors disponibles",
-      "selectAllIndexers": "Selecciona'ls tots",
-      "clearSelection": "Neteja la selecció",
       "search": "Cerca",
       "searching": "S'està cercant",
-      "noneSelected": "Cap de seleccionat",
-      "enabledIndexers": "{{count}} {{suffix}} activats",
-      "selectedOfTotal": "{{selected}} de {{total}} seleccionats",
-      "indexersForSearch": "{{count}} {{suffix}} per a la cerca"
+      "alreadySeeded": "no consultat: ja el comparteixes allà",
+      "heading": "Indexadors",
+      "searchCount_one": "Cerca a {{count}} indexador",
+      "searchCount_other": "Cerca a {{count}} indexadors",
+      "unsupported_one": "{{count}} indexador més no admet aquest tipus de contingut",
+      "unsupported_other": "{{count}} indexadors més no admeten aquest tipus de contingut",
+      "matchCount_one": "{{count}} coincidència",
+      "matchCount_other": "{{count}} coincidències",
+      "selectNone": "No en seleccionis cap",
+      "checking": "S'està comprovant quins indexadors s'ajusten a aquest torrent…",
+      "nothingLeft": "No queda cap indexador on cercar aquest torrent.",
+      "selectAll": "Selecciona-ho tot",
+      "change": "Canvia",
+      "searchAgain": "Torna a cercar",
+      "done": "Fet",
+      "nonePicked": "Cap indexador seleccionat"
     },
     "status": {
       "added": "Afegit",
@@ -1489,25 +1477,17 @@
       "belowThreshold": "Omès: per sota del llindar"
     },
     "rateLimitHelp": {
-      "why": "Per què passa això:",
-      "whyDescription": "Els trackers limiten la freqüència de peticions per evitar abusos i expulsions.",
-      "whatYouCanDo": "Què pots fer:",
-      "wait": "Espera 30-60 minuts abans de tornar-ho a provar",
-      "fewerIndexers": "Prova de cercar amb menys indexadors seleccionats",
-      "useRss": "Fes servir l'automatització d'RSS per al cross-seeding continu",
-      "checkIndexers": "Mira la pàgina d'indexadors per veure quins tenen límit de freqüència"
+      "wait": "Espera 30-60 minuts abans de tornar-ho a provar"
     },
     "routedTo": "Els cross-seed van a la instància de cross-seed {{instance}}.",
     "gazelle": {
-      "heading": "RED/OPS",
       "willAsk": "es consultarà",
       "willAskRejected": "es consultarà: l'última vegada el lloc va rebutjar la clau API",
       "match": "coincidència",
       "noMatch": "cap coincidència",
       "openSettings": "Obre la configuració",
+      "noApiKeys": "RED/OPS està activat, però no hi ha cap clau API configurada",
       "notAsked": {
-        "disabled": "no consultat: desactivat",
-        "noApiKey": "no consultat: sense clau API",
         "cooldown": "no consultat: cercat fa poc",
         "notSelected": "no consultat: no seleccionat",
         "sourceSite": "no consultat: el torrent ve de {{site}}",
@@ -1520,7 +1500,18 @@
         "timedOut": "error: temps esgotat",
         "other": "error: {{detail}}"
       }
-    }
+    },
+    "cachedAgo": "Resultats en memòria cau · {{time}}",
+    "refresh": "Actualitza",
+    "tag": "Etiqueta",
+    "selectedOfTotal": "{{selected}} de {{total}} seleccionats",
+    "resultsSelectedOfTotal": "{{selected}} de {{total}} coincidències seleccionades",
+    "addCount_one": "Afegeix {{count}} torrent",
+    "addCount_other": "Afegeix {{count}} torrents",
+    "openOnIndexer": "Obre a {{indexer}}",
+    "problem": "{{name}}: {{status}}",
+    "problemDetail": "{{name}}: {{status}} ({{detail}})",
+    "add": "Afegeix"
   },
   "manualCrossSeed": {
     "title": "Coincidència manual de cross-seed",
@@ -1730,6 +1721,137 @@
       "title": "Agrupa els teus cross-seeds",
       "description": "Mostra les còpies d'un torrent en una sola fila.",
       "action": "Prova-ho"
+    },
+    "displayProfiles": {
+      "title": "Perfils de visualització",
+      "description": "Dona a cada pantalla les seves pròpies columnes, densitat de files i barres laterals. Tria aquí el perfil d’aquest navegador.",
+      "action": "Crea un perfil"
+    }
+  },
+  "displayProfiles": {
+    "chipAriaLabel": "Perfil de visualització: {{name}}",
+    "menuLabel": "Perfil de visualització",
+    "defaultName": "Predeterminat",
+    "manage": "Gestiona els perfils…",
+    "sheetDescription": "Cada navegador tria el seu propi perfil.",
+    "settings": {
+      "title": "Perfils de visualització",
+      "holds": "Conté: columnes · densitat de files · barres laterals · seccions de filtres · arbres de categories · filtres buits",
+      "holdsHelp": "Un perfil conté l’aspecte de la llista de torrents: quines columnes es mostren, el seu ordre i amplada, l’estirament de la columna Nom, la densitat de files, les barres laterals i les seccions de filtres obertes, els arbres de categories plegats i si es mostren els filtres buits. També conté quines files d’instàncies del Tauler estan obertes. Cada navegador fa servir un perfil, i només aquest navegador recorda l’elecció. Un navegador que no n’ha triat mai cap, i una finestra privada, fan servir Default. Tots els perfils comparteixen la resta de la configuració.",
+      "thisBrowser": "Aquest navegador",
+      "use": "Fes-lo servir en aquest navegador",
+      "makeProfile": "Crea un perfil per a un portàtil o un telèfon",
+      "themesSync": "Els temes se sincronitzen pel seu compte: <sync>Sincronització del tema</sync>",
+      "renameAriaLabel": "Canvia el nom de {{name}}",
+      "saveName": "Desa el nom",
+      "cancelRename": "Cancel·la el canvi de nom",
+      "editAriaLabel": "Edita {{name}}",
+      "editTitle": "Edita el perfil",
+      "delete": "Suprimeix…",
+      "deleteTitle": "Vols suprimir {{name}}?",
+      "deleteDescription": "Els altres navegadors que el fan servir passen a {{defaultName}}.",
+      "deleteConfirm": "Suprimeix",
+      "look": "{{density}} · {{filterSidebar}}",
+      "densities": {
+        "table": "Files de taula",
+        "dense": "Files denses",
+        "stacked": "Targetes apilades"
+      },
+      "filterSidebarOpen": "barra de filtres oberta",
+      "filterSidebarClosed": "barra de filtres tancada"
+    },
+    "nameErrors": {
+      "empty": "Introdueix un nom.",
+      "tooLong": "Fes servir {{max}} caràcters o menys.",
+      "duplicate": "Un altre perfil ja té aquest nom."
+    },
+    "ownSortAndFilters": {
+      "label": "Ordre i filtres propis",
+      "help": "<lead>Quan això està activat, aquest perfil té els seus propis:</lead><list><item>ordre de la llista de torrents</item><item>filtres de columna i filtres de la barra lateral</item><item>instàncies que mostra la vista Unificada</item><item>Agrupa les còpies, activat o desactivat</item><item>última pestanya oberta del panell de detalls</item><item>instància que mostren les pàgines de còpies de seguretat i RSS</item></list><note>Un canvi en aquests valors en aquest perfil no arriba a altres perfils. Quan això està desactivat, aquest perfil els comparteix amb tots els altres perfils que no tenen els seus propis. Desactivar-ho elimina els valors propis d'aquest perfil.</note>",
+      "offWarning": "Desactivar això elimina l'ordre i els filtres propis de {{name}}.",
+      "defaultShares": "Sempre comparteix l'ordre i els filtres",
+      "defaultSharesHelp": "Default sempre comparteix l'ordre, els filtres i les altres opcions de vista amb tots els perfils que no tenen els seus propis. Per tenir els teus propis, crea un altre perfil i activa Ordre i filtres propis."
+    },
+    "deletedToast": "S'ha suprimit el perfil {{name}}. Aquest navegador ara fa servir {{defaultName}}.",
+    "newProfile": "Perfil nou a partir d’aquesta configuració…",
+    "newDialog": {
+      "title": "Perfil nou",
+      "copies": "Copia <profile>{{name}}</profile>: columnes, densitat, barres laterals i filtres. Després aquest navegador l’utilitza.",
+      "name": "Nom",
+      "namePlaceholder": "Per exemple, Portàtil",
+      "nameCount": "{{length}}/{{max}}",
+      "cancel": "Cancel·la",
+      "create": "Crea"
+    },
+    "iconPicker": {
+      "trigger": "Icona: {{icon}}. Canvia la icona i el color",
+      "letter": "Primera lletra del nom",
+      "color": "Color"
+    },
+    "iconGroups": {
+      "devices": "Dispositius",
+      "places": "Llocs",
+      "use": "Ús",
+      "mood": "Estat d’ànim"
+    },
+    "icons": {
+      "appWindow": "Finestra d’aplicació",
+      "monitor": "Monitor",
+      "laptop": "Portàtil",
+      "tablet": "Tauleta",
+      "smartphone": "Telèfon intel·ligent",
+      "tv": "TV",
+      "server": "Servidor",
+      "gamepad": "Comandament",
+      "house": "Casa",
+      "briefcase": "Maletí",
+      "building": "Edifici",
+      "sofa": "Sofà",
+      "bed": "Llit",
+      "coffee": "Cafè",
+      "plane": "Avió",
+      "train": "Tren",
+      "rows": "Files",
+      "table": "Taula",
+      "list": "Llista",
+      "eye": "Ull",
+      "gauge": "Indicador",
+      "zap": "Llamp",
+      "download": "Baixada",
+      "upload": "Pujada",
+      "sprout": "Brot",
+      "bookmark": "Marcador",
+      "moon": "Lluna",
+      "sun": "Sol",
+      "star": "Estrella",
+      "heart": "Cor",
+      "flame": "Flama",
+      "rocket": "Coet"
+    },
+    "colors": {
+      "none": "Cap (color del text)",
+      "sky": "Cel",
+      "emerald": "Maragda",
+      "amber": "Ambre",
+      "rose": "Rosa",
+      "violet": "Violeta",
+      "orange": "Taronja",
+      "teal": "Verd blavós",
+      "pink": "Rosa intens"
+    },
+    "columns": {
+      "headingEveryInstance": "Columnes de {{profile}} · cada instància",
+      "headingOneInstance": "Columnes de {{profile}} · només {{instance}}",
+      "unifiedView": "Vista unificada",
+      "thisInstance": "aquesta instància"
+    },
+    "sameColumns": {
+      "label": "Les mateixes columnes a cada instància",
+      "menuHelp": "L’ordenació i els filtres de columna es mantenen per instància.",
+      "helpOn": "Una sola configuració de columnes per a {{instances}}.",
+      "helpOff": "Cada instància manté la seva. Si ho actives, cada instància rep les columnes de {{instance}}.",
+      "helpOffNoInstance": "Cada instància manté la seva.",
+      "unifiedViewInList": "la vista unificada"
     }
   }
 }

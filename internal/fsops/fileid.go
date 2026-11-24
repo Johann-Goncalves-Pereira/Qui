@@ -47,8 +47,6 @@ func remoteFileKey(id hardlink.FileID, instance *models.Instance) (FileKey, bool
 	return key, true
 }
 
-// SameFile reports whether two IDs name one file. IDs of different kinds
-// never match, and an ID with no key matches nothing.
 func SameFile(a hardlink.FileID, aInstance *models.Instance, b hardlink.FileID, bInstance *models.Instance) bool {
 	aKey, aOK := FileKeyOf(a, aInstance)
 	bKey, bOK := FileKeyOf(b, bInstance)
@@ -67,7 +65,7 @@ func remoteScope(hostPort string) uint32 {
 	defer remoteScopes.Unlock()
 	id, ok := remoteScopes.ids[hostPort]
 	if !ok {
-		id = uint32(len(remoteScopes.ids)) + 1 //nolint:gosec // a handful of instances, never 4 billion
+		id = uint32(len(remoteScopes.ids)) + 1
 		remoteScopes.ids[hostPort] = id
 	}
 	return id

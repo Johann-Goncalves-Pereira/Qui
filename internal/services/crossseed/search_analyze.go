@@ -97,7 +97,7 @@ func (s *Service) selectContentDetectionRelease(torrentName string, sourceReleas
 	if contentMismatch && !titleMismatch && fileContent.ContentType == "tv" &&
 		(sourceContent.ContentType == "movie" || sourceContent.ContentType == "music") {
 		if largestRelease.Episode > 0 || largestRelease.Series > 0 {
-			log.Debug().
+			log.Trace().
 				Str("torrentName", torrentName).
 				Str("largestFile", largestFile.Name).
 				Int("episode", largestRelease.Episode).
@@ -111,7 +111,7 @@ func (s *Service) selectContentDetectionRelease(torrentName string, sourceReleas
 		return sourceRelease, false
 	}
 
-	log.Debug().
+	log.Trace().
 		Str("torrentName", torrentName).
 		Str("largestFile", largestFile.Name).
 		Str("fileContentType", fileContent.ContentType).
@@ -599,8 +599,8 @@ func (s *Service) detectGazelleSourceSite(torrent *qbt.Torrent) (string, bool) {
 }
 
 // searchGazelleMatches asks each RED/OPS site that the Search scope marks
-// will_ask, at the same time, and returns one outcome for each site in the
-// order of the scope.
+// will_ask, at the same time, and returns one outcome for each lookup of the
+// scope, in the same order.
 func (s *Service) searchGazelleMatches(
 	ctx context.Context,
 	sourceTorrent *qbt.Torrent,
@@ -617,7 +617,7 @@ func (s *Service) searchGazelleMatches(
 			continue
 		}
 		wg.Go(func() {
-			lookups[i], results[i] = s.askGazelleSite(ctx, lookup, sourceTorrent, scope.exportedTorrent, localMap, clients)
+			lookups[i], results[i] = s.askGazelleSite(ctx, lookup, sourceTorrent, scope.exportedTorrent, localMap, clients, scope.sourceInstanceID, sourceFiles)
 		})
 	}
 	wg.Wait()
@@ -639,6 +639,8 @@ func (s *Service) askGazelleSite(
 	torrentBytes []byte,
 	localMap map[string]int64,
 	clients *gazelleClientSet,
+	instanceID int,
+	sourceFiles qbt.TorrentFiles,
 ) (GazelleLookup, *TorrentSearchResult) {
 	host := lookup.Site
 	if err := clients.keyErrs[host]; err != nil {
@@ -650,7 +652,7 @@ func (s *Service) askGazelleSite(
 	}
 	clients.markQueried(host)
 	lookup.sent = true
-	match, matchErr := findGazelleMatch(ctx, client, torrentBytes, localMap, sourceTorrent.Size)
+	match, matchErr := findGazelleMatch(ctx, client, torrentBytes, localMap, searchSourceSize(sourceTorrent))
 	if errors.Is(matchErr, gazellemusic.ErrAccessDenied) {
 		log.Warn().
 			Err(matchErr).
@@ -683,11 +685,20 @@ func (s *Service) askGazelleSite(
 		return lookup, nil
 	}
 
+	if match.Host != host {
+		lookup.Status, lookup.Detail = GazelleNoMatch, "selected target host changed"
+		return lookup, nil
+	}
+	decision, decisionErr := s.gazelleDecision(instanceID, sourceTorrent, sourceFiles, match)
+	if decisionErr != nil {
+		lookup.Status, lookup.Detail = GazelleNoMatch, decisionErr.Error()
+		return lookup, nil
+	}
 	log.Info().
 		Str("targetHost", host).
 		Str("hash", sourceTorrent.Hash).
 		Int64("torrentID", match.TorrentID).
-		Str("reason", match.Reason).
+		Str("reason", string(match.Kind)).
 		Msg("[CROSSSEED-GAZELLE] Match found")
 
 	lookup.Status = GazelleMatch
@@ -695,6 +706,8 @@ func (s *Service) askGazelleSite(
 		Indexer:              lookup.Name,
 		IndexerID:            lookup.IndexerID,
 		Title:                match.Title,
+		InfoHashV1:           match.TargetHash,
+		SearchDecision:       decision,
 		DownloadURL:          gazellemusic.BuildDownloadURL(host, match.TorrentID),
 		Size:                 match.Size,
 		Seeders:              0,
@@ -705,15 +718,15 @@ func (s *Service) askGazelleSite(
 		DownloadVolumeFactor: 1,
 		UploadVolumeFactor:   1,
 		GUID:                 "",
-		MatchReason:          "gazelle:" + match.Reason,
+		MatchReason:          "gazelle:" + string(match.Kind),
 		MatchScore:           1.0,
 	}
 }
 
 type gazelleSearchOutcome struct {
 	results []TorrentSearchResult
-	// lookups holds one outcome for each RED/OPS site, in the order of the
-	// site table.
+	// lookups holds one outcome for each RED/OPS site that has an API key, in
+	// the order of the site table.
 	lookups []GazelleLookup
 }
 
@@ -803,11 +816,14 @@ func alternateConnectorQuery(query string) (string, bool) {
 // numeral. A candidate counts only when its normalized form differs from the
 // primary query, so the retry never repeats the query that already returned
 // nothing.
-// Returns ("", false) when no distinct alternate title exists.
+// Returns ("", 0, false) when no distinct alternate title exists.
 // Dir Scan has no Service, so it parses through the default parser.
-func AlternateTitleQuery(primaryQuery string, release *rls.Release, arrTitles []string, releaseName string) (string, bool) {
-	query, _, ok := matcher{}.alternateTitleQuery(primaryQuery, namedRelease{release: release, rawName: releaseName}, arrTitles)
-	return query, ok
+func AlternateTitleQuery(primaryQuery string, release *rls.Release, arrTitles []string, releaseName string) (query string, season int, ok bool) {
+	side := namedRelease{release: release, rawName: releaseName}
+	if isTVRelease(release) {
+		side.seasonNumeral = inferredSeasonNumeral(release)
+	}
+	return matcher{}.alternateTitleQuery(primaryQuery, side, arrTitles)
 }
 
 // TitlesMatch reports whether two release names pass the title rule of the

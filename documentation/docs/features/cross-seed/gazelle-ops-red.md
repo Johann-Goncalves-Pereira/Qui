@@ -39,37 +39,36 @@ In a Library Scan, qui searches one copy of each group of duplicate copies. If a
 
 ## What each search shows
 
-Each search for one torrent reports one RED/OPS lookup for each site: a match, no match, not asked with the reason, or failed with the reason.
+Each search for one torrent reports one RED/OPS lookup for each site that has an API key: a match, no match, not asked with the reason, or failed with the reason. A site with no API key gets no lookup, and neither site gets one when Gazelle matching is off. qui then shows nothing about that site.
 
 ### Search dialog
 
-The **Search Scope** section of the **Search Cross-Seeds** dialog lists each Torznab indexer by name, and always two more entries: **Redacted (API)** and **Orpheus (API)**. An entry that the next search does not ask is grey. When a site has an API key, the list does not show the Torznab indexer of that site, because qui asks the site through its API.
+The **Indexers** section of the **Search Cross-Seeds** dialog names the indexers that the next search asks. A RED or OPS site that has an API key shows as **Redacted (API)** or **Orpheus (API)**. When a site has an API key, the dialog does not show the Torznab indexer of that site, because qui asks the site through its API.
 
-When the dialog opens, each entry shows the plan:
+To leave an indexer out of one search, select **Change** and clear its check box. If you select only Torznab indexers, the search asks no Gazelle site. If you select only Gazelle sites, the search asks no Torznab indexer.
+
+Below the check boxes, the dialog lists each site that the search does not ask, with the reason:
 
 | Text | Meaning |
 | --- | --- |
-| will ask | The search asks the site. |
-| will ask: the site rejected the API key last time | The search asks the site, but the System notice for its key is open. |
 | not asked: the torrent comes from Redacted | The torrent comes from that site. qui asks only the other site. |
 | not asked: you already seed it there | A copy of the release already seeds on that site, or the instance already holds its content. |
-| not asked: not music | Most of the bytes of the torrent are not audio, e-book, or comic files. |
-| not asked: no API key | The site has no API key. The entry links to the settings. |
-| not asked: off | Gazelle matching is off. The entry links to the settings. |
 
-An entry that qui does not ask is grey, and you cannot select it. With **Select Custom**, you can leave a site out of one search. Then the entry shows "not asked: not selected". If you select only Torznab indexers, the search asks no Gazelle site. If you select only Gazelle entries, the search asks no Torznab indexer.
+A site that is not asked because most of the bytes of the torrent are not audio, e-book, or comic files is in the line of indexers that do not support the content type.
 
-After the search, each entry shows the outcome: "match", "no match", "failed: the site rejected the API key", "failed: timed out", or "failed:" and the error. A match from a Gazelle site shows **Redacted (API)** or **Orpheus (API)** as its indexer.
+If the site rejected the API key on the last search, its entry shows "will ask: the site rejected the API key last time". When Gazelle matching is on and no site has an API key, the dialog shows "RED/OPS is on, but no API key is set" with a link to the settings. The dialog also shows both when the list of check boxes is closed.
 
-The search report that you copy from the dialog has a `RED/OPS:` section with one line for each site. The report is there also when the search asked no Torznab indexer.
+After the search, a site with a match shows the number of matches. A match from a Gazelle site shows **Redacted (API)** or **Orpheus (API)** as its indexer. If a lookup fails, the dialog shows the name of the site above the results, with "failed: the site rejected the API key", "failed: timed out", or "failed:" and the error.
+
+The search report that you copy from the dialog has a `RED/OPS:` section with one line for each site that has an API key. When Gazelle matching is off or no site has an API key, the report has no `RED/OPS:` section. The report is there also when the search asked no Torznab indexer.
 
 ### Library Scan
 
-Each run in **Recent runs** shows one RED/OPS line, for example "RED/OPS: Redacted: 180 asked, 12 matched, 3 failed, 20 not asked (20 not music)". The run adds a row for each Gazelle match and for each failed lookup, with the name of the site. A site that found no match, or that the run did not ask, adds no row.
+Each run in **Recent runs** shows one RED/OPS line for the sites that have an API key, for example "RED/OPS: Redacted: 180 asked, 12 matched, 3 failed, 20 not asked (20 not music)". A run shows no RED/OPS line when Gazelle matching is off or no site has an API key. The run adds a row for each Gazelle match and for each failed lookup, with the name of the site. A site that found no match, or that the run did not ask, adds no row.
 
 ### Completion search
 
-A completion search writes one log line for each Gazelle site. The line is at Debug level, at Info for a match, and at Warn for a failure. When the completion search sends a notification, the notification has one RED/OPS line, for example "RED/OPS: Redacted not asked (the torrent comes from Redacted), Orpheus no match".
+A completion search writes one log line for each Gazelle site that has an API key. The line is at Debug level, at Info for a match, and at Warn for a failure. When the completion search sends a notification, the notification has one RED/OPS line that names only those sites, for example "RED/OPS: Redacted not asked (the torrent comes from Redacted), Orpheus no match". When Gazelle matching is off or no site has an API key, the notification has no RED/OPS line.
 
 ## When it applies
 
@@ -108,7 +107,6 @@ In order:
 
 1. Infohash match with the Gazelle-style `info["source"]` swap logic (see [nemorosa](https://github.com/KyokoMiki/nemorosa)). qui tries the current source flag first (`RED` or `OPS`), then the flag the site used before its rename (`PTH` or `APL`). Uploads from before a rename still carry the old flag.
 2. Filename search plus exact total size
-3. Filename search plus filelist verification
 
 If the target tracker is down or returns an error, qui logs a warning, does not stamp the torrent's Gazelle cooldown, and continues the run. The torrent stays eligible for the next run.
 

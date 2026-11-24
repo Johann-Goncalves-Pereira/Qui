@@ -12,11 +12,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import "@/i18n"
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { readRaw } from "@/lib/client-settings"
+import {
+  _resetClientSettingsForTests,
+  applyServerSettings,
+  createDisplayProfile,
+  markClientSettingsUnavailable,
+  pickDisplayProfile,
+  readClientSetting,
+  readRaw,
+  seedAndMarkReady,
+  setDisplayProfileOwnSortAndFilters
+} from "@/lib/client-settings"
+import { DEFAULT_DISPLAY_PROFILE_ID } from "@/lib/display-profiles"
 import type { DashboardInstanceStats } from "@/lib/dashboard-overview"
 import { formatBytes } from "@/lib/utils"
 import { server } from "@/test/msw/server"
-import type { InstanceResponse, ServerState, TransferHistoryInstance, TransferHistoryRow } from "@/types"
+import type { InstanceResponse, LiveSamples, ServerState, TrackerCustomization, TransferHistoryInstance, TransferHistoryRow } from "@/types"
 
 const mocks = vi.hoisted(() => {
   const t = (key: string | string[], options?: Record<string, unknown>) => {
@@ -27,6 +38,7 @@ const mocks = vi.hoisted(() => {
   return {
     i18n: { t, i18n: { resolvedLanguage: "en", language: "en" } },
     incognitoMode: [false, () => {}] as [boolean, () => void],
+    trackerIcons: { data: undefined } as { data?: Record<string, string> },
     toastError: vi.fn(),
   }
 })
@@ -39,6 +51,7 @@ vi.mock("sonner", async (importOriginal) => ({
   ...await importOriginal<typeof import("sonner")>(),
   toast: { error: mocks.toastError },
 }))
+vi.mock("@/hooks/useTrackerIcons", () => ({ useTrackerIcons: () => mocks.trackerIcons }))
 vi.mock("@/lib/incognito", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/incognito")>(),
   useIncognitoMode: () => mocks.incognitoMode,
@@ -53,6 +66,8 @@ let transferRequests: number[]
 let toggles: number[]
 let toggleFails: boolean
 let desktop: boolean
+let liveSamples: LiveSamples
+let customizations: TrackerCustomization[]
 
 function hourRow(group: string, hoursAgo: number, uploaded: number, downloaded: number, extra: Partial<TransferHistoryRow> = {}): TransferHistoryRow {
   const start = Math.floor(Date.now() / HOUR) * HOUR - hoursAgo * HOUR
@@ -79,6 +94,7 @@ function stats(id: number, extra: Partial<DashboardInstanceStats> = {}, instance
     isDashboardStatsFallbackActive: false,
     cacheMetadata: null,
     instanceMeta: null,
+    disk: null,
     ...extra,
   }
 }
@@ -98,7 +114,32 @@ function renderOverview(statsData: DashboardInstanceStats[]) {
   return { ...view, router }
 }
 
+function rowOf(table: HTMLElement, name: string): HTMLElement {
+  return within(table).getByText(name).closest("tr")!
+}
+
+function visibleText(node: Element): string {
+  const copy = node.cloneNode(true) as Element
+  copy.querySelectorAll("[aria-hidden=true]").forEach(hidden => hidden.remove())
+  return copy.textContent ?? ""
+}
+
+// The host of each open detail band, in the order of the rows.
+function openHosts(table: HTMLElement): string[] {
+  return within(table).queryAllByTestId("fact-host").map(fact => fact.textContent ?? "")
+}
+
+// The two calls that useClientSettingsSync makes for the first server snapshot.
+function loadServerSnapshot(settings: Record<string, string> = {}) {
+  act(() => {
+    applyServerSettings(settings)
+    seedAndMarkReady(settings)
+  })
+}
+
 beforeEach(() => {
+  _resetClientSettingsForTests()
+  seedAndMarkReady({})
   statuses = [recorded(1, 48), recorded(2, 48)]
   answer = () => []
   transferRequests = []
@@ -106,12 +147,10 @@ beforeEach(() => {
   toggleFails = false
   mocks.toastError.mockReset()
   desktop = false
+  liveSamples = { now: new Date().toISOString(), instances: [] }
   mocks.incognitoMode = [false, () => {}]
-  vi.stubGlobal("ResizeObserver", class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  })
+  mocks.trackerIcons = { data: undefined }
+  customizations = []
   vi.stubGlobal("matchMedia", (query: string) => ({
     matches: desktop && query.includes("min-width: 1024px"),
     media: query,
@@ -120,6 +159,9 @@ beforeEach(() => {
   }))
   server.use(
     http.get("*/api/transfer-history/status", () => HttpResponse.json({ instances: statuses })),
+    http.get("*/api/live-samples", () => HttpResponse.json(liveSamples)),
+    http.get("*/api/tracker-customizations", () => HttpResponse.json(customizations)),
+    http.put("*/api/client-settings", () => HttpResponse.json({})),
     http.get("*/api/instances/:id/transfer-history", ({ params }) => {
       transferRequests.push(Number(params.id))
       return HttpResponse.json({ rows: answer(Number(params.id)) })
@@ -156,7 +198,7 @@ describe("DashboardOverview, 24 h", () => {
     renderOverview([stats(1), stats(2)])
 
     const section = await screen.findByRole("region", { name: "trackers.title" })
-    const rows = within(section).getAllByTestId("tracker-row").map(row => row.textContent)
+    const rows = within(section).getAllByTestId("tracker-row").map(visibleText)
     expect(rows).toEqual([
       `a.test${formatBytes(15 * GiB)}28%`,
       `b.test${formatBytes(9 * GiB)}17%`,
@@ -166,6 +208,24 @@ describe("DashboardOverview, 24 h", () => {
       `statistics:chart.otherCount groups=2${formatBytes(9 * GiB)}17%`,
     ])
     expect(within(section).getByText("trackers.statistics").closest("a")?.getAttribute("href")).toBe("/statistics?period=24h")
+  })
+
+  it("shows the tracker icon of each Tracker group, from a domain of the customization that names the group, and none for Other", async () => {
+    mocks.trackerIcons = { data: { "a.test": "data:image/png;base64,YQ==", "b.test": "data:image/png;base64,Yg==" } }
+    customizations = [{ id: 1, displayName: "Bee", domains: ["b-alt.test", "b.test"], createdAt: "", updatedAt: "" }]
+    answer = id => id === 1
+      ? ["a.test", "Bee", "c.test", "Public", "d.test", "e.test", "f.test"].map((group, index) => hourRow(group, 2, (10 - index) * GiB, 0))
+      : []
+    renderOverview([stats(1)])
+
+    const section = await screen.findByRole("region", { name: "trackers.title" })
+    const row = (name: string) => within(section).getByText(name).closest("li")!
+    await vi.waitFor(() => expect(row("Bee").querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,Yg=="))
+    expect(row("a.test").querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,YQ==")
+    expect(row("c.test").querySelector("img")).toBeNull()
+    expect(row("c.test").querySelector("span[aria-hidden=true]")?.textContent).toBe("C")
+    expect(row("groups.public").querySelector("img, span[aria-hidden=true]")).toBeNull()
+    expect(row("statistics:chart.otherCount groups=2").querySelector("img, span[aria-hidden=true]")).toBeNull()
   })
 
   it("reads the transfer route once for each instance at open and again each 5 minutes", async () => {
@@ -191,8 +251,7 @@ describe("DashboardOverview, 24 h", () => {
 
     await screen.findByText("statistics:partial")
     expect(screen.getAllByTestId("gap-mark")).toHaveLength(1)
-    const gapTitles = [...document.querySelectorAll("rect > title")].map(title => title.textContent ?? "").filter(title => title.includes("statistics:chart.gap"))
-    expect(gapTitles).toHaveLength(1)
+    expect(screen.getByText("chart.gapLabel duration=30m")).toBeTruthy()
   })
 
   // regression: #4141
@@ -202,8 +261,8 @@ describe("DashboardOverview, 24 h", () => {
     renderOverview([stats(1)])
 
     await screen.findByRole("region", { name: "trackers.title" })
-    const times = [...document.querySelectorAll("rect > title")].map(title => /time=(\S+)/.exec(title.textContent ?? "")?.[1])
-    expect(times.length).toBeGreaterThan(0)
+    const times = screen.getAllByText(/^\d{2}:\d{2}$/).map(time => time.textContent)
+    expect(times).toHaveLength(3)
     expect(times.every(time => time?.endsWith(":30"))).toBe(true)
   })
 
@@ -214,7 +273,7 @@ describe("DashboardOverview, 24 h", () => {
     renderOverview([stats(1)])
 
     await screen.findByRole("region", { name: "trackers.title" })
-    expect(document.querySelectorAll("rect > title").length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/^\d{2}:\d{2}$/)).toHaveLength(3)
   })
 
   it("has no partial label and no gap mark for a full day without a gap", async () => {
@@ -256,6 +315,87 @@ describe("DashboardOverview after a failed read", () => {
   })
 })
 
+describe("DashboardOverview, Live", () => {
+  it("opens on the view that the user picked last, after a remount", async () => {
+    answer = () => [hourRow("a.test", 2, GiB, 0)]
+    const { unmount } = renderOverview([stats(1)])
+    await screen.findByTestId("tracker-row")
+    expect(screen.getByRole("tab", { name: "stream.day" }).getAttribute("aria-selected")).toBe("true")
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "stream.live" }), { button: 0 })
+    expect(readRaw("qui-dashboard-chart-view")).toBe(JSON.stringify("live"))
+    unmount()
+
+    renderOverview([stats(1)])
+    expect(screen.getByRole("tab", { name: "stream.live" }).getAttribute("aria-selected")).toBe("true")
+  })
+
+  // regression: #4192
+  it("waits for the saved view from the server before it offers 24 h and Live, so that a tap is not lost", async () => {
+    _resetClientSettingsForTests()
+    answer = () => [hourRow("a.test", 2, GiB, 0)]
+    renderOverview([stats(1)])
+    await screen.findByTestId("tracker-row")
+    expect(screen.getByRole("tab", { name: "stream.day" }).hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("tab", { name: "stream.live" }).hasAttribute("disabled")).toBe(true)
+
+    loadServerSnapshot({ "qui-dashboard-chart-view": JSON.stringify("live") })
+    const live = screen.getByRole("tab", { name: "stream.live" })
+    expect(live.getAttribute("aria-selected")).toBe("true")
+    expect(live.hasAttribute("disabled")).toBe(false)
+    expect(screen.getByRole("tab", { name: "stream.day" }).hasAttribute("disabled")).toBe(false)
+  })
+
+  // regression: #4192
+  it("offers 24 h and Live with the local view when the saved settings cannot load", async () => {
+    _resetClientSettingsForTests()
+    localStorage.setItem("qui-dashboard-chart-view", JSON.stringify("live"))
+    renderOverview([stats(1)])
+    expect(screen.getByRole("tab", { name: "stream.live" }).hasAttribute("disabled")).toBe(true)
+
+    act(() => markClientSettingsUnavailable())
+    const live = screen.getByRole("tab", { name: "stream.live" })
+    expect(live.hasAttribute("disabled")).toBe(false)
+    expect(live.getAttribute("aria-selected")).toBe("true")
+  })
+
+  it("draws the samples of the server for the instances of the list", async () => {
+    localStorage.setItem("qui-dashboard-chart-view", JSON.stringify("live"))
+    const now = Date.now()
+    const sample = (ago: number, up: number) => ({ time: new Date(now - ago * 1000).toISOString(), up, down: 0 })
+    liveSamples = {
+      now: new Date(now).toISOString(),
+      instances: [
+        { instanceId: 1, samples: [sample(5, 1024), sample(3, 4096), sample(1, 2048)] },
+        // Not in the list of the Dashboard.
+        { instanceId: 9, samples: [sample(3, 1024 ** 3), sample(1, 1024 ** 3)] },
+      ],
+    }
+    renderOverview([stats(1)])
+
+    await vi.waitFor(() => expect(screen.getAllByTestId("chart-layer").map(layer => layer.getAttribute("data-layer"))).toEqual(["0"]))
+    expect(screen.getAllByText(/^stream.peakSpeed/).map(peak => peak.textContent)).toEqual(["stream.peakSpeed speed=4 KiB/s", "stream.peakSpeed speed=0 B/s"])
+  })
+
+  // regression: #4192
+  it("shows the error in place of the Live chart when a later read of the samples fails", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["setInterval", "clearInterval", "Date"] })
+    localStorage.setItem("qui-dashboard-chart-view", JSON.stringify("live"))
+    const now = Date.now()
+    liveSamples = { now: new Date(now).toISOString(), instances: [{ instanceId: 1, samples: [3, 1].map(ago => ({ time: new Date(now - ago * 1000).toISOString(), up: 1024, down: 0 })) }] }
+    renderOverview([stats(1)])
+    await vi.waitFor(() => expect(screen.getAllByTestId("chart-layer")).toHaveLength(1))
+
+    server.use(http.get("*/api/live-samples", () => HttpResponse.json({ error: "qui is restarting" }, { status: 500 })))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000)
+    })
+    await vi.waitFor(() => expect(screen.getByText(/^stream.loadError/)).toBeTruthy())
+    expect(screen.queryAllByTestId("chart-layer")).toEqual([])
+    expect(screen.queryAllByText(/^stream.peakSpeed/)).toEqual([])
+  })
+})
+
 describe("DashboardOverview without history", () => {
   it("opens on Live, turns 24 h off with its reason, and shows no tracker list", async () => {
     statuses = []
@@ -270,6 +410,7 @@ describe("DashboardOverview without history", () => {
 
     fireEvent.click(day.parentElement!)
     expect((await screen.findAllByText("stream.noHistory")).length).toBeGreaterThan(0)
+    expect(readRaw("qui-dashboard-chart-view")).toBeNull()
   })
 
   // regression: #4141
@@ -311,16 +452,80 @@ describe("DashboardOverview instances", () => {
     ])
   })
 
-  it("lists a disk with less than 5% free of the free space and the Unique size as almost full", () => {
+  // regression: #4328
+  it("does not list a disk as almost full when qui only estimates its size", () => {
     renderOverview([
       stats(1, {}, {}, { free_space_on_disk: 4 * GiB }),
       stats(2, {}, {}, { free_space_on_disk: 5 * GiB }),
     ])
 
+    expect(screen.queryByRole("region", { name: "attention.title" })).toBeNull()
+  })
+
+  // regression: #4328
+  it("warns only about the measured disk when a large library sits next to a mostly empty estimated disk", () => {
+    const library = { ...stats(0).stats!, uniqueSize: 9 * 1024 * GiB }
+    renderOverview([
+      stats(1, { stats: library }, {}, { free_space_on_disk: 450 * GiB }),
+      stats(2, { disk: { freeBytes: 40 * GiB, totalBytes: 1000 * GiB } }, {}, { free_space_on_disk: 40 * GiB }),
+    ])
+
     const items = [...screen.getByTestId("attention-list").querySelectorAll("li[data-tone]")]
     expect(items.map(item => `${item.getAttribute("data-tone")} ${item.textContent}`)).toEqual([
-      `red attention.lowDisk name=instance 1 free=${formatBytes(4 * GiB)}`,
+      `red attention.lowDisk name=instance 2 free=${formatBytes(40 * GiB)}`,
     ])
+    const storage = screen.getByRole("region", { name: "storage.title" })
+    expect(within(storage).getByText("instance 1")).toBeTruthy()
+    expect(within(storage).getByText("instance 2")).toBeTruthy()
+    expect(within(storage).getByRole("button", { name: "fieldHelp.trigger" })).toBeTruthy()
+  })
+
+  // regression: #4305
+  it("judges two instances on one disk by the size of the disk, not by their own torrents", () => {
+    const disk = { freeBytes: 60 * GiB, totalBytes: 2000 * GiB }
+    const big = { ...stats(0).stats!, uniqueSize: 1900 * GiB }
+    renderOverview([
+      stats(1, { disk, stats: big }, {}, { free_space_on_disk: 60 * GiB }),
+      stats(2, { disk }, {}, { free_space_on_disk: 60 * GiB }),
+      stats(3, { disk: { freeBytes: 400 * GiB, totalBytes: 1000 * GiB } }, {}, { free_space_on_disk: 4 * GiB }),
+    ])
+
+    const items = [...screen.getByTestId("attention-list").querySelectorAll("li[data-tone]")]
+    expect(items.map(item => item.textContent)).toEqual([
+      `attention.lowDisk name=instance 1 free=${formatBytes(60 * GiB)}`,
+      `attention.lowDisk name=instance 2 free=${formatBytes(60 * GiB)}`,
+    ])
+  })
+
+  // regression: #4305
+  it("waits for the free space of qBittorrent before it warns about a measured disk", () => {
+    const disk = { freeBytes: 10 * GiB, totalBytes: 1000 * GiB }
+    renderOverview([
+      stats(1, { disk }, {}, { free_space_on_disk: -1 }),
+      stats(2, { disk }, {}, { free_space_on_disk: 10 * GiB }),
+    ])
+
+    const items = [...screen.getByTestId("attention-list").querySelectorAll("li[data-tone]")]
+    expect(items.map(item => item.textContent)).toEqual([`attention.lowDisk name=instance 2 free=${formatBytes(10 * GiB)}`])
+  })
+
+  // regression: #4305
+  it("explains the Storage bars only while one of them is an estimate", () => {
+    const disk = { freeBytes: 400 * GiB, totalBytes: 1000 * GiB }
+    const measured = renderOverview([stats(1, { disk }), stats(2, { disk })])
+    expect(within(screen.getByRole("region", { name: "storage.title" })).queryByRole("button", { name: "fieldHelp.trigger" })).toBeNull()
+    measured.unmount()
+
+    renderOverview([stats(1, { disk }), stats(2)])
+    expect(within(screen.getByRole("region", { name: "storage.title" })).getByRole("button", { name: "fieldHelp.trigger" })).toBeTruthy()
+  })
+
+  // regression: #4179
+  it("leaves out Needs attention when nothing needs an action", () => {
+    renderOverview([stats(1), stats(2)])
+
+    expect(screen.getByRole("region", { name: "library.title" })).toBeTruthy()
+    expect(screen.queryByRole("region", { name: "attention.title" })).toBeNull()
   })
 
   // regression: #4141
@@ -351,18 +556,84 @@ describe("DashboardOverview instances", () => {
     expect(within(sheet).getByText("details.openTorrents").closest("a")?.getAttribute("href")).toBe("/instances/2")
   })
 
-  it("opens one detail band at a time on desktop and keeps the columns of the table", async () => {
+  it("keeps each detail band open on desktop until a click on its row, and keeps the columns of the table", async () => {
     desktop = true
     answer = () => [hourRow("a.test", 2, GiB, 0)]
     renderOverview([stats(1), stats(2)])
     const table = await screen.findByRole("table", { name: "instances.title" })
     await within(table).findByText("instances.uploaded24h")
 
-    fireEvent.click(within(table).getByText("instance 1"))
-    expect(within(table).getAllByTestId("fact-host").map(fact => fact.textContent)).toEqual(["http://qbit-1.example.test:8080details.host"])
-    fireEvent.click(within(table).getByText("instance 2"))
-    expect(within(table).getAllByTestId("fact-host").map(fact => fact.textContent)).toEqual(["http://qbit-2.example.test:8080details.host"])
+    fireEvent.click(rowOf(table, "instance 1"))
+    expect(openHosts(table)).toEqual(["http://qbit-1.example.test:8080details.host"])
+    fireEvent.click(rowOf(table, "instance 2"))
+    expect(openHosts(table)).toEqual(["http://qbit-1.example.test:8080details.host", "http://qbit-2.example.test:8080details.host"])
+    fireEvent.click(rowOf(table, "instance 1"))
+    expect(openHosts(table)).toEqual(["http://qbit-2.example.test:8080details.host"])
     expect(within(table).getAllByRole("columnheader")).toHaveLength(6)
+  })
+
+  it("opens the rows on desktop that the Display settings hold, and saves a row that the user opens", async () => {
+    desktop = true
+    loadServerSnapshot({ "qui-dashboard-open-instances": JSON.stringify([2]) })
+    renderOverview([stats(1), stats(2)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+    expect(openHosts(table)).toEqual(["http://qbit-2.example.test:8080details.host"])
+
+    fireEvent.click(rowOf(table, "instance 1"))
+    expect(readRaw("qui-dashboard-open-instances")).toBe(JSON.stringify([2, 1]))
+  })
+
+  it("takes no click on a desktop row before the saved rows are read, so that the read does not close the row again", async () => {
+    _resetClientSettingsForTests()
+    desktop = true
+    renderOverview([stats(1), stats(2)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+
+    fireEvent.click(rowOf(table, "instance 1"))
+    expect(openHosts(table)).toEqual([])
+    expect(within(table).getByRole("button", { name: "instances.expandAll" }).hasAttribute("disabled")).toBe(true)
+
+    loadServerSnapshot({ "qui-dashboard-open-instances": JSON.stringify([2]) })
+    expect(openHosts(table)).toEqual(["http://qbit-2.example.test:8080details.host"])
+  })
+
+  it("opens each row and closes each row with the button in the header of the desktop table", async () => {
+    desktop = true
+    renderOverview([stats(1), stats(2)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+
+    fireEvent.click(within(table).getByRole("button", { name: "instances.expandAll" }))
+    expect(openHosts(table)).toHaveLength(2)
+    fireEvent.click(within(table).getByRole("button", { name: "instances.collapseAll" }))
+    expect(openHosts(table)).toEqual([])
+  })
+
+  it("links the name of a desktop row to the torrent list of the instance, and a click on it opens no detail band", async () => {
+    desktop = true
+    renderOverview([stats(1)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+    const name = within(table).getByText("instance 1")
+
+    expect(name.closest("a")?.getAttribute("href")).toBe("/instances/1")
+    fireEvent.click(name)
+    expect(openHosts(table)).toEqual([])
+  })
+
+  it("shows the transfer of the last 24 hours and of all time in an open desktop row", async () => {
+    desktop = true
+    answer = () => [hourRow("a.test", 2, 3 * GiB, GiB)]
+    renderOverview([stats(1, {}, {}, { alltime_ul: 10 * GiB, alltime_dl: 4 * GiB }), stats(2)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+    await within(table).findByText("instances.uploaded24h")
+    fireEvent.click(within(table).getByRole("button", { name: "instances.expandAll" }))
+
+    const [day, , emptyDay] = within(table).getAllByTestId("totals-day")
+    expect(day.textContent).toBe(`details.last24hdetails.uploaded${formatBytes(3 * GiB)}details.downloaded${formatBytes(GiB)}details.ratio ratio=3.00`)
+    expect(within(table).getAllByTestId("totals-all-time").map(row => row.textContent)).toEqual([
+      `details.allTimedetails.uploaded${formatBytes(10 * GiB)}details.downloaded${formatBytes(4 * GiB)}details.ratio ratio=2.50`,
+      "details.allTimedetails.uploaded0 Bdetails.downloaded0 Bdetails.ratio ratio=–",
+    ])
+    expect(emptyDay).toBeUndefined()
   })
 
   // regression: #4141
@@ -385,16 +656,39 @@ describe("DashboardOverview instances", () => {
     expect(screen.getByText("details.openSettings").closest("a")?.getAttribute("href")).toBe("/settings?tab=instances")
   })
 
-  it("changes the alternative speed limits only after the confirmation", async () => {
+  it("changes the alternative speed limits with one tap on the switch of the bottom sheet", async () => {
     renderOverview([stats(1)])
     fireEvent.click(within(screen.getByRole("list", { name: "instances.title" })).getByText("instance 1"))
     const sheet = await screen.findByRole("dialog")
 
     fireEvent.click(within(sheet).getByRole("switch"))
-    const confirm = await screen.findByRole("alertdialog")
-    expect(toggles).toEqual([])
-    fireEvent.click(within(confirm).getByText("altSpeedDialog.enable"))
     await vi.waitFor(() => expect(toggles).toEqual([1]))
+    expect(within(sheet).getByRole("switch").getAttribute("aria-checked")).toBe("true")
+  })
+
+  it("changes the alternative speed limits with one click on the turtle of a desktop row, and opens no detail band", async () => {
+    desktop = true
+    renderOverview([stats(1), stats(2, { altSpeedEnabled: true })])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+    expect(within(table).getAllByRole("button", { name: "instances.altSpeedTurnOff" })).toHaveLength(1)
+
+    fireEvent.click(within(table).getByRole("button", { name: "instances.altSpeedTurnOn" }))
+    await vi.waitFor(() => expect(toggles).toEqual([1]))
+    // The answer of qBittorrent shows before the stream brings the new value.
+    await vi.waitFor(() => expect(within(table).getAllByRole("button", { name: "instances.altSpeedTurnOff" })).toHaveLength(2))
+    expect(openHosts(table)).toEqual([])
+  })
+
+  it("shows the limits as off again on a desktop row when qBittorrent rejects the change", async () => {
+    desktop = true
+    toggleFails = true
+    renderOverview([stats(1)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+
+    fireEvent.click(within(table).getByRole("button", { name: "instances.altSpeedTurnOn" }))
+    await vi.waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1))
+    expect(within(table).getByRole("button", { name: "instances.altSpeedTurnOn" })).toBeTruthy()
+    expect(within(table).queryByRole("button", { name: "instances.altSpeedTurnOff" })).toBeNull()
   })
 
   // regression: #4141
@@ -405,7 +699,6 @@ describe("DashboardOverview instances", () => {
     const sheet = await screen.findByRole("dialog")
 
     fireEvent.click(within(sheet).getByRole("switch"))
-    fireEvent.click(within(await screen.findByRole("alertdialog")).getByText("altSpeedDialog.enable"))
     await vi.waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1))
     expect(String(mocks.toastError.mock.calls[0][0])).toMatch(/^common:errors\.altSpeedToggle message=/)
   })
@@ -419,7 +712,6 @@ describe("DashboardOverview instances", () => {
     const sheet = await screen.findByRole("dialog")
 
     fireEvent.click(within(sheet).getByRole("switch"))
-    fireEvent.click(within(await screen.findByRole("alertdialog")).getByText("altSpeedDialog.enable"))
     await vi.waitFor(() => expect(mocks.toastError).toHaveBeenCalledTimes(1))
     expect(mocks.toastError.mock.calls[0][0]).toBe("common:errors.altSpeedToggleHidden")
   })
@@ -431,6 +723,89 @@ describe("DashboardOverview instances", () => {
     fireEvent.click(link)
     expect(JSON.parse(readRaw("qui-filters-global") ?? "")).toEqual({ status: ["unregistered"], excludeStatus: [] })
     await vi.waitFor(() => expect(router.state.location.pathname).toBe("/instances/1"))
+  })
+
+  it("gives the filter of an issue to a profile that keeps its own sort and filters", () => {
+    const phone = createDisplayProfile("Phone")
+    setDisplayProfileOwnSortAndFilters(phone, true)
+    renderOverview([stats(1, { torrentCounts: { status: { unregistered: 4 }, categories: {}, tags: {}, trackers: {}, total: 10 } })])
+
+    fireEvent.click(within(screen.getByTestId("attention-list")).getByText("issues.unregistered count=4").closest("a")!)
+
+    const filters = { defaultValue: null, parse: (raw: string) => JSON.parse(raw) as unknown }
+    expect(readClientSetting("qui-filters-global", filters)).toEqual({ status: ["unregistered"], excludeStatus: [] })
+    pickDisplayProfile(DEFAULT_DISPLAY_PROFILE_ID)
+    expect(readClientSetting("qui-filters-global", filters)).toBeNull()
+  })
+})
+
+describe("DashboardOverview pointed layer", () => {
+  // The layers of the chart that show as pointed and as faded.
+  function marks() {
+    const layers = screen.getAllByTestId("chart-layer")
+    const withMark = (mark: string) => layers.filter(layer => layer.hasAttribute(mark)).map(layer => layer.getAttribute("data-layer"))
+    return { pointed: withMark("data-pointed"), faded: withMark("data-faded") }
+  }
+
+  // The chart of two instances that each uploaded 1 GiB in the hour that started 2 hours ago, and the x of that hour.
+  async function chartOfTwoLayers() {
+    const chart = await screen.findByRole("img", { name: "stream.dayLabel" })
+    await vi.waitFor(() => expect(screen.getAllByTestId("chart-layer")).toHaveLength(2))
+    // jsdom has no layout. The chart gets the size of its viewBox, so that a pointer position is a viewBox position.
+    chart.getBoundingClientRect = () => ({ left: 0, top: 0, width: 600, height: 200 }) as DOMRect
+    // The chart has 24 hours, and the last one is the hour of now.
+    return { chart, x: ((24 - 1 - 2 + 0.5) / 24) * 600 }
+  }
+
+  it("marks the layer of a desktop row and fades the other layer while the pointer or the keyboard focus is on the row", async () => {
+    desktop = true
+    answer = () => [hourRow("a.test", 2, GiB, 0)]
+    renderOverview([stats(1), stats(2)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+    await chartOfTwoLayers()
+    const row = rowOf(table, "instance 2")
+
+    fireEvent.mouseEnter(row)
+    expect(marks()).toEqual({ pointed: ["1"], faded: ["0"] })
+    fireEvent.mouseLeave(row)
+    expect(marks()).toEqual({ pointed: [], faded: [] })
+    fireEvent.focus(row)
+    expect(marks()).toEqual({ pointed: ["1"], faded: ["0"] })
+    fireEvent.blur(row)
+    expect(marks()).toEqual({ pointed: [], faded: [] })
+  })
+
+  it("marks the layer under the pointer in the chart and the row of its instance, for upload and for download", async () => {
+    desktop = true
+    answer = id => [hourRow("a.test", 2, GiB, id === 2 ? GiB : 0)]
+    renderOverview([stats(1), stats(2)])
+    const table = await screen.findByRole("table", { name: "instances.title" })
+    const { chart, x } = await chartOfTwoLayers()
+    const pointAt = (y: number) => {
+      fireEvent.mouseMove(chart, { clientX: x, clientY: y })
+      return { ...marks(), rows: ["instance 1", "instance 2"].filter(name => rowOf(table, name).querySelector("[data-pointed]")) }
+    }
+
+    // The zero line is at 120. The 2 GiB of upload reach up to 6, and the 1 GiB of download of instance 2 reaches down to 194.
+    expect(pointAt(100)).toEqual({ pointed: ["0"], faded: ["1"], rows: ["instance 1"] })
+    expect(pointAt(30)).toEqual({ pointed: ["1"], faded: ["0"], rows: ["instance 2"] })
+    expect(pointAt(2)).toEqual({ pointed: [], faded: [], rows: [] })
+    expect(pointAt(150)).toEqual({ pointed: ["1"], faded: ["0"], rows: ["instance 2"] })
+    expect(pointAt(197)).toEqual({ pointed: [], faded: [], rows: [] })
+    fireEvent.mouseMove(chart, { clientX: x, clientY: 150 })
+    fireEvent.mouseLeave(chart)
+    expect(marks()).toEqual({ pointed: [], faded: [] })
+  })
+
+  it("marks the line of the instance on a phone for a tap on its layer", async () => {
+    answer = () => [hourRow("a.test", 2, GiB, 0)]
+    renderOverview([stats(1), stats(2)])
+    const { chart, x } = await chartOfTwoLayers()
+
+    // With no download, the 2 GiB of upload reach from 200 up to 6.
+    fireEvent.click(chart, { clientX: x, clientY: 150 })
+    const lines = within(screen.getByRole("list", { name: "instances.title" })).getAllByRole("listitem")
+    expect(lines.map(line => line.querySelector("[data-pointed]") !== null)).toEqual([true, false])
   })
 })
 
@@ -447,6 +822,15 @@ describe("DashboardOverview library", () => {
     renderOverview([stats(1), stats(2)])
     expect(screen.getByTestId("library-total").textContent).toBe(`${formatBytes(160 * GiB)}library.totalSize`)
     expect(screen.getByTestId("library-seeding").textContent).toBe(`${formatBytes(140 * GiB)}library.seedingSize`)
+  })
+
+  it("adds up the all-time transfer of the instances, and shows no ratio when nothing was downloaded", () => {
+    renderOverview([stats(1, {}, {}, { alltime_ul: 9 * GiB, alltime_dl: 2 * GiB }), stats(2, {}, {}, { alltime_ul: 3 * GiB, alltime_dl: 2 * GiB })])
+    expect(screen.getByTestId("library-all-time").textContent).toBe(`library.allTime${formatBytes(12 * GiB)}library.uploaded${formatBytes(4 * GiB)}library.downloaded3.00library.ratio`)
+    cleanup()
+
+    renderOverview([stats(1)])
+    expect(screen.getByTestId("library-all-time").textContent).toBe("library.allTime0 Blibrary.uploaded0 Blibrary.downloaded–library.ratio")
   })
 })
 

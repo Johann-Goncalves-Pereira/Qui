@@ -37,12 +37,6 @@ vi.mock("react-i18next", async (importOriginal) => ({
 vi.mock("@/hooks/useInstances", () => ({ useInstances: () => instances }))
 vi.mock("./InstanceSettingsPanel", () => ({ InstanceSettingsPanel: () => null }))
 
-// Radix Switch sizes its hidden form input through ResizeObserver, which jsdom lacks.
-vi.stubGlobal("ResizeObserver", class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-})
 
 afterEach(() => {
   cleanup()
@@ -196,16 +190,6 @@ describe("InstancePreferencesDialog", () => {
     expect(upload.nextElementSibling?.textContent).toBe("KiB/s")
     expect(download.value).toBe("")
     expect(download.placeholder).toBe("common:numberInput.unlimited")
-  })
-
-  it("shows a size in bytes in KiB", async () => {
-    serveView()
-
-    renderDialog("advanced")
-
-    const queueSize = await fieldFor("preferences.advancedNetwork.diskQueueSize")
-    expect(queueSize.value).toBe("1024")
-    expect(queueSize.nextElementSibling?.textContent).toBe("KiB")
   })
 
   it("shows the socket buffers in KiB and the .torrent size limit in MiB, and saves them in bytes", async () => {

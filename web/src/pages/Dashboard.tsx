@@ -6,7 +6,7 @@
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview"
 import { MigrationHint } from "@/components/instances/MigrationHint"
 import { PasswordIssuesBanner } from "@/components/instances/PasswordIssuesBanner"
-import { PageHeader } from "@/components/layout/PageHeader"
+import { Page } from "@/components/layout/Page"
 import { MagnetHandlerBanner } from "@/components/MagnetHandlerBanner"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -19,9 +19,11 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { createStreamKey, useSyncStreamManager, type StreamState } from "@/contexts/SyncStreamContext"
+import { useIsPhone } from "@/hooks/useMediaQuery"
 import { useDelayedVisibility } from "@/hooks/useDelayedVisibility"
 import { useInstances } from "@/hooks/useInstances"
 import { usePersistedTitleBarSpeeds } from "@/hooks/usePersistedTitleBarSpeeds"
+import { usePageTitle } from "@/hooks/usePageTitle"
 import { useTitleBarSpeeds } from "@/hooks/useTitleBarSpeeds"
 import { api } from "@/lib/api"
 import type { DashboardInstanceStats } from "@/lib/dashboard-overview"
@@ -69,7 +71,7 @@ type InstanceStreamData = {
   hasLiveDashboardStatsPayload: boolean
   fallbackPollInterval: number | false
   cacheMetadata: CacheMetadata | null | undefined
-  instanceMeta: InstanceMeta | null  // Real-time instance health from SSE
+  instanceMeta: InstanceMeta | null
 }
 
 const STATS_FALLBACK_POLL_INTERVAL_MS = 5000
@@ -91,6 +93,7 @@ const createDefaultInstanceStreamData = (): InstanceStreamData => ({
 })
 
 const STREAM_REFRESH_INTERVAL_MS = 2000
+const DISK_REFRESH_INTERVAL_MS = 60_000
 
 type InstanceUpdateResult =
   | InstanceStreamData
@@ -198,7 +201,6 @@ function mergeCachedInstanceData(
   return next
 }
 
-// Optimized hook to get all instance stats using shared TorrentResponse cache
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAllInstanceStats(instances: InstanceResponse[], options: { enabled: boolean }): DashboardInstanceStats[] {
   const { enabled: streamEnabled } = options
@@ -531,6 +533,16 @@ export function useAllInstanceStats(instances: InstanceResponse[], options: { en
     }
   }, [])
 
+  const diskQueries = useQueries({
+    queries: instances.map(instance => ({
+      queryKey: ["instance-disk", instance.id, instance.filesystemMode],
+      queryFn: () => api.getInstanceDisk(instance.id),
+      enabled: streamEnabled && instance.filesystemMode !== "none",
+      staleTime: DISK_REFRESH_INTERVAL_MS,
+      refetchInterval: DISK_REFRESH_INTERVAL_MS,
+    })),
+  })
+
   return instances.map<DashboardInstanceStats>((instance, index) => {
     const cachedState = getCachedInstanceData(instance.id, instanceData[instance.id])
     const state =
@@ -582,12 +594,13 @@ export function useAllInstanceStats(instances: InstanceResponse[], options: { en
       isDashboardStatsFallbackActive: isFallbackActive,
       cacheMetadata,
       instanceMeta: state.instanceMeta,
+      disk: diskQueries[index]?.data ?? null,
     }
   })
 }
 
 
-function QuickActionsDropdown({ statsData }: { statsData: DashboardInstanceStats[] }) {
+function QuickActionsDropdown({ statsData, compact = false }: { statsData: DashboardInstanceStats[]; compact?: boolean }) {
   const { t } = useTranslation("dashboard")
   const connectedInstances = statsData
     .filter(({ instance }) => instance?.connected)
@@ -600,11 +613,18 @@ function QuickActionsDropdown({ statsData }: { statsData: DashboardInstanceStats
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-11 w-full sm:h-8 sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          {t("quickActions.addTorrent")}
-          <ChevronDown className="h-3 w-3 ml-1" />
-        </Button>
+        {compact ? (
+          <Button variant="outline" className="gap-0.5 px-3" aria-label={t("quickActions.addTorrent")}>
+            <Plus className="h-4 w-4" />
+            <ChevronDown className="h-3 w-3 opacity-60" />
+          </Button>
+        ) : (
+          <Button variant="outline">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("quickActions.addTorrent")}
+            <ChevronDown className="h-3 w-3 ml-1" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>{t("quickActions.addTorrent")}</DropdownMenuLabel>
@@ -642,6 +662,7 @@ export function Dashboard() {
   const hasInstances = allInstances.length > 0
   const hasActiveInstances = activeInstances.length > 0
   const { isHiddenDelayed } = useDelayedVisibility(3000)
+  const phone = useIsPhone()
   const [titleBarSpeedsEnabled] = usePersistedTitleBarSpeeds(false)
   const [incognitoMode, setIncognitoMode] = useIncognitoMode()
 
@@ -673,8 +694,7 @@ export function Dashboard() {
     { dl: 0, up: 0, hasData: false }
   )
   const backgroundSpeeds = backgroundSpeedsState.hasData ? { dl: backgroundSpeedsState.dl, up: backgroundSpeedsState.up } : undefined
-  useTitleBarSpeeds({
-    mode: "dashboard",
+  const titleBarSpeeds = useTitleBarSpeeds({
     enabled: titleBarSpeedsEnabled && hasActiveInstances,
     foregroundSpeeds: hasActiveInstances ? {
       dl: statsData.reduce((sum, { stats }) => sum + (stats?.totalDownloadSpeed ?? 0), 0),
@@ -682,24 +702,12 @@ export function Dashboard() {
     } : undefined,
     backgroundSpeeds: isHiddenDelayed && hasActiveInstances ? backgroundSpeeds : undefined,
   })
+  usePageTitle({ speeds: titleBarSpeeds })
 
-  if (isLoading) {
-    return (
-      <div className="p-4 lg:p-6 pb-16">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-48"></div>
-          <div className="h-4 bg-muted rounded w-64"></div>
-          <div className="h-56 bg-muted rounded"></div>
-        </div>
-      </div>
-    )
-  }
-
-  const incognitoToggle = (className: string) => (
+  const incognitoToggle = (
     <Button
       variant="outline"
       size="icon"
-      className={className}
       aria-label={incognitoMode ? t("incognito.turnOff") : t("incognito.turnOn")}
       aria-pressed={incognitoMode}
       onClick={() => setIncognitoMode(!incognitoMode)}
@@ -708,38 +716,37 @@ export function Dashboard() {
     </Button>
   )
 
-  return (
-    <div className="p-4 lg:p-6 pb-16">
-      <div className="mb-6">
-        <PageHeader
-          title={t("title")}
-          description={t("description")}
-          actions={instances && instances.length > 0 && (
-            <>
-              {/* On a phone, Add instance and the incognito switch go in the title row, so that only Add torrent takes a row of its own. */}
-              <div className="flex items-center gap-1 sm:hidden">
-                <Link to="/settings" search={{ tab: "instances" as const, modal: "add-instance" }}>
-                  <Button variant="outline" size="icon" className="size-11" aria-label={t("addInstance")}>
-                    <HardDrive className="h-4 w-4" />
-                  </Button>
-                </Link>
-                {incognitoToggle("size-11")}
-              </div>
-              <QuickActionsDropdown statsData={statsData} />
-              <Link to="/settings" search={{ tab: "instances" as const, modal: "add-instance" }} className="hidden sm:block">
-                <Button variant="outline" size="sm">
-                  <HardDrive className="h-4 w-4 mr-2" />
-                  {t("addInstance")}
-                </Button>
-              </Link>
-              <div className="hidden sm:block">
-                {incognitoToggle("size-8")}
-              </div>
-            </>
-          )}
-        />
-      </div>
+  if (isLoading) {
+    return (
+      <Page title={t("title")} description={t("description")}>
+        <div className="h-56 animate-pulse rounded bg-muted" />
+      </Page>
+    )
+  }
 
+  return (
+    <Page
+      title={t("title")}
+      description={t("description")}
+      controls={hasInstances && (
+        <>
+          <QuickActionsDropdown statsData={statsData} compact={phone} />
+          <Link to="/settings" search={{ tab: "instances" as const, modal: "add-instance" }}>
+            {phone ? (
+              <Button variant="outline" size="icon" aria-label={t("addInstance")}>
+                <HardDrive className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button variant="outline">
+                <HardDrive className="h-4 w-4 mr-2" />
+                {t("addInstance")}
+              </Button>
+            )}
+          </Link>
+          {incognitoToggle}
+        </>
+      )}
+    >
       <PasswordIssuesBanner instances={instances || []} />
 
       {/* The banner to register qui as the magnet handler, for Firefox */}
@@ -781,6 +788,6 @@ export function Dashboard() {
           <MigrationHint className="mt-10 sm:mt-12" />
         </Card>
       )}
-    </div>
+    </Page>
   )
 }

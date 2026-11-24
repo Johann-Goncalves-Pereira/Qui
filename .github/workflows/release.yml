@@ -95,10 +95,6 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - name: Run frontend tests
-        working-directory: web
-        run: pnpm test
-
       - name: Type check and build frontend
         working-directory: web
         run: CI= pnpm run build
@@ -117,9 +113,7 @@ jobs:
 
       # This job has node_modules, and the notices list the npm packages.
       - name: Write the notices file
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/autobrr/qui-community-themes/main/LICENSE -o internal/themes/assets/premium/LICENSE
-          go run ./scripts/notices
+        run: go run ./scripts/notices
 
       - name: Upload the notices file
         uses: actions/upload-artifact@v7
@@ -128,15 +122,60 @@ jobs:
           path: THIRD_PARTY_NOTICES
           if-no-files-found: error
 
+  # A separate job, so the Docker builds do not wait for the frontend tests.
+  web-test:
+    name: Run frontend tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.1.1
+        with:
+          package_json_file: web/package.json
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm cache
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend tests
+        working-directory: web
+        run: pnpm test
+
+  # A tag publishes the release, so it waits for every test. A develop
+  # snapshot publishes nothing and builds alongside the tests.
   goreleaserbuild:
     name: Build distribution binaries
-    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/develop'
+    if: startsWith(github.ref, 'refs/tags/')
     # The MSI needs wixl 0.105 or later for Environment. Ubuntu 24.04 ships 0.103.
     runs-on: ubuntu-26.04
-    needs: [test, web]
+    needs: [test, web, web-test]
     # The release environment holds the signing keys and allows develop and v* tags.
     environment: release
-    steps:
+    steps: &goreleaser-steps
       - name: Checkout
         uses: actions/checkout@v7.0.1
         with:
@@ -155,20 +194,6 @@ jobs:
 
       - name: Create web dist tarball
         run: tar -czf web-dist.tar.gz -C . web/dist
-
-      # A failed fetch fails the job, so a release never ships without the community themes.
-      - name: Fetch community themes
-        uses: actions/checkout@v7.0.1
-        with:
-          repository: autobrr/qui-community-themes
-          ref: main
-          path: .themes-temp
-          sparse-checkout: themes
-          persist-credentials: false
-
-      # Files that start with "_" (the template) are not themes.
-      - name: Copy community themes
-        run: cp .themes-temp/themes/[!_]*.css .themes-temp/LICENSE internal/themes/assets/premium/
 
       - name: Set up Go
         uses: actions/setup-go@v7.0.0
@@ -269,30 +294,13 @@ jobs:
             dist/msi/*/*.msi
           if-no-files-found: error
 
-  # GoReleaser makes a draft. This job adds the Highlights and publishes it.
-  # It has its own job so that only this job can read the Claude token. The
-  # claude environment holds the token and allows develop and v* tags.
-  highlights:
-    name: Write Highlights and publish the release
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    needs: goreleaserbuild
-    environment: claude
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          # The script finds the previous tag with git describe.
-          fetch-depth: 0
-
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code@2.1.280
-
-      - name: Write Highlights and publish the release
-        run: .github/scripts/release-highlights.sh "$GITHUB_REF_NAME"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+  goreleaser-snapshot:
+    name: Build distribution binaries (snapshot)
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-26.04
+    needs: web
+    environment: release
+    steps: *goreleaser-steps
 
   docker-matrix:
     name: Determine Docker platforms
@@ -342,20 +350,6 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: notices
-
-      # A failed fetch fails the job, so a release never ships without the community themes.
-      - name: Fetch community themes
-        uses: actions/checkout@v7.0.1
-        with:
-          repository: autobrr/qui-community-themes
-          ref: main
-          path: .themes-temp
-          sparse-checkout: themes
-          persist-credentials: false
-
-      # Files that start with "_" (the template) are not themes.
-      - name: Copy community themes
-        run: cp .themes-temp/themes/[!_]*.css .themes-temp/LICENSE internal/themes/assets/premium/
 
       - name: Extract metadata
         id: meta
@@ -417,10 +411,11 @@ jobs:
     if: >-
       !cancelled() &&
       needs.docker.result == 'success' && needs.test.result == 'success' &&
+      needs.web-test.result == 'success' &&
       (!startsWith(github.ref, 'refs/tags/') || needs.goreleaserbuild.result == 'success') &&
       (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request')
     runs-on: ubuntu-latest
-    needs: [docker, test, goreleaserbuild]
+    needs: [docker, test, web-test, goreleaserbuild]
     steps:
       - name: Lowercase registry image
         run: echo "REGISTRY_IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"

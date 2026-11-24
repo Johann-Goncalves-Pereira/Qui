@@ -14,6 +14,7 @@
   "customRange": {
     "from": "First day",
     "to": "Last day",
+    "pick": "Select a day",
     "apply": "Apply",
     "range": "{{from}} – {{to}}"
   },
@@ -116,9 +117,9 @@
   "allTimeNote": "All time includes the Baseline: the bytes that the torrents had when qui first recorded them. The chart does not show the Baseline, because it has no date.",
   "table": {
     "title": "By group",
-    "descriptionTracker": "The transfer of the period for each tracker. Click a row to open its detail.",
-    "descriptionCategory": "The transfer of the period for each category, under the category that each torrent had when the bytes moved. Click a row to open its detail.",
-    "descriptionRelease": "The transfer of the period for each value that qui reads from the torrent names. Click a row to open its detail.",
+    "descriptionTracker": "The transfer of the period for each tracker. Select a row to open its detail.",
+    "descriptionCategory": "The transfer of the period for each category, under the category that each torrent had when the bytes moved. Select a row to open its detail.",
+    "descriptionRelease": "The transfer of the period for each value that qui reads from the torrent names. Select a row to open its detail.",
     "groupBy": "Group by",
     "groupings": {
       "tracker": "Tracker",
@@ -140,6 +141,13 @@
     },
     "seededValue": "{{value}}x",
     "total": "Total",
+    "shown": "{{shown}} of {{total}}",
+    "range": "{{from}}–{{to}} of {{total}}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "showMore": "Show more",
+    "showAll": "Show all",
+    "showFewer": "Show fewer",
     "noCategory": "No category",
     "none": "None",
     "liveError": "Could not load the torrents that are in qBittorrent now: {{message}}",
@@ -166,7 +174,7 @@
   },
   "topTorrents": {
     "title": "Top torrents",
-    "description": "The torrents with the most upload in the period. Click a row to see its upload for each day.",
+    "description": "The torrents with the most upload in the period. Select a row to see its upload for each day.",
     "columns": {
       "torrent": "Torrent",
       "first24h": "First 24 hours"
@@ -174,6 +182,7 @@
     "deleted": "Deleted",
     "crossSeed": "Cross-seed",
     "note": "A deleted torrent keeps its place with its name. A torrent counts toward the tracker that it has now. First 24 hours is the upload in the 24 hours after the add. It is empty when qui first saw the torrent after them.",
+    "seededNote": "Seeded is the upload in the period divided by the size of the torrent. 1.00x is one full copy.",
     "utcNote": "Each bar is a UTC day.",
     "yearNote": "Each bar is a UTC day, apart from the bar of a year: after the Detail retention, qui keeps one number for each torrent and year."
   },

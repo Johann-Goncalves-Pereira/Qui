@@ -15,7 +15,8 @@
     "actions": {
       "edit": "Edit",
       "testConnection": "Test Connection",
-      "delete": "Delete"
+      "delete": "Delete",
+      "changeIcon": "Change icon"
     },
     "labels": {
       "username": "Username:",
@@ -65,7 +66,13 @@
     "copiedPassword": "Password Copied",
     "copiedContainerPassword": "Container password copied to clipboard",
     "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password"
+    "failedToCopyPassword": "Failed to copy password",
+    "errorTypes": {
+      "connection": "Connection",
+      "authentication": "Authentication",
+      "ban": "Ban",
+      "api": "API"
+    }
   },
   "form": {
     "labels": {
@@ -97,7 +104,10 @@
     },
     "validation": {
       "nameRequired": "Instance name is required",
-      "basicAuthPasswordRequired": "Basic auth password is required when basic auth is enabled"
+      "basicAuthPasswordRequired": "Basic auth password is required when basic auth is enabled",
+      "usernameRequired": "Username is required",
+      "passwordRequired": "Password is required",
+      "apiKeyRequired": "API key is required"
     },
     "buttons": {
       "saving": "Saving...",
@@ -121,7 +131,10 @@
       "usernamePassword": "Username and Password",
       "apiKey": "API Key"
     },
-    "sshAfterSave": "SSH access to the instance's files is set up in the instance's settings after you save."
+    "sshAfterSave": "SSH access to the instance's files is set up in the instance's settings after you save.",
+    "addTitle": "Add instance",
+    "addDescription": "Configure a new qBittorrent instance",
+    "editTitle": "Edit instance"
   },
   "settingsButton": {
     "tooltip": "Instance Settings"
@@ -571,7 +584,8 @@
         "externalProgram": "External program",
         "dryRun": "Dry-run",
         "exportToInstance": "Export to instance",
-        "ruleSkipped": "Rule not run"
+        "ruleSkipped": "Rule not run",
+        "transferToInstance": "Transfer to instance"
       },
       "shareLimit": {
         "global": "Global",
@@ -624,7 +638,9 @@
         "exportedDryRun_one": "{{count}} torrent would be exported",
         "exportedDryRun_other": "{{count}} torrents would be exported",
         "exportFailed_one": "{{count}} torrent failed to export",
-        "exportFailed_other": "{{count}} torrents failed to export"
+        "exportFailed_other": "{{count}} torrents failed to export",
+        "transferredDryRun_one": "{{count}} torrent would be transferred",
+        "transferredDryRun_other": "{{count}} torrents would be transferred"
       },
       "deleteDialog": {
         "title": "Delete Rule",
@@ -684,7 +700,8 @@
         "deleteActivityFailed": "Failed to delete activity"
       },
       "exported": "Exported",
-      "skipped": "Skipped"
+      "skipped": "Skipped",
+      "transferStarted": "Started"
     },
     "runWorkflowNow": {
       "action": "Run now",
@@ -983,7 +1000,8 @@
         "auto_managed": "Auto managed",
         "dry_run_no_match": "Dry-run (no match)",
         "exported_to_instance": "Export to instance",
-        "rule_skipped": "Rule not run"
+        "rule_skipped": "Rule not run",
+        "transferred_to_instance": "Transfer to instance"
       }
     },
     "reannounceOverview": {
@@ -1201,7 +1219,8 @@
         "category": "Category",
         "move": "Move",
         "externalProgram": "Run external program",
-        "exportToInstance": "Export to instance"
+        "exportToInstance": "Export to instance",
+        "transferToInstance": "Transfer to instance"
       },
       "option": {
         "noChange": "No change",
@@ -1310,9 +1329,24 @@
           "unsupportedWindows": "Path-based free space source is not supported on Windows.",
           "qbitPathUnsupported": "This instance is older than qBittorrent 5.3 and cannot report free space at a path.",
           "pathRequired": "Path is required when using \"Path on server\".",
-          "filesystemAccessRequired": "Path-based free space source requires local or SSH filesystem access."
+          "filesystemAccessRequired": "Path-based free space source requires local or SSH filesystem access.",
+          "allowanceRequired": "Enter an allowance above 0.",
+          "allowanceAccessRequired": "The allowance source requires local filesystem access, or SSH access with a shell."
         },
-        "pathSourceFilesystemAccessRequired": "Path on server (requires local or SSH access)"
+        "pathSourceFilesystemAccessRequired": "Path on server (requires local or SSH access)",
+        "allowanceSource": "Allowance on a path",
+        "allowanceSourceWindowsUnsupported": "Allowance on a path (not supported on Windows)",
+        "allowanceSourceAccessRequired": "Allowance on a path (requires local access, or SSH access with a shell)",
+        "allowanceLabel": "Allowance",
+        "allowancePathLabel": "Folder to measure",
+        "allowanceUnitAria": "Allowance unit",
+        "allowanceHelp": "Enter the space that your plan allows, in the unit that your provider uses. qui subtracts the size of the files under the path. Most providers count in steps of 1000 ({{decimalUnit}}), not 1024 ({{binaryUnit}}): the two differ by about 9%.",
+        "allowanceUnits": {
+          "MB": "MB",
+          "GB": "GB",
+          "TB": "TB"
+        },
+        "allowancePathHelp": "For example, your home directory"
       },
       "grouping": {
         "title": "Grouped condition groups",
@@ -1457,7 +1491,8 @@
           "externalProgram": "External program",
           "noMatches": "No matches",
           "exportedToInstance": "Export to instance",
-          "ruleSkipped": "Rule not run"
+          "ruleSkipped": "Rule not run",
+          "transferredToInstance": "Transfer to instance"
         },
         "actionFallback": "Unknown action ({{action}})",
         "summary": {
@@ -1524,7 +1559,13 @@
         "setUpFilesystemAccessOrDefault": "Set up local or SSH filesystem access in instance settings, or use Default (qBittorrent)"
       },
       "trackerMatchInclude": "Include",
-      "trackerMatchExclude": "Exclude"
+      "trackerMatchExclude": "Exclude",
+      "transfer": {
+        "title": "Transfer to instance",
+        "description": "Moves each matching torrent with its files to the target instance, and proves the copy before it removes anything. The Transfers page shows each Transfer.",
+        "remove": "Remove Transfer to instance"
+      },
+      "mixedActionConditions": "Each action in this workflow has its own condition. qui now uses one condition per workflow. If you save, every action gets the condition above. To keep the others, make one workflow for each condition first."
     },
     "sections": {
       "whenAdding": "When adding a torrent",
@@ -2122,5 +2163,110 @@
     "label": "Also delete its transfer history",
     "description": "Without this, qui keeps the history under the name of the instance.",
     "failed": "The instance is deleted, but qui could not delete all of its history. Look in Settings > Statistics, and delete the rest there."
+  },
+  "list": {
+    "label": "Instances",
+    "emptyTitle": "No instances yet",
+    "emptyDescription": "Add a qBittorrent client so qui can manage its torrents.",
+    "tlsSkipped": "TLS check off",
+    "reorderFailed": "Could not reorder the instances"
+  },
+  "publicPeerAddress": {
+    "label": "Public peer address",
+    "noResolvedAddress": "qui cannot work out an address yet",
+    "description": "The address and port at which other BitTorrent clients reach this qBittorrent, for Transfers and Shares. Leave it empty to use the address that qui works out from qBittorrent at each use. Set it when qBittorrent runs in Docker or behind NAT."
+  },
+  "mark": {
+    "picker": {
+      "title": "Icon for {{name}}",
+      "previewCollapsed": "Collapsed sidebar",
+      "previewElsewhere": "Everywhere else",
+      "automatic": "Automatic",
+      "letters": "Letters",
+      "color": "Color",
+      "colorCurrent": "Color · {{color}}",
+      "reset": "Reset to default",
+      "description": "Pick one: Automatic, letters (collapsed sidebar only), or an icon.",
+      "iconHeading": "Icon",
+      "arrowHint": "Use the arrow keys to move between icons."
+    },
+    "colors": {
+      "none": "No color",
+      "sky": "Sky",
+      "violet": "Violet",
+      "pink": "Pink",
+      "orange": "Orange",
+      "amber": "Amber",
+      "lime": "Lime",
+      "emerald": "Emerald",
+      "teal": "Teal"
+    },
+    "iconGroups": {
+      "servers": "Servers",
+      "hardware": "Hardware",
+      "places": "Places",
+      "media": "Media",
+      "nature": "Nature",
+      "symbols": "Symbols",
+      "objects": "Objects"
+    },
+    "icons": {
+      "server": "Server",
+      "nas": "NAS",
+      "tower": "Tower PC",
+      "homeServer": "Home server",
+      "seedbox": "Seedbox",
+      "container": "Container",
+      "cloud": "Cloud",
+      "cloudDownload": "Cloud download",
+      "hardDrive": "Hard drive",
+      "driveDownload": "Download drive",
+      "database": "Database",
+      "cpu": "Processor",
+      "memory": "Memory",
+      "router": "Router",
+      "monitor": "Monitor",
+      "laptop": "Laptop",
+      "house": "House",
+      "building": "Building",
+      "warehouse": "Warehouse",
+      "globe": "Globe",
+      "mapPin": "Map pin",
+      "flag": "Flag",
+      "mountain": "Mountain",
+      "tent": "Tent",
+      "film": "Film",
+      "tv": "TV",
+      "music": "Music",
+      "podcast": "Podcast",
+      "book": "Book",
+      "audiobook": "Audiobook",
+      "gamepad": "Gamepad",
+      "image": "Image",
+      "cat": "Cat",
+      "dog": "Dog",
+      "bird": "Bird",
+      "fish": "Fish",
+      "rabbit": "Rabbit",
+      "turtle": "Turtle",
+      "bug": "Bug",
+      "leaf": "Leaf",
+      "star": "Star",
+      "heart": "Heart",
+      "flame": "Flame",
+      "zap": "Lightning",
+      "rocket": "Rocket",
+      "crown": "Crown",
+      "shield": "Shield",
+      "ghost": "Ghost",
+      "box": "Box",
+      "archive": "Archive",
+      "software": "Software",
+      "disc": "Disc",
+      "layers": "Layers",
+      "anchor": "Anchor",
+      "magnet": "Magnet",
+      "satellite": "Satellite"
+    }
   }
 }

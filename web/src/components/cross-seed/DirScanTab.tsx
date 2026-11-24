@@ -74,6 +74,7 @@ import {
   TableRow
 } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { TruncatedText } from "@/components/ui/truncated-text"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
 import { useInstanceMetadata } from "@/hooks/useInstanceMetadata"
 import i18n from "@/i18n"
@@ -217,7 +218,7 @@ export function DirScanTab({ instances }: DirScanTabProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="space-y-1.5">
               <CardTitle className="flex items-center gap-2">
                 <FolderSearch className="size-5" />
                 {t("dirScan.title")}
@@ -277,7 +278,7 @@ export function DirScanTab({ instances }: DirScanTabProps) {
       {/* Directories List */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+          <div className="space-y-1.5">
             <CardTitle>{t("dirScan.scanDirectories")}</CardTitle>
             <CardDescription>
               {t("dirScan.scanDirectoriesDescription")}
@@ -644,9 +645,9 @@ function RunRow({
                           <InjectionStatusBadge injection={inj} />
                         </TableCell>
                         <TableCell className="max-w-[520px]">
-                          <div className="truncate" title={inj.torrentName}>
+                          <TruncatedText className="block">
                             {inj.torrentName}
-                          </div>
+                          </TruncatedText>
                           <div className="text-xs text-muted-foreground">
                             <span className="font-mono">{inj.infoHash.slice(0, 8)}</span>
                           </div>
@@ -729,7 +730,7 @@ function DirectoryDetails({ directoryId, formatDateTime, formatRelativeTime }: D
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
-        <div>
+        <div className="space-y-1.5">
           <CardTitle>{t("dirScan.recentScanRuns")}</CardTitle>
           <CardDescription>{t("dirScan.recentScanRunsDescription")}</CardDescription>
         </div>

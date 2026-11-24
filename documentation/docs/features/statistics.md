@@ -34,6 +34,14 @@ Select the period at the top of the page:
 
 A day starts at midnight in the timezone of your browser.
 
+On a chart with one bar for each hour, the labels below the bars show the hour, and each day has a band with its name. A line marks midnight when the chart shows two days, and on a phone a chart of more than two days shows only the names of the days.
+
+On a phone, the periods are in a list at the top of the page. To set a custom range, tap the calendar button next to the list.
+
+The page shows each full date in the date format that you select in **Settings → Time & language**. Examples are the days of a custom range, "Recording since", and the best day. If you select the relative format, the page shows these dates in the ISO format. The time of each delete in **Deleted torrents** stays relative to now. The short labels below the bars of a chart do not change. On a phone, the label of a custom range also keeps its short form.
+
+The page opens on the last preset period that it showed. This includes a period that a link opened, for example the **Statistics** link of the Dashboard. qui keeps this period on the server, so it applies in each browser and on each device. qui does not keep a custom range. After a custom range, the page opens on the last preset period that it showed.
+
 While the page stays open and in view, it moves a period that ends now forward each 5 minutes and loads the new transfer. qui writes the transfer each 5 minutes. A custom range does not move.
 
 If a period starts before the first recording of a selected instance, the page shows the label "Partial period". The numbers of such a period are too small, because qui did not record the start of the period for that instance.
@@ -56,7 +64,9 @@ If qui recorded the period before in full, Uploaded and Downloaded also show the
 
 ## Chart
 
-The chart shows the upload or the download of each bar. Use the switch above the chart to select **Upload** or **Download**. The bars stack by tracker. The five trackers with the most bytes in the period each get a color. The other trackers are in the gray series Other.
+The chart shows the upload or the download of each bar. Use the switch above the chart to select **Upload** or **Download**. The bars stack by tracker. The five trackers with the most bytes in the period each get a color. The other trackers are in the gray series Other. Below the chart and in the numbers of a bar, the [tracker icon](./tracker-icons.md) shows next to the name of each tracker.
+
+To see the bytes of each tracker in a bar, hold the pointer on the bar. On a touch screen, tap the bar. To close the numbers on a touch screen, tap them, tap below the bars, tap outside the chart, or scroll the page.
 
 The page counts each torrent toward one tracker. Thus, the tracker series of the chart add up to the Uploaded or Downloaded number of the period. All time is the exception, because its numbers also hold the Baseline. A torrent that is not private counts toward Public. A torrent with no tracker counts toward No tracker. Tracker customizations apply: a merged tracker is one series under its display name. A rename or a merge also changes the past.
 
@@ -72,15 +82,23 @@ The year view has these parts:
 - **Weekends**: the share of the upload of the period that moved on a Saturday or a Sunday.
 - The upload of each month, as bars that stack by tracker. The colors and the gray series Other are the same as in the chart.
 
+The cells of the calendar are larger on a wider screen. On a wide screen, **Best day**, **Best month**, and **Weekends** are at the right of the calendar. On a screen that is wider still, the bars of the months are at the right of the calendar, and those three values are below the calendar.
+
 The best day, the best month, and the weekend share count the whole period, also the days before the 53 weeks of the calendar. In a period that qui folded, a day is a UTC day. See [Keep daily detail for](#keep-daily-detail-for).
 
 ## Table
 
-The table below the chart shows the numbers of the period for each tracker, each category, or each value of a release attribute. Use the **Group by** switch above the table to select **Tracker**, **Category**, **Release group**, **Resolution**, **Source**, or **Content type**.
+The table below the chart shows the numbers of the period for each tracker, each category, or each value of a release attribute. Use the **Group by** switch above the table to select **Tracker**, **Category**, **Release group**, **Resolution**, **Source**, or **Content type**. On a phone, **Group by** is a list.
+
+qui starts to load a grouping when you hold the pointer on its button, or when you open the list on a phone. Thus, the rows are often ready when you select the grouping. While the rows of the new grouping load, the table shows the rows of the last grouping, dimmed.
+
+The table shows 10 rows first. Click **Show more** to see 10 more rows, and **Show fewer** to go back to 10 rows. On a phone, tap **Show all** to see each row. The Total row always includes all rows.
+
+To sort the table, click a column header. The sort applies to all rows. It also sorts the rows that the table does not show. A number column starts with its highest value, and the name column starts at A. Click the same header again to reverse the order. A row that has no value in the column stays below the other rows. The table opens with the highest Uploaded value first, and qui does not keep your sort. On a phone, you cannot sort the table.
 
 ### By tracker
 
-The table has one row for each tracker, with these columns:
+The table has one row for each tracker. The [tracker icon](./tracker-icons.md) shows next to the name. Public and No tracker have no icon. The table has these columns:
 
 | Column | Content |
 |--------|---------|
@@ -116,7 +134,9 @@ To answer, qui reads the bytes of each torrent in the period. For a year, this c
 
 ### Detail of a row
 
-Click a row to open its detail below that row. Click the row again to close it. One row is open at a time, and the table keeps all its columns. On a phone, the table scrolls sideways, and the detail stays in view at the full width of the screen.
+Click or tap a row to open its detail below that row. Click or tap the row again to close it. One row is open at a time.
+
+On a narrow screen, such as a phone, the table has one column. Each row shows the upload next to the name, and Downloaded and Ratio below the name. The detail of the row then also shows Buffer, and for a tracker Torrents, Size, and Seeded.
 
 The detail shows:
 
@@ -135,26 +155,29 @@ For All time, the rows, the share, and the upload from cross-seeds include the B
 
 ## Top torrents
 
-The table below the table of trackers shows the ten torrents with the most upload in the period. It includes each selected instance. Each row has these columns:
+The table below the table of trackers shows the ten torrents with the most upload in the period. On a very wide screen, such as an ultrawide monitor, the two tables are side by side. The table includes each selected instance. Each row has these columns:
 
 | Column | Content |
 |--------|---------|
-| Torrent | The name of the torrent. The mark "Deleted" shows that the torrent is not in qBittorrent now. The mark "Cross-seed" shows that the torrent completed with less than 1% of its size downloaded |
-| Tracker | The tracker that the torrent has now |
+| Torrent | The name of the torrent. A trash icon after the name shows that the torrent is not in qBittorrent now. A link icon shows a cross-seed: the torrent completed with less than 1% of its size downloaded. To see the name of an icon, hover over it. On a touch screen, tap it |
+| Tracker | The [tracker icon](./tracker-icons.md) and the tracker that the torrent has now. If the page shows two or more instances, the name of the instance follows the tracker |
 | Uploaded | The upload of the torrent in the period |
 | Downloaded | The download of the torrent in the period |
 | Ratio | Uploaded divided by Downloaded |
+| Seeded | Uploaded divided by the size of the files that you selected in qBittorrent. 1.00x is one full copy. A torrent with a size of 0 shows "–" |
 | First 24 hours | The upload of the torrent in the 24 hours after you added it. The cell is empty when qui first saw the torrent after those 24 hours |
 
-A deleted torrent stays in the list with its name. Thus, the list of a long period is complete. The table counts all the upload of a cross-seed, also the upload from before the torrent completed. For All time, the upload includes the Baseline of each torrent. On a phone, the table hides some columns and shows the tracker below the name.
+A deleted torrent stays in the list with its name. Thus, the list of a long period is complete. The table counts all the upload of a cross-seed, also the upload from before the torrent completed. For All time, the upload includes the Baseline of each torrent. For the whole period, Seeded uses the last size that qui stored for the torrent. A deleted torrent keeps its last size.
 
-Click a row to see the upload and download of that torrent for each day of the period. qui stores the bytes of a torrent for each UTC day, so each bar is a UTC day.
+On a narrow screen, such as a phone, the table hides some columns. It shows the tracker, Size, Downloaded, Ratio, and First 24 hours below the name. Seeded stays a column longer than Downloaded and Ratio. On a phone, Seeded shows below Uploaded, and the table shows 5 rows first. Tap **Show all** to see the 10 rows, and **Show fewer** to go back to 5 rows.
+
+Click or tap a row to see the upload and download of that torrent for each day of the period. The open row shows the whole name. qui stores the bytes of a torrent for each UTC day, so each bar is a UTC day.
 
 ## Library growth
 
 The Library growth chart is below the top torrents. It shows the size of your library for each UTC day of the period. The Total size line counts each torrent in full. The Unique size line counts each Copy group one time inside an instance. A Copy group is a set of torrents that share the same files, for example a hardlinked or reflinked cross-seed.
 
-The text above the chart gives the torrent count of the newest day. To see the total size, the Unique size, and the torrent count of a day, hover over that day. The torrent count and the total size come from the last reading of that UTC day. The Unique size comes from the last reading of that day that had a Unique size.
+The text above the chart gives the torrent count of the newest day. To see the total size, the Unique size, and the torrent count of a day, hover over that day. On a touch screen, tap the day. The torrent count and the total size come from the last reading of that UTC day. The Unique size comes from the last reading of that day that had a Unique size.
 
 The page adds the selected instances together. The Unique size of two instances is the sum of the Unique size of each instance, because a Copy group stays inside one instance.
 
@@ -180,7 +203,7 @@ The table **Deleted torrents** lists each torrent that was deleted in the period
 |--------|---------|
 | Deleted | The time of the delete |
 | Torrent | The name of the torrent |
-| Tracker | The tracker of the torrent |
+| Tracker | The [tracker icon](./tracker-icons.md) and the tracker of the torrent |
 | Deleted by | The cause of the delete |
 | Final upload | The upload of the torrent at the delete |
 | Final ratio | The last ratio that qBittorrent gave for the torrent |
@@ -198,7 +221,11 @@ The cause is one of these:
 
 The buttons above the table select **All**, **Automations**, **You**, or **Other**. Other is a backup restore, a Client Proxy key, and outside qui. Each button shows the number of deletes of that kind in the period.
 
-The table shows 50 rows first. Click **Show more** to see 50 more rows. On a phone, the table hides some columns. It shows the tracker, the cause, the final ratio, and the seeding time below the name.
+After the first list loads, qui also loads the first rows of the other buttons, so a switch shows its rows at once. While the rows of a button load, the table keeps the last rows, dimmed. If a switch makes the list shorter, the table keeps its height until that space is below the screen. Thus, the buttons stay where you clicked them.
+
+The table shows 10 rows on each page. The line below the table gives the rows of the page and the number of deletes, for example "11–20 of 134". The arrow buttons at the right go to the previous page and the next page. If a page has fewer than 10 rows, the table keeps its height, as it does after a switch. On a phone, the table has no pages. It shows 5 rows first, and **Show more** shows 10 more rows. **Show fewer** goes back to 5 rows.
+
+On a narrow screen, such as a phone, the table hides some columns. It shows the time below the final upload. It shows the tracker, the cause, the final ratio, and the seeding time below the name. On a phone, a row whose name or cause is cut shows an arrow. Tap the row to see the whole name and the whole cause, and tap it again to cut them again. A row that shows its name and cause in full has no arrow.
 
 ## Baseline
 
@@ -279,7 +306,7 @@ A shrink needs free disk space of up to two times the size of the database file.
 
 If qui cannot restart itself on your install, the dialog says so. The shrink then runs at the next start of qui. The shrink also runs when you restart qui in another way. qui never shrinks the file without a request.
 
-If the shrink fails, qui starts as usual, and the database does not change. qui shows the System notice **Shrink failed** in the sidebar, in the header menu, and in the mobile menu. The notice gives the cause and the fix:
+If the shrink fails, qui starts as usual, and the database does not change. qui shows the System notice **Shrink failed** in the sidebar and in the mobile menu. The notice gives the cause and the fix:
 
 - The disk has too little free space. Free space on the disk.
 - Another program held the database file, for example a backup tool or a database viewer. Stop that program.
@@ -306,7 +333,7 @@ When qui runs correctly, you can delete the backup and the old file.
 
 ## Low disk
 
-On SQLite, qui reads the free space on the disk of the database file each minute. When the free space is below a limit, qui shows the System notice **Low disk** in the sidebar, in the header menu, and in the mobile menu. The limit is the smaller of 1 GB and 5% of the size of the disk. For example, a disk of 10 GB has a limit of 500 MB, and a disk of 20 GB or more has a limit of 1 GB. The notice closes when the free space recovers to the limit plus 10%, for example 550 MB on a disk of 10 GB.
+On SQLite, qui reads the free space on the disk of the database file each minute. When the free space is below a limit, qui shows the System notice **Low disk** in the sidebar and in the mobile menu. The limit is the smaller of 1 GB and 5% of the size of the disk. For example, a disk of 10 GB has a limit of 500 MB, and a disk of 20 GB or more has a limit of 1 GB. The notice closes when the free space recovers to the limit plus 10%, for example 550 MB on a disk of 10 GB.
 
 When the disk is full, each write of qui fails. Before that happens, do one of these steps:
 

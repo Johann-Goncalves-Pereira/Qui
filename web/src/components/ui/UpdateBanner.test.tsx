@@ -9,6 +9,7 @@ import { cleanup, render, screen } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { UpdateBanner } from "@/components/ui/UpdateBanner"
 import { server } from "@/test/msw/server"
 
@@ -55,7 +56,9 @@ describe("UpdateBanner desktop suppression", () => {
     return render(
       <RouterContextProvider router={router}>
         <QueryClientProvider client={queryClient}>
-          <UpdateBanner />
+          <TooltipProvider>
+            <UpdateBanner />
+          </TooltipProvider>
         </QueryClientProvider>
       </RouterContextProvider>
     )

@@ -1,9 +1,6 @@
 // Copyright (c) 2025-2026, s0up and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-// Package systemnotice holds the open System notices: faults in qui that need
-// an action from the user. The web UI reads them, and the notification
-// service gets one event when a notice opens.
 package systemnotice
 
 import (
@@ -23,10 +20,8 @@ import (
 type Kind string
 
 const (
-	// RecordingStopped opens when qui cannot write the Transfer history.
 	RecordingStopped Kind = "recording_stopped"
-	// ShrinkFailed opens when the shrink of the database file at startup fails.
-	ShrinkFailed Kind = "shrink_failed"
+	ShrinkFailed     Kind = "shrink_failed"
 	// RedactedKeyRejected and OrpheusKeyRejected open when the site rejects the
 	// RED/OPS API key in a cross-seed search.
 	RedactedKeyRejected Kind = "redacted_key_rejected"
@@ -34,6 +29,10 @@ const (
 	// LowDisk opens on SQLite when the disk of the database file has little
 	// free space.
 	LowDisk Kind = "low_disk"
+	// LibraryScanScheduleBlocked opens when the saved Library settings keep
+	// the Library Scan schedule from starting a run. It closes when a
+	// scheduled run starts, or when the schedule is turned off.
+	LibraryScanScheduleBlocked Kind = "library_scan_schedule_blocked"
 )
 
 type Severity string
@@ -43,7 +42,6 @@ const (
 	SeverityWarning Severity = "warning"
 )
 
-// ErrNotDismissible is the answer of Dismiss for a notice that closes itself.
 var ErrNotDismissible = errors.New("this notice closes itself when the fault is gone")
 
 type definition struct {
@@ -79,6 +77,16 @@ var definitions = map[Kind]definition{
 		dismissible: true,
 		fixes: map[string]string{
 			"": "The disk of the qui database has little free space. When the disk is full, each write of qui fails. Free space on the disk, lower \"Keep daily detail for\", or delete older history in the Statistics settings.",
+		},
+	},
+	LibraryScanScheduleBlocked: {
+		severity: SeverityError,
+		title:    "Library Scan schedule cannot run",
+		fixes: map[string]string{
+			"":                       "qui cannot start the scheduled Library Scan run. qui tries again every hour.",
+			"torznab_off_no_gazelle": "Torznab is off in the Library Scan settings, and no RED or OPS API key is set. Turn Torznab on, or add a RED or OPS key in the Gazelle (OPS/RED) settings. qui tries again every hour.",
+			"no_indexer":             "No indexer is enabled. Enable a Torznab indexer, or add a RED or OPS key in the Gazelle (OPS/RED) settings. qui tries again every hour.",
+			"instance_missing":       "The instance in the saved Library Scan settings does not exist. Pick an instance in the Library Scan settings, then save. qui tries again every hour.",
 		},
 	},
 	RedactedKeyRejected: keyRejected("Redacted"),
@@ -117,8 +125,6 @@ type Module struct {
 	onDismiss map[Kind]func(context.Context) error
 }
 
-// New returns a module with no open notice. It sends each notice that opens
-// to notifier.
 func New(notifier notifications.Notifier) *Module {
 	return &Module{notifier: notifier, open: make(map[Kind]Notice), opened: make(map[Kind]uint64), onDismiss: make(map[Kind]func(context.Context) error)}
 }
@@ -129,8 +135,6 @@ func (m *Module) Open(kind Kind, cause string) {
 	m.OpenWithReason(kind, "", cause)
 }
 
-// OpenWithReason opens the notice as Open does, with the reason that selects
-// its fix.
 func (m *Module) OpenWithReason(kind Kind, reason, cause string) {
 	m.mu.Lock()
 	notice, isOpen := m.open[kind]
@@ -148,7 +152,6 @@ func (m *Module) OpenWithReason(kind Kind, reason, cause string) {
 	}
 }
 
-// Close closes the notice of kind. It does nothing when the notice is not open.
 func (m *Module) Close(kind Kind) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -174,8 +177,6 @@ func (m *Module) OnDismiss(kind Kind, fn func(context.Context) error) {
 	m.onDismiss[kind] = fn
 }
 
-// Dismiss closes the notice of kind for the user. It returns
-// ErrNotDismissible for a kind that closes itself.
 func (m *Module) Dismiss(ctx context.Context, kind Kind) error {
 	if !definitions[kind].dismissible {
 		return ErrNotDismissible
@@ -190,7 +191,6 @@ func (m *Module) Dismiss(ctx context.Context, kind Kind) error {
 	return nil
 }
 
-// List returns the open notices, oldest first.
 func (m *Module) List() []Notice {
 	m.mu.Lock()
 	defer m.mu.Unlock()

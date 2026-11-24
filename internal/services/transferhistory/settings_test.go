@@ -6,6 +6,7 @@ package transferhistory_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -183,6 +184,28 @@ func TestDetailRetentionPostgresIntegration(t *testing.T) {
 	}
 }
 
+// A reading that starts a new UTC day moves the torrent days before it out of
+// the recent days with each Detail retention, so that a write changes the rows
+// of few days, and the answers stay the same.
+// regression: #4119
+func TestANewUTCDayMovesTheTorrentDaysBeforeItPostgresIntegration(t *testing.T) {
+	t.Parallel()
+	for _, retentionDays := range transferhistory.DetailRetentions {
+		t.Run(fmt.Sprintf("%d days", retentionDays), func(t *testing.T) {
+			t.Parallel()
+			engines(t, func(t *testing.T, newDB func(t *testing.T) *database.DB) {
+				db := newDB(t)
+				runSteps(t, db, concat([]step{settings(true, retentionDays)}, twoDaysOfUpload, []step{{foldsDone: true}}, twoDaysChecks))
+				var first, last int64
+				require.NoError(t, db.QueryRowContext(t.Context(), `
+					SELECT MIN(day), MAX(day) FROM transfer_history_recent_torrent_days`).Scan(&first, &last))
+				day := day11.Unix() / 86400
+				require.Equal(t, [2]int64{day, day}, [2]int64{first, last})
+			})
+		})
+	}
+}
+
 func concat(parts ...[]step) []step {
 	var out []step
 	for _, p := range parts {
@@ -197,8 +220,8 @@ func concat(parts ...[]step) []step {
 func TestAFoldMovesTheDaysOfATorrentIntoItsYearPostgresIntegration(t *testing.T) {
 	t.Parallel()
 	name := "Some.Show.S01E01.1080p.WEB-DL-GRP"
-	a := &transferhistory.TorrentFacts{Name: name, TrackerGroup: "tracker.example", UploadFirst24h: new(int64(300))}
-	c := &transferhistory.TorrentFacts{Name: name, TrackerGroup: "tracker.example", StatisticsCrossSeed: true, UploadFirst24h: new(int64(60))}
+	a := &transferhistory.TorrentFacts{Name: name, TrackerGroup: "tracker.example", Size: 1000, UploadFirst24h: new(int64(300))}
+	c := &transferhistory.TorrentFacts{Name: name, TrackerGroup: "tracker.example", Size: 1000, StatisticsCrossSeed: true, UploadFirst24h: new(int64(60))}
 	year := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	days := period(day10, day12, transferhistory.BucketDay, transferhistory.GroupByTorrent)
 	engines(t, func(t *testing.T, newDB func(t *testing.T) *database.DB) {

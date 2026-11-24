@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { cleanup, render } from "@testing-library/react"
+import { cleanup, fireEvent, render, within } from "@testing-library/react"
 import { cloneElement, isValidElement, type ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -16,6 +16,12 @@ const i18n = vi.hoisted(() => ({
   t: (key: string, options?: Record<string, unknown>) => options?.groups === undefined ? key : `${key} groups=${String(options.groups)}`,
   i18n: { resolvedLanguage: "en", language: "en" },
 }))
+const trackers = vi.hoisted(() => ({
+  icons: { data: { "a.test": "data:image/png;base64,YQ==" } } as { data?: Record<string, string> },
+  customizations: { data: [] },
+}))
+vi.mock("@/hooks/useTrackerIcons", () => ({ useTrackerIcons: () => trackers.icons }))
+vi.mock("@/hooks/useTrackerCustomizations", () => ({ useTrackerCustomizations: () => trackers.customizations }))
 vi.mock("react-i18next", async (importOriginal) => ({
   ...await importOriginal<typeof import("react-i18next")>(),
   useTranslation: () => i18n,
@@ -27,7 +33,11 @@ vi.mock("recharts", async (importOriginal) => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => isValidElement(children) ? cloneElement(children, { width: 800, height: 300 } as object) : null,
 }))
 
+const measuredTextWidth = { value: 40 }
+Object.defineProperty(SVGElement.prototype, "getComputedTextLength", { configurable: true, value: () => measuredTextWidth.value })
+
 afterEach(() => {
+  measuredTextWidth.value = 40
   cleanup()
   localStorage.clear()
   _resetClientSettingsForTests()
@@ -35,6 +45,12 @@ afterEach(() => {
 
 function bar(start: string, gapSeconds: number): StatisticsBar {
   return { start: Date.parse(start), width: "hour", gapSeconds, bytes: new Map([["a.test", { uploaded: 100, downloaded: 0 }]]) }
+}
+
+const twoDaysOfHours = Array.from({ length: 24 }, (_, index) => ({ ...bar("2026-01-10T00:00:00Z", 0), start: new Date(2026, 0, 10, 12 + index).getTime() }))
+
+function dayNames(container: HTMLElement): SVGTextElement[] {
+  return [...container.querySelectorAll<SVGTextElement>("text")].filter(text => text.textContent?.includes(", Jan "))
 }
 
 describe("TransferChart", () => {
@@ -54,6 +70,60 @@ describe("TransferChart", () => {
     const { container } = render(<TransferChart bars={bars} groups={["a.test"]} metric="uploaded" unit="hour" displayName={group => group} />)
 
     expect(container.textContent).toContain("chart.otherCount groups=2")
+  })
+
+  it("shows the tracker icon of each Tracker group in the legend, and none for Other", () => {
+    const bytes = (uploaded: number) => ({ uploaded, downloaded: 0 })
+    const bars: StatisticsBar[] = [
+      { start: Date.parse("2026-01-10T10:00:00Z"), width: "hour", gapSeconds: 0, bytes: new Map([["a.test", bytes(100)], ["b.test", bytes(5)], ["c.test", bytes(5)]]) },
+    ]
+    const { container } = render(<TransferChart bars={bars} groups={["a.test", "b.test"]} metric="uploaded" unit="hour" displayName={group => group} />)
+
+    const legend = (name: string) => [...container.querySelectorAll(".recharts-legend-wrapper span.inline-flex")].find(item => item.textContent?.endsWith(name))
+    expect(legend("a.test")?.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,YQ==")
+    expect(legend("b.test")?.querySelector("span[aria-hidden=true]")?.textContent).toBe("B")
+    expect(legend("chart.otherCount groups=1")?.querySelector("img, span[aria-hidden=true]")).toBeNull()
+  })
+
+  it("shows the tracker icon of each Tracker group in the tooltip of a bar, and none for Other", async () => {
+    const bytes = (uploaded: number) => ({ uploaded, downloaded: 0 })
+    const bars: StatisticsBar[] = [
+      { start: Date.parse("2026-01-10T10:00:00Z"), width: "hour", gapSeconds: 0, bytes: new Map([["a.test", bytes(100)], ["b.test", bytes(5)], ["c.test", bytes(5)]]) },
+    ]
+    const { container } = render(<TransferChart bars={bars} groups={["a.test", "b.test"]} metric="uploaded" unit="hour" displayName={group => group} />)
+
+    const wrapper = container.querySelector(".recharts-wrapper")!
+    fireEvent.mouseEnter(wrapper, { clientX: 400, clientY: 150 })
+    fireEvent.mouseMove(wrapper, { clientX: 400, clientY: 150 })
+    const tooltip = await vi.waitFor(() => {
+      const box = container.querySelector<HTMLElement>(".recharts-tooltip-wrapper .min-w-48")
+      if (!box) throw new Error("no tooltip")
+      return box
+    })
+    const row = (name: string) => within(tooltip).getByText(name).parentElement!
+    expect(row("a.test").querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,YQ==")
+    expect(row("b.test").querySelector("span[aria-hidden=true]")?.textContent).toBe("B")
+    expect(row("chart.other").querySelector("img, span[aria-hidden=true]")).toBeNull()
+  })
+
+  it("names each day of an hour chart, and hides a name that is wider than its day", () => {
+    const names = (container: HTMLElement) => dayNames(container).map(text => [text.textContent, text.style.visibility])
+    const chart = <TransferChart bars={twoDaysOfHours} groups={["a.test"]} metric="uploaded" unit="hour" displayName={group => group} />
+
+    expect(names(render(chart).container)).toEqual([["Sat, Jan 10", ""], ["Sun, Jan 11", ""]])
+    cleanup()
+
+    measuredTextWidth.value = 10_000
+    expect(names(render(chart).container)).toEqual([["Sat, Jan 10", "hidden"], ["Sun, Jan 11", "hidden"]])
+  })
+
+  // regression: #4441
+  it("draws the day names over the bars", () => {
+    const { container } = render(<TransferChart bars={twoDaysOfHours} groups={["a.test"]} metric="uploaded" unit="hour" displayName={group => group} />)
+
+    const lastBar = [...container.querySelectorAll(".recharts-bar-rectangle")].at(-1)!
+    expect(dayNames(container).map(name => lastBar.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING))
+      .toEqual([Node.DOCUMENT_POSITION_FOLLOWING, Node.DOCUMENT_POSITION_FOLLOWING])
   })
 
   it("colors the series from the selected set", () => {

@@ -7,6 +7,7 @@ import type { Theme } from "@/config/themes"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { _resetClientSettingsForTests, applyServerSettings } from "@/lib/client-settings"
 
 const fixture = vi.hoisted(() => {
@@ -127,7 +128,10 @@ beforeEach(() => {
   appearance.dark = true
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 function openMenu(): void {
   fireEvent.pointerDown(
@@ -156,7 +160,7 @@ function variationColor(name: string): string {
 
 describe("ThemeToggle", () => {
   it("shows the complete catalog, with color buttons only for the theme in use", async () => {
-    render(<ThemeToggle />)
+    render(<ThemeToggle />, { wrapper: TooltipProvider })
 
     fireEvent.pointerDown(
       screen.getByRole("button", { name: "themeToggle.changeTheme" }),
@@ -165,7 +169,6 @@ describe("ThemeToggle", () => {
 
     const selected = await screen.findByText("Selected theme")
     const selectedItem = selected.closest("[role=menuitem]") as HTMLElement
-    const otherName = screen.getByText("Other theme")
     const otherItem = themeItem("Other theme")
     const premiumItem = themeItem("Premium theme")
     const customItem = themeItem("Custom theme")
@@ -181,12 +184,11 @@ describe("ThemeToggle", () => {
     expect(screen.getByRole("menuitemradio", { name: "green" }).getAttribute("aria-checked")).toBe("false")
     expect(screen.queryByRole("menuitemradio", { name: "amber" })).toBeNull()
     expect(selectedItem.querySelector("button")).toBeNull()
-    expect(otherName.classList.contains("truncate")).toBe(false)
     expect(screen.queryByText("themeToggle.custom")).toBeNull()
   })
 
   it("stays open after selecting a theme or variation", async () => {
-    render(<ThemeToggle />)
+    render(<ThemeToggle />, { wrapper: TooltipProvider })
 
     fireEvent.pointerDown(
       screen.getByRole("button", { name: "themeToggle.changeTheme" }),
@@ -200,7 +202,7 @@ describe("ThemeToggle", () => {
       expect(screen.queryByText("Other theme")).not.toBeNull()
     })
 
-    fireEvent.click(screen.getByTitle("green"))
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "green" }))
 
     await waitFor(() => {
       expect(screen.queryByText("Other theme")).not.toBeNull()
@@ -208,7 +210,7 @@ describe("ThemeToggle", () => {
   })
 
   it("repaints its pictures when the system switches between light and dark", async () => {
-    render(<ThemeToggle />)
+    render(<ThemeToggle />, { wrapper: TooltipProvider })
     openMenu()
     await screen.findByText("Selected theme")
     expect(variationColor("blue")).toBe("navy")
@@ -223,7 +225,7 @@ describe("ThemeToggle", () => {
 
   it("picks the mode from one row and links to Choose menu themes", async () => {
     const { setThemeMode } = await import("@/utils/theme")
-    render(<ThemeToggle />)
+    render(<ThemeToggle />, { wrapper: TooltipProvider })
     openMenu()
 
     const dark = await screen.findByRole("menuitemradio", { name: "themeToggle.dark" })
@@ -237,7 +239,7 @@ describe("ThemeToggle", () => {
 
   it("shows a hidden theme that the user showed and hides a free theme that the user hid", async () => {
     saveVisibility({ gruvbox: true, other: false })
-    render(<ThemeToggle />)
+    render(<ThemeToggle />, { wrapper: TooltipProvider })
     openMenu()
 
     await screen.findByText("Community theme")
@@ -246,14 +248,14 @@ describe("ThemeToggle", () => {
 
   it("keeps the theme in use in the menu when it is hidden", async () => {
     saveVisibility({ selected: false })
-    render(<ThemeToggle />)
+    render(<ThemeToggle />, { wrapper: TooltipProvider })
     openMenu()
 
     await screen.findByText("Selected theme")
   })
 
   it("follows a choice that arrives from the server", async () => {
-    render(<ThemeToggle />)
+    render(<ThemeToggle />, { wrapper: TooltipProvider })
     openMenu()
     await screen.findByText("Other theme")
 

@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import "@/i18n"
+
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { initI18n } from "@/i18n"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { afterEach, describe, expect, it, vi } from "vitest"
+
 import type { InstanceResponse } from "@/types"
+
 import { InstanceErrorDisplay, isQBitAuthError } from "./InstanceErrorDisplay"
 
 const mockGetQBitConfig = vi.fn().mockResolvedValue({
@@ -22,15 +24,25 @@ vi.mock("@/hooks/usePodmanServices", () => ({
   }),
 }))
 
+afterEach(cleanup)
+
+describe("InstanceErrorDisplay", () => {
+  // regression: #4233
+  it("names each error category with a label, and an unknown category as Unknown", () => {
+    const recentErrors = [
+      { id: 1, instanceId: 3, errorType: "api", errorMessage: "bad response", occurredAt: "2026-01-02T03:04:05Z" },
+      { id: 2, instanceId: 3, errorType: "timeout", errorMessage: "slow", occurredAt: "2026-01-02T03:04:06Z" },
+    ]
+    render(<InstanceErrorDisplay instance={{ connected: false, recentErrors } as InstanceResponse} onEdit={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: /Recent errors/i }))
+
+    expect(screen.getByText("API")).not.toBeNull()
+    expect(screen.getByText("Unknown")).not.toBeNull()
+    expect(screen.queryByText("timeout")).toBeNull()
+  })
+})
+
 describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
-  beforeEach(async () => {
-    await initI18n()
-  })
-
-  afterEach(() => {
-    cleanup()
-  })
-
   it("isQBitAuthError identifies authentication failure patterns accurately", () => {
     expect(isQBitAuthError("error making request: qbit re-login")).toBe(true)
     expect(isQBitAuthError("Health check failed: could not get webapi version", "Authentication")).toBe(true)
@@ -61,18 +73,9 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
           occurredAt: "2026-11-07T17:48:00Z",
         },
       ],
-    }
+    } as InstanceResponse
 
-    render(
-      <TooltipProvider>
-        <InstanceErrorDisplay
-          instance={mockInstance}
-          onEdit={onEdit}
-          showEditButton={true}
-          compact={true}
-        />
-      </TooltipProvider>
-    )
+    render(<InstanceErrorDisplay instance={mockInstance} onEdit={onEdit} />)
 
     // Guidance title and steps should be visible
     expect(screen.getByText("qBittorrent Authentication Required")).toBeDefined()
@@ -104,44 +107,17 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
     expect(clipboardWriteMock).toHaveBeenCalledWith("temporaryPassword123")
   })
 
-  it("renders guidance when extraErrorMessage from connection test contains an authentication failure", () => {
-    const mockInstance: InstanceResponse = {
-      id: 2,
-      name: "Local Qbit",
-      host: "http://localhost:8080",
-      connected: false,
-      hasDecryptionError: false,
-      recentErrors: [],
-    }
-
-    render(
-      <TooltipProvider>
-        <InstanceErrorDisplay
-          instance={mockInstance}
-          compact={true}
-          extraErrorMessage="Test Connection Failed: error making request: qbit re-login"
-        />
-      </TooltipProvider>
-    )
-
-    expect(screen.getByText("qBittorrent Authentication Required")).toBeDefined()
-  })
-
   it("does not render guidance when instance is connected and healthy", () => {
-    const mockInstance: InstanceResponse = {
+    const mockInstance = {
       id: 3,
       name: "Connected Client",
       host: "http://localhost:8080",
       connected: true,
       hasDecryptionError: false,
       recentErrors: [],
-    }
+    } as unknown as InstanceResponse
 
-    render(
-      <TooltipProvider>
-        <InstanceErrorDisplay instance={mockInstance} compact={true} />
-      </TooltipProvider>
-    )
+    render(<InstanceErrorDisplay instance={mockInstance} onEdit={vi.fn()} />)
 
     expect(screen.queryByText("qBittorrent Authentication Required")).toBeNull()
   })

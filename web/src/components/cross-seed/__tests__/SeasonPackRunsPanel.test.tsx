@@ -7,6 +7,7 @@ import type { SeasonPackRun } from "@/types"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 vi.mock("react-i18next", async (importOriginal) => ({
   ...await importOriginal<typeof import("react-i18next")>(),
@@ -23,6 +24,7 @@ import { SeasonPackRunsPanel } from "../SeasonPackRunsPanel"
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
   // The panel keeps its status filters in localStorage.
   localStorage.clear()
 })
@@ -38,7 +40,9 @@ function renderPanel(run: SeasonPackRun) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <SeasonPackRunsPanel runs={[run]} isLoading={false} isFetching={false} error={null} onRefresh={() => {}} formatDateValue={() => "just now"} />
+      <TooltipProvider>
+        <SeasonPackRunsPanel runs={[run]} isLoading={false} isFetching={false} error={null} onRefresh={() => {}} formatDateValue={() => "just now"} />
+      </TooltipProvider>
     </QueryClientProvider>
   )
   fireEvent.click(screen.getByText("seasonPackRuns.title"))

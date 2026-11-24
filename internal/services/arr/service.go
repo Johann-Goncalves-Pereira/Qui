@@ -21,7 +21,7 @@ import (
 const (
 	// DefaultPositiveCacheTTL is the default TTL for positive cache entries (IDs found)
 	// Long TTL because external IDs (IMDb, TMDb, TVDb, TVMaze) are immutable
-	DefaultPositiveCacheTTL = 30 * 24 * time.Hour // 30 days
+	DefaultPositiveCacheTTL = 30 * 24 * time.Hour
 
 	// cacheWriteTimeout bounds detached cache writes so a wedged SQLite writer
 	// cannot hold them forever.
@@ -31,11 +31,11 @@ const (
 	// Short TTL because content may be added to *arr instances later
 	DefaultNegativeCacheTTL = 1 * time.Hour
 
-	// cacheCleanupInterval is how often to run cache cleanup (opportunistically)
+	incompleteCacheTTL = 10 * time.Minute
+
 	cacheCleanupInterval = 30 * time.Minute
 )
 
-// ContentType represents the type of content being searched
 type ContentType string
 
 const (
@@ -45,7 +45,6 @@ const (
 	ContentTypeUnknown ContentType = "unknown"
 )
 
-// ExternalIDsResult contains the result of an ID lookup
 type ExternalIDsResult struct {
 	IDs         *models.ExternalIDs `json:"ids,omitempty"`
 	Titles      []string            `json:"titles,omitempty"`
@@ -54,33 +53,35 @@ type ExternalIDsResult struct {
 	// EpisodeMapKnown reports that the map was read; a cached row without it refetches.
 	EpisodeMap      *models.EpisodeMap `json:"episode_map,omitempty"`
 	EpisodeMapKnown bool               `json:"-"`
+	Incomplete      bool               `json:"-"`
 	FromCache       bool               `json:"from_cache"`
 	ArrInstanceID   *int               `json:"arr_instance_id,omitempty"`
 	ContentType     ContentType        `json:"content_type"`
 	Source          string             `json:"source,omitempty"`
 }
 
-// SeasonEpisodeTotalResult contains the resolved episode count for a Sonarr season,
-// plus the show's alternate titles usable for that season (series-wide + same-season).
 type SeasonEpisodeTotalResult struct {
 	TotalEpisodes int      `json:"total_episodes"`
 	ArrInstanceID *int     `json:"arr_instance_id,omitempty"`
 	Titles        []string `json:"titles,omitempty"`
 }
 
-// Service orchestrates ARR ID lookups with caching
 type Service struct {
 	instanceStore *models.ArrInstanceStore
 	cacheStore    *models.ArrIDCacheStore
 	positiveTTL   time.Duration
 	negativeTTL   time.Duration
 
-	// Cache cleanup scheduling
 	cleanupMu        sync.Mutex
 	nextCacheCleanup time.Time
 }
 
-// NewService creates a new ARR service
+type askedInstance struct {
+	instance      *models.ArrInstance
+	client        *Client
+	parseAnswered bool
+}
+
 func NewService(instanceStore *models.ArrInstanceStore, cacheStore *models.ArrIDCacheStore) *Service {
 	return &Service{
 		instanceStore: instanceStore,
@@ -90,19 +91,15 @@ func NewService(instanceStore *models.ArrInstanceStore, cacheStore *models.ArrID
 	}
 }
 
-// LookupExternalIDs queries ARR instances for external IDs based on content type.
-// It checks the cache first, then queries ARR instances in priority order.
 func (s *Service) LookupExternalIDs(ctx context.Context, title string, contentType ContentType) (*ExternalIDsResult, error) {
 	if title == "" {
 		return nil, errors.New("title cannot be empty")
 	}
 
-	// Skip lookup for unknown content type
 	if contentType == ContentTypeUnknown || contentType == "" {
 		return nil, nil
 	}
 
-	// Schedule opportunistic cache cleanup
 	defer s.maybeScheduleCacheCleanup()
 
 	titleHash := models.ComputeTitleHash(title)
@@ -115,7 +112,6 @@ func (s *Service) LookupExternalIDs(ctx context.Context, title string, contentTy
 		return cacheResult, nil
 	}
 
-	// Cache miss - determine which ARR type(s) to query
 	instances, err := s.enabledInstancesForContent(ctx, title, contentType)
 	if err != nil {
 		return nil, err
@@ -134,12 +130,14 @@ func (s *Service) LookupExternalIDs(ctx context.Context, title string, contentTy
 		// re-query (e.g. a legacy entry awaiting title hydration) rather than
 		// discarding known-good data over a transient outage.
 		if cacheResult != nil {
+			cacheResult.Incomplete = true
 			return cacheResult, nil
 		}
 		return nil, err
 	}
 	if result.IDs == nil || result.IDs.IsEmpty() {
 		if cacheResult != nil {
+			cacheResult.Incomplete = result.Incomplete
 			return cacheResult, nil
 		}
 		return result, nil
@@ -159,7 +157,7 @@ func (s *Service) enabledInstancesForContent(ctx context.Context, title string, 
 	}
 
 	if len(instances) == 0 {
-		log.Debug().
+		log.Trace().
 			Str("title", title).
 			Str("contentType", string(contentType)).
 			Str("arrType", string(arrType)).
@@ -183,20 +181,22 @@ func (s *Service) lookupCache(ctx context.Context, titleHash, title string, cont
 	if err != nil || cacheEntry == nil {
 		return nil, nil //nolint:nilerr // cache read errors are logged above and treated as a cache miss
 	}
+	mayBePartial := time.Until(cacheEntry.ExpiresAt) <= incompleteCacheTTL
 	if cacheEntry.IsNegative {
-		log.Debug().
+		log.Trace().
 			Str("title", title).
 			Str("contentType", string(contentType)).
 			Msg("[ARR-LOOKUP] Cache hit (negative)")
 		return &ExternalIDsResult{
 			IDs:           nil,
+			Incomplete:    mayBePartial,
 			FromCache:     true,
 			ArrInstanceID: cacheEntry.ArrInstanceID,
 			ContentType:   contentType,
 			Source:        "cache",
 		}, nil
 	}
-	log.Debug().
+	log.Trace().
 		Str("title", title).
 		Str("contentType", string(contentType)).
 		Str("imdbId", cacheEntry.ExternalIDs.IMDbID).
@@ -214,6 +214,7 @@ func (s *Service) lookupCache(ctx context.Context, titleHash, title string, cont
 		TitlesKnown:     cacheEntry.HasTitles,
 		EpisodeMap:      cacheEntry.EpisodeMap,
 		EpisodeMapKnown: cacheEntry.HasEpisodeMap,
+		Incomplete:      mayBePartial,
 		FromCache:       true,
 		ArrInstanceID:   cacheEntry.ArrInstanceID,
 		ContentType:     contentType,
@@ -230,14 +231,16 @@ func (s *Service) lookupExternalIDsFromParse(ctx context.Context, titleHash, tit
 	parsedRelease := rls.ParseString(title)
 	lookupTerm := strings.TrimSpace(parsedRelease.Title)
 	lookupYear := parsedRelease.Year
+	var asked []askedInstance
+	incomplete := false
 	for _, instance := range instances {
 		client := s.clientForInstance(instance)
 		if client == nil {
 			continue
 		}
-		result, err := client.ParseTitleLookupResult(ctx, title)
-		parseAnswered := err == nil
+		result, err := parseWithinShare(ctx, client, title, len(asked) > 0)
 		if err != nil {
+			incomplete = true
 			log.Debug().Err(err).
 				Int("instanceId", instance.ID).
 				Str("instanceName", instance.Name).
@@ -246,38 +249,44 @@ func (s *Service) lookupExternalIDsFromParse(ctx context.Context, titleHash, tit
 			result = nil
 		}
 
+		incomplete = incomplete || (result != nil && result.Incomplete)
 		if result != nil && result.IDs != nil && !result.IDs.IsEmpty() {
+			result.Incomplete = incomplete
 			return s.cacheAndBuildResult(ctx, titleHash, title, contentType, instance, result, "parse", true), nil
 		}
+		asked = append(asked, askedInstance{instance: instance, client: client, parseAnswered: err == nil})
+	}
 
+	for _, a := range asked {
 		// anyQueried gates negative caching and the total-failure error: an
 		// instance counts as queried only when its lookup cycle reached an
 		// authoritative empty answer. A parse-empty followed by a lookup error
 		// is inconclusive — parse-empty is exactly the state the title-lookup
 		// fallback exists to distrust.
 		if lookupTerm != "" {
-			lookupResult, lookupErr := client.LookupByTerm(ctx, lookupTerm, lookupYear)
+			lookupResult, lookupErr := a.client.LookupByTerm(ctx, lookupTerm, lookupYear)
 			if lookupErr != nil {
+				incomplete = true
 				log.Debug().Err(lookupErr).
-					Int("instanceId", instance.ID).
-					Str("instanceName", instance.Name).
+					Int("instanceId", a.instance.ID).
+					Str("instanceName", a.instance.Name).
 					Str("term", lookupTerm).
 					Msg("[ARR-LOOKUP] Title lookup failed")
 				continue
 			}
 			anyQueried = true
+			incomplete = incomplete || (lookupResult != nil && lookupResult.Incomplete)
 			if lookupResult != nil && lookupResult.IDs != nil && !lookupResult.IDs.IsEmpty() {
-				// The map is known only when parse answered: an unanswered parse
-				// must not stamp the row as "looked, found none" for the TTL.
-				return s.cacheAndBuildResult(ctx, titleHash, title, contentType, instance, lookupResult, "lookup", parseAnswered), nil
+				lookupResult.Incomplete = incomplete
+				return s.cacheAndBuildResult(ctx, titleHash, title, contentType, a.instance, lookupResult, "lookup", a.parseAnswered), nil
 			}
-		} else if parseAnswered {
+		} else if a.parseAnswered {
 			anyQueried = true
 		}
 
-		log.Debug().
-			Int("instanceId", instance.ID).
-			Str("instanceName", instance.Name).
+		log.Trace().
+			Int("instanceId", a.instance.ID).
+			Str("instanceName", a.instance.Name).
 			Str("title", title).
 			Msg("[ARR-LOOKUP] No IDs returned from instance")
 	}
@@ -291,11 +300,11 @@ func (s *Service) lookupExternalIDsFromParse(ctx context.Context, titleHash, tit
 	if cacheNegative {
 		writeCtx, cancel := detachedCacheWriteContext(ctx)
 		defer cancel()
-		if err := s.cacheStore.Set(writeCtx, titleHash, string(contentType), nil, nil, true, s.negativeTTL); err != nil {
+		if err := s.cacheStore.Set(writeCtx, titleHash, string(contentType), nil, nil, true, cacheTTL(s.negativeTTL, incomplete)); err != nil {
 			log.Warn().Err(err).Msg("[ARR-LOOKUP] Failed to cache negative result")
 		}
 	}
-	log.Debug().
+	log.Trace().
 		Str("title", title).
 		Str("contentType", string(contentType)).
 		Int("instancesQueried", len(instances)).
@@ -303,10 +312,27 @@ func (s *Service) lookupExternalIDsFromParse(ctx context.Context, titleHash, tit
 
 	return &ExternalIDsResult{
 		IDs:         nil,
+		Incomplete:  incomplete,
 		FromCache:   false,
 		ContentType: contentType,
 		Source:      "none",
 	}, nil
+}
+
+func parseWithinShare(ctx context.Context, client *Client, title string, catalogueWaits bool) (*ExternalIDsLookupResult, error) {
+	if deadline, ok := ctx.Deadline(); ok && catalogueWaits {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Until(deadline)/2)
+		defer cancel()
+	}
+	return client.ParseTitleLookupResult(ctx, title)
+}
+
+func cacheTTL(ttl time.Duration, incomplete bool) time.Duration {
+	if incomplete {
+		return min(ttl, incompleteCacheTTL)
+	}
+	return ttl
 }
 
 func (s *Service) cacheAndBuildResult(ctx context.Context, titleHash, title string, contentType ContentType, instance *models.ArrInstance, result *ExternalIDsLookupResult, source string, episodeMapKnown bool) *ExternalIDsResult {
@@ -314,11 +340,11 @@ func (s *Service) cacheAndBuildResult(ctx context.Context, titleHash, title stri
 	titles := append([]string{}, result.Titles...)
 	writeCtx, cancel := detachedCacheWriteContext(ctx)
 	defer cancel()
-	if err := s.cacheStore.SetWithTitles(writeCtx, titleHash, string(contentType), &instanceID, result.IDs, titles, result.EpisodeMap, episodeMapKnown, false, s.positiveTTL); err != nil {
+	if err := s.cacheStore.SetWithTitles(writeCtx, titleHash, string(contentType), &instanceID, result.IDs, titles, result.EpisodeMap, episodeMapKnown, false, cacheTTL(s.positiveTTL, result.Incomplete)); err != nil {
 		log.Warn().Err(err).Msg("[ARR-LOOKUP] Failed to cache positive result")
 	}
 
-	log.Debug().
+	log.Trace().
 		Str("title", title).
 		Int("instanceId", instance.ID).
 		Str("instanceName", instance.Name).
@@ -338,6 +364,7 @@ func (s *Service) cacheAndBuildResult(ctx context.Context, titleHash, title stri
 		TitlesKnown:     true,
 		EpisodeMap:      result.EpisodeMap,
 		EpisodeMapKnown: episodeMapKnown,
+		Incomplete:      result.Incomplete,
 		FromCache:       false,
 		ArrInstanceID:   &instanceID,
 		ContentType:     contentType,
@@ -468,13 +495,11 @@ func (s *Service) LookupSeasonEpisodeTotal(ctx context.Context, title string, se
 	return partial, nil
 }
 
-// TestConnection tests connectivity to an ARR instance.
 func (s *Service) TestConnection(ctx context.Context, baseURL, apiKey string, basicUsername, basicPassword *string, instanceType models.ArrInstanceType) error {
 	client := NewClient(baseURL, apiKey, basicUsername, basicPassword, instanceType, 15)
 	return client.Ping(ctx)
 }
 
-// TestInstance tests connectivity to an existing ARR instance by ID
 func (s *Service) TestInstance(ctx context.Context, instanceID int) error {
 	instance, err := s.instanceStore.Get(ctx, instanceID)
 	if err != nil {
@@ -501,7 +526,6 @@ func (s *Service) TestInstance(ctx context.Context, instanceID int) error {
 	client := NewClient(instance.BaseURL, apiKey, instance.BasicUsername, basicPassPtr, instance.Type, instance.TimeoutSeconds)
 	err = client.Ping(ctx)
 
-	// Update test status
 	status := "ok"
 	var errorMsg *string
 	if err != nil {
@@ -517,14 +541,12 @@ func (s *Service) TestInstance(ctx context.Context, instanceID int) error {
 	return err
 }
 
-// DebugResolve resolves a title to IDs and returns detailed debug info
 func (s *Service) DebugResolve(ctx context.Context, title string, contentType ContentType) (*DebugResolveResult, error) {
 	result := &DebugResolveResult{
 		Title:       title,
 		ContentType: contentType,
 	}
 
-	// Check cache
 	titleHash := models.ComputeTitleHash(title)
 	result.TitleHash = titleHash
 
@@ -536,7 +558,6 @@ func (s *Service) DebugResolve(ctx context.Context, title string, contentType Co
 		result.Error = err.Error()
 	}
 
-	// Lookup fresh (bypassing cache)
 	arrType := s.getArrTypeForContent(contentType)
 	if arrType != "" {
 		instances, err := s.instanceStore.ListEnabledByType(ctx, arrType)
@@ -587,7 +608,6 @@ func (s *Service) DebugResolve(ctx context.Context, title string, contentType Co
 	return result, nil
 }
 
-// getArrTypeForContent maps content type to the appropriate ARR instance type
 func (s *Service) getArrTypeForContent(contentType ContentType) models.ArrInstanceType {
 	switch contentType {
 	case ContentTypeMovie:
@@ -599,7 +619,6 @@ func (s *Service) getArrTypeForContent(contentType ContentType) models.ArrInstan
 	}
 }
 
-// DebugResolveResult contains detailed debug information about an ID resolution
 type DebugResolveResult struct {
 	Title              string                  `json:"title"`
 	TitleHash          string                  `json:"title_hash"`
@@ -611,7 +630,6 @@ type DebugResolveResult struct {
 	Error              string                  `json:"error,omitempty"`
 }
 
-// DebugInstanceResult contains the result of querying a single ARR instance
 type DebugInstanceResult struct {
 	InstanceID   int                 `json:"instance_id"`
 	InstanceName string              `json:"instance_name"`
@@ -620,8 +638,6 @@ type DebugInstanceResult struct {
 	Error        string              `json:"error,omitempty"`
 }
 
-// maybeScheduleCacheCleanup triggers cache cleanup if enough time has passed since the last cleanup.
-// This runs opportunistically during lookups to prevent unbounded table growth.
 func (s *Service) maybeScheduleCacheCleanup() {
 	if s == nil || s.cacheStore == nil {
 		return

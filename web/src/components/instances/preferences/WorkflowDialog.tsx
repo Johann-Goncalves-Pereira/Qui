@@ -50,10 +50,10 @@ import { Switch } from "@/components/ui/switch"
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger
 } from "@/components/ui/tooltip"
 import { TrackerIconImage } from "@/components/ui/tracker-icon"
+import { TruncatedText } from "@/components/ui/truncated-text"
 import { useInstanceCapabilities } from "@/hooks/useInstanceCapabilities"
 import { useInstanceMetadata } from "@/hooks/useInstanceMetadata"
 import { useIndexerTrackerDomains } from "@/hooks/useIndexerTrackerDomains"
@@ -69,7 +69,7 @@ import { type CsvColumn, downloadBlob, toCsv } from "@/lib/csv-export"
 import { usableFreeSpaceSourceType } from "@/lib/free-space-source"
 import { isMovePathServerError, isVisiblyRelativeMovePath } from "@/lib/move-path"
 import { pickTrackerIconDomain } from "@/lib/tracker-icons"
-import { ACTION_LABEL_KEYS, ACTION_RUN_ORDER, getTrackerMatchMode, getTrackerTokens, type ActionType, type TrackerMatchMode } from "@/lib/workflow-utils"
+import { ACTION_LABEL_KEYS, ACTION_RUN_ORDER, ALLOWANCE_DECIMAL_UNITS, allowanceInputOf, firstActionCondition, freeSpaceSourceOf, getSwitchedOffActions, getTrackerMatchMode, getTrackerTokens, hasMixedActionConditions, type ActionType, type SwitchedOffActions, type TrackerMatchMode } from "@/lib/workflow-utils"
 import { cn, formatBytes, normalizeTrackerDomains } from "@/lib/utils"
 import { BYTES_PER_UNIT, unitLabel } from "@/lib/unit-format"
 import type {
@@ -98,6 +98,8 @@ import { AutomationActivityRunDialog } from "./AutomationActivityRunDialog"
 import { RunWorkflowNowDialog } from "./RunWorkflowNowDialog"
 import { DryRunToggle, WorkflowPreviewDialog } from "./WorkflowPreviewDialog"
 import { EDITING, workflowSaveFlowReducer } from "@/lib/workflow-save-flow"
+import { TransferForm } from "@/components/transfers/TransferForm"
+import { emptyTransferForm, type TransferFormValue } from "@/components/transfers/transfer-form-value"
 
 let ruleIdCounter = 0
 
@@ -150,6 +152,7 @@ const DRY_RUN_ACTION_LABEL_KEYS: Record<AutomationActivity["action"], string> = 
   moved: "preferences.workflowDialog.dryRun.actions.moved",
   external_program: "preferences.workflowDialog.dryRun.actions.externalProgram",
   exported_to_instance: "preferences.workflowDialog.dryRun.actions.exportedToInstance",
+  transferred_to_instance: "preferences.workflowDialog.dryRun.actions.transferredToInstance",
   dry_run_no_match: "preferences.workflowDialog.dryRun.actions.noMatches",
   rule_skipped: "preferences.workflowDialog.dryRun.actions.ruleSkipped",
 }
@@ -267,6 +270,24 @@ function conditionUsesField(condition: RuleCondition | null | undefined, field: 
     return condition.conditions.some(c => conditionUsesField(c, field))
   }
   return false
+}
+
+/** The `freeSpaceSource` that a save of the form sends. Undefined for an allowance or a path that is not complete. */
+function formFreeSpaceSource(state: Pick<FormState, "exprFreeSpaceSourceType" | "exprFreeSpaceSourcePath" | "exprFreeSpaceAllowance" | "exprFreeSpaceAllowanceUnit">) {
+  return freeSpaceSourceOf({
+    type: state.exprFreeSpaceSourceType,
+    path: state.exprFreeSpaceSourcePath,
+    allowance: state.exprFreeSpaceAllowance,
+    allowanceUnit: state.exprFreeSpaceAllowanceUnit,
+  })
+}
+
+/** Whether a run reads Free Space for this rule: in the action condition or in the sorting. The backend decides the same way. */
+function formUsesFreeSpace(state: Pick<FormState, "actionCondition" | "sortingType" | "simpleSortField" | "scoreRules">): boolean {
+  if (conditionUsesField(state.actionCondition, "FREE_SPACE")) return true
+  if (state.sortingType === "simple") return state.simpleSortField === "FREE_SPACE"
+  return state.sortingType === "score" && state.scoreRules.some(rule =>
+    rule.fieldMultiplier?.field === "FREE_SPACE" || conditionUsesField(rule.conditional?.condition, "FREE_SPACE"))
 }
 
 /**
@@ -397,6 +418,8 @@ type FormState = {
   categoryEnabled: boolean
   moveEnabled: boolean
   externalProgramEnabled: boolean
+  // Actions that the loaded rule switches off. The editor does not show them.
+  switchedOffActions: SwitchedOffActions
   // Speed limits settings (mode-based)
   exprUploadMode: SpeedLimitMode
   exprUploadValue?: number // KiB/s, only used when mode is "custom"
@@ -415,8 +438,11 @@ type FormState = {
   exprDeleteGroupId: string
   exprDeleteAtomic: "all" | ""
   // Free space source settings (for FREE_SPACE conditions)
-  exprFreeSpaceSourceType: "qbittorrent" | "path" | "qbitPath"
+  exprFreeSpaceSourceType: "qbittorrent" | "path" | "qbitPath" | "allowance"
   exprFreeSpaceSourcePath: string
+  exprFreeSpaceAllowance: string
+  // Byte multiplier of the allowance figure.
+  exprFreeSpaceAllowanceUnit: number
   // Tag action settings
   exprTagActions: TagActionForm[]
   // Category action settings
@@ -445,6 +471,9 @@ type FormState = {
   exprExportPaused: boolean
   exprExportSkipChecking: boolean
   exprExportContentLayout: "" | "Original" | "Subfolder" | "NoSubfolder"
+  // Transfer to instance action settings
+  transferToInstanceEnabled: boolean
+  exprTransfer: TransferFormValue
 }
 
 const emptyFormState: FormState = {
@@ -472,6 +501,7 @@ const emptyFormState: FormState = {
   categoryEnabled: false,
   moveEnabled: false,
   externalProgramEnabled: false,
+  switchedOffActions: {},
   exprUploadMode: "no_change",
   exprUploadValue: undefined,
   exprDownloadMode: "no_change",
@@ -488,6 +518,8 @@ const emptyFormState: FormState = {
   exprDeleteAtomic: "",
   exprFreeSpaceSourceType: "qbittorrent",
   exprFreeSpaceSourcePath: "",
+  exprFreeSpaceAllowance: "",
+  exprFreeSpaceAllowanceUnit: BYTES_PER_UNIT.GiB,
   exprTagActions: [createDefaultTagAction()],
   exprCategory: undefined,
   exprIncludeCrossSeeds: false,
@@ -510,6 +542,8 @@ const emptyFormState: FormState = {
   exprExportPaused: false,
   exprExportSkipChecking: true,
   exprExportContentLayout: "",
+  transferToInstanceEnabled: false,
+  exprTransfer: emptyTransferForm,
 }
 
 // Helper to get enabled actions from form state
@@ -588,6 +622,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
     return SCORE_MULTIPLIER_DISABLED_FIELDS.map(field => ({ field, reason }))
   }, [t])
   const [formState, setFormState] = useState<FormState>(emptyFormState)
+  const mixedActionConditions = useMemo(() => rule != null && hasMixedActionConditions(rule), [rule])
   const loadedForm = useRef<FormState | null>(null)
   const currentForm = useRef(formState)
   const saveCheckRun = useRef(0)
@@ -656,7 +691,6 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   })
   const hasNotificationTargets = (notificationTargets ?? []).length > 0
 
-  const supportsFreeSpacePathSource = capabilities?.supportsFreeSpacePathSource ?? false
   // Undefined while the capabilities query is in flight. Only a definite false
   // may rewrite a saved source; treating "not loaded yet" as unsupported would
   // silently drop a stored qBittorrent path when the dialog opens.
@@ -667,9 +701,13 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   const hasTrustedIdentity = ruleInstance?.capabilities.trustedIdentity ?? false
   const isRemoteInstance = ruleInstance?.filesystemMode === "remote"
   // A Windows host refuses the path source only for an instance it reads locally.
-  const pathSourceWindowsBlocked = hasLocalFilesystemAccess && !supportsFreeSpacePathSource
+  // Only a definite false blocks: while the capabilities load, a block would
+  // switch a saved path or allowance source to the default.
+  const pathSourceWindowsBlocked = hasLocalFilesystemAccess && capabilities?.supportsFreeSpacePathSource === false
   const canRead = ruleInstance?.capabilities.read ?? false
   const pathSourceAvailable = canRead && !pathSourceWindowsBlocked
+  // The allowance source measures the files itself, and it needs file identity to count a hardlinked file one time.
+  const allowanceSourceAvailable = (ruleInstance?.capabilities.identity ?? false) && !pathSourceWindowsBlocked
 
   const fieldCapabilities = useMemo<Capabilities>(
     () => ({
@@ -947,6 +985,8 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
         let exprIncludeHardlinks = false
         let exprFreeSpaceSourceType: FormState["exprFreeSpaceSourceType"] = "qbittorrent"
         let exprFreeSpaceSourcePath = ""
+        let exprFreeSpaceAllowance = ""
+        let exprFreeSpaceAllowanceUnit: number = BYTES_PER_UNIT.GiB
         let exprTagActions: TagActionForm[] = [createDefaultTagAction()]
         let exprCategory: string | undefined
         let exprIncludeCrossSeeds = false
@@ -965,6 +1005,8 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
         let exprMoveGroupId = ""
         let exprMoveAtomic: FormState["exprMoveAtomic"] = ""
         let exportToInstanceEnabled = false
+        let transferToInstanceEnabled = false
+        let exprTransfer = emptyTransferForm
         let exprExportTargetInstanceId: number | null = null
         let exprExportSavePath = ""
         let exprExportCategory = ""
@@ -996,29 +1038,19 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
         // Hydrate freeSpaceSource from rule
         if (rule.freeSpaceSource) {
           exprFreeSpaceSourceType = rule.freeSpaceSource.type ?? "qbittorrent"
-          if (rule.freeSpaceSource.type === "path" || rule.freeSpaceSource.type === "qbitPath") {
+          if (rule.freeSpaceSource.type !== "qbittorrent") {
             exprFreeSpaceSourcePath = rule.freeSpaceSource.path ?? ""
+          }
+          if (rule.freeSpaceSource.type === "allowance") {
+            const input = allowanceInputOf(rule.freeSpaceSource.allowanceBytes)
+            exprFreeSpaceAllowance = input.allowance
+            exprFreeSpaceAllowanceUnit = input.allowanceUnit
           }
         }
 
         if (conditions) {
           exprGrouping = conditions.grouping
-          // Get condition from any enabled action (they should all be the same)
-          actionCondition = conditions.speedLimits?.condition
-            ?? conditions.shareLimits?.condition
-            ?? conditions.pause?.condition
-            ?? conditions.resume?.condition
-            ?? conditions.recheck?.condition
-            ?? conditions.reannounce?.condition
-            ?? conditions.autoManagement?.condition
-            ?? conditions.delete?.condition
-            ?? conditions.tags?.[0]?.condition
-            ?? conditions.tag?.condition
-            ?? conditions.category?.condition
-            ?? conditions.move?.condition
-            ?? conditions.externalProgram?.condition
-            ?? conditions.exportToInstance?.condition
-            ?? null
+          actionCondition = firstActionCondition(rule)
 
           if (conditions.speedLimits?.enabled) {
             speedLimitsEnabled = true
@@ -1111,6 +1143,19 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
             const rawLayout = conditions.exportToInstance.contentLayout ?? ""
             exprExportContentLayout = CONTENT_LAYOUT_VALUES.includes(rawLayout as typeof CONTENT_LAYOUT_VALUES[number])? rawLayout as FormState["exprExportContentLayout"]: ""
           }
+          const transfer = conditions.transferToInstance
+          if (transfer?.enabled) {
+            transferToInstanceEnabled = true
+            exprTransfer = {
+              targetInstanceId: transfer.targetInstanceId ?? null,
+              savePath: transfer.savePath ?? "",
+              category: transfer.category ?? "",
+              tags: (transfer.tags ?? []).join(", "),
+              after: transfer.after ?? "removeWithFiles",
+              leaveStopped: transfer.leaveStopped ?? false,
+              way: transfer.way ?? "auto",
+            }
+          }
         }
 
         const newState: FormState = {
@@ -1139,6 +1184,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
           categoryEnabled,
           moveEnabled,
           externalProgramEnabled,
+          switchedOffActions: getSwitchedOffActions(rule),
           exprUploadMode,
           exprUploadValue,
           exprDownloadMode,
@@ -1155,6 +1201,8 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
           exprDeleteAtomic,
           exprFreeSpaceSourceType,
           exprFreeSpaceSourcePath,
+          exprFreeSpaceAllowance,
+          exprFreeSpaceAllowanceUnit,
           exprTagActions,
           exprCategory,
           exprMovePath,
@@ -1177,6 +1225,8 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
           exprExportPaused,
           exprExportSkipChecking,
           exprExportContentLayout,
+          transferToInstanceEnabled,
+          exprTransfer,
         }
         setFormState(newState)
         loadedForm.current = newState
@@ -1242,11 +1292,11 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
     }
   }, [formState.actionCondition, formState.deleteEnabled, formState.intervalSeconds, t])
 
-  // Auto-switch free space source from "path" to "qbittorrent" on a Windows host with local access.
+  // Auto-switch free space source to "qbittorrent" on a Windows host with local access.
   // This must run during hydration to handle legacy workflows opened on Windows.
   // Only toast after hydration to avoid noise when opening dialogs.
   useEffect(() => {
-    if (pathSourceWindowsBlocked && formState.exprFreeSpaceSourceType === "path") {
+    if (pathSourceWindowsBlocked && (formState.exprFreeSpaceSourceType === "path" || formState.exprFreeSpaceSourceType === "allowance")) {
       setFormState(prev => ({ ...prev, exprFreeSpaceSourceType: "qbittorrent" }))
       if (!isHydrating.current) {
         toast.warning(t("preferences.workflowDialog.toast.pathSourceUnsupportedWindows"))
@@ -1267,7 +1317,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   }, [supportsFreeSpaceAtPath, formState.exprFreeSpaceSourceType, t])
 
   const validateFreeSpaceSource = useCallback((state: FormState): boolean => {
-    const usesFreeSpace = conditionUsesField(state.actionCondition, "FREE_SPACE")
+    const usesFreeSpace = formUsesFreeSpace(state)
     if (!usesFreeSpace || state.exprFreeSpaceSourceType === "qbittorrent") {
       setFreeSpaceSourcePathError(null)
       return true
@@ -1289,6 +1339,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
       setFreeSpaceSourcePathError(null)
       return true
     }
+    const allowance = state.exprFreeSpaceSourceType === "allowance"
 
     // Reject if path source is selected but not supported (safety net for edge cases)
     if (pathSourceWindowsBlocked) {
@@ -1296,7 +1347,12 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
       toast.error(t("preferences.workflowDialog.toast.switchFreeSpaceSourceDefault"))
       return false
     }
-    if (!pathSourceAvailable) {
+    if (allowance && !allowanceSourceAvailable) {
+      setFreeSpaceSourcePathError(t("preferences.workflowDialog.freeSpace.errors.allowanceAccessRequired"))
+      toast.error(t("preferences.workflowDialog.toast.switchFreeSpaceSourceDefault"))
+      return false
+    }
+    if (!allowance && !pathSourceAvailable) {
       setFreeSpaceSourcePathError(t("preferences.workflowDialog.freeSpace.errors.filesystemAccessRequired"))
       toast.error(t("preferences.workflowDialog.toast.setUpFilesystemAccessOrDefault"))
       return false
@@ -1308,10 +1364,15 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
       toast.error(t("preferences.workflowDialog.toast.enterPathOrDefault"))
       return false
     }
+    if (allowance && !formFreeSpaceSource(state)) {
+      setFreeSpaceSourcePathError(t("preferences.workflowDialog.freeSpace.errors.allowanceRequired"))
+      toast.error(t("preferences.workflowDialog.freeSpace.errors.allowanceRequired"))
+      return false
+    }
 
     setFreeSpaceSourcePathError(null)
     return true
-  }, [pathSourceAvailable, pathSourceWindowsBlocked, supportsFreeSpaceAtPath, t])
+  }, [allowanceSourceAvailable, pathSourceAvailable, pathSourceWindowsBlocked, supportsFreeSpaceAtPath, t])
 
   const validateCategory = useCallback((state: FormState): boolean => {
     if (state.categoryEnabled && state.exprCategory === undefined) {
@@ -1332,9 +1393,12 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   }, [t])
 
   const hasValidFreeSpaceSourceForLivePreview = useCallback((state: FormState): boolean => {
-    const usesFreeSpace = conditionUsesField(state.actionCondition, "FREE_SPACE")
+    const usesFreeSpace = formUsesFreeSpace(state)
     if (!usesFreeSpace || state.exprFreeSpaceSourceType === "qbittorrent") {
       return true
+    }
+    if (state.exprFreeSpaceSourceType === "allowance") {
+      return allowanceSourceAvailable && formFreeSpaceSource(state) !== undefined
     }
     if (state.exprFreeSpaceSourceType === "qbitPath") {
       return supportsFreeSpaceAtPath !== false && state.exprFreeSpaceSourcePath.trim() !== ""
@@ -1343,11 +1407,12 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
       return false
     }
     return state.exprFreeSpaceSourcePath.trim() !== ""
-  }, [pathSourceAvailable, supportsFreeSpaceAtPath])
+  }, [allowanceSourceAvailable, pathSourceAvailable, supportsFreeSpaceAtPath])
 
   // Build payload from form state (shared by preview and save)
   const buildPayload = useCallback((input: FormState): AutomationInput => {
-    const conditions: ActionConditions = { schemaVersion: "1" }
+    const { tags: switchedOffTags = [], ...switchedOffActions } = input.switchedOffActions
+    const conditions: ActionConditions = { schemaVersion: "1", ...switchedOffActions }
     if (input.exprGrouping) {
       conditions.grouping = input.exprGrouping
     }
@@ -1455,25 +1520,24 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
         condition: input.actionCondition ?? undefined,
       }
     }
-    if (input.tagEnabled) {
-      const tagActions = input.exprTagActions
-        .filter((action) => action.useTrackerAsTag || action.tags.length > 0)
-        .map((action) => ({
-          enabled: true,
-          tags: action.tags,
-          mode: action.mode,
-          includeCrossSeeds: action.includeCrossSeeds,
-          deleteFromClient: action.deleteFromClient,
-          useTrackerAsTag: action.useTrackerAsTag,
-          useDisplayName: action.useDisplayName,
-          condition: input.actionCondition ?? undefined,
-        }))
-
-      if (tagActions.length > 0) {
-        conditions.tags = tagActions
-        // Keep legacy single-tag payload for backward compatibility.
-        conditions.tag = tagActions[0]
-      }
+    const formTagActions = !input.tagEnabled ? [] : input.exprTagActions
+      .filter((action) => action.useTrackerAsTag || action.tags.length > 0)
+      .map((action) => ({
+        enabled: true,
+        tags: action.tags,
+        mode: action.mode,
+        includeCrossSeeds: action.includeCrossSeeds,
+        deleteFromClient: action.deleteFromClient,
+        useTrackerAsTag: action.useTrackerAsTag,
+        useDisplayName: action.useDisplayName,
+        condition: input.actionCondition ?? undefined,
+      }))
+    // The server refuses a delete rule with any tag action, also a switched-off one.
+    const tagActions = input.deleteEnabled ? formTagActions : [...formTagActions, ...switchedOffTags]
+    if (tagActions.length > 0) {
+      conditions.tags = tagActions
+      // Keep legacy single-tag payload for backward compatibility.
+      conditions.tag = tagActions[0]
     }
     if (input.categoryEnabled && input.exprCategory !== undefined) {
       conditions.category = {
@@ -1520,14 +1584,28 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
         condition: input.actionCondition ?? undefined,
       }
     }
-
-    const trimmedFreeSpacePath = input.exprFreeSpaceSourcePath.trim()
-    let freeSpaceSource: AutomationInput["freeSpaceSource"]
-    // Keep a configured path source even if FREE_SPACE isn't currently in the condition
-    // (user might add it later, or just want to preserve the setting)
-    if (input.exprFreeSpaceSourceType !== "qbittorrent" && trimmedFreeSpacePath) {
-      freeSpaceSource = { type: input.exprFreeSpaceSourceType, path: trimmedFreeSpacePath }
+    if (input.transferToInstanceEnabled) {
+      if (!input.exprTransfer.targetInstanceId) {
+        throw new Error("Transfer to instance requires a target instance")
+      }
+      const transfer = input.exprTransfer
+      const tags = transfer.tags.split(",").map(t => t.trim()).filter(Boolean)
+      conditions.transferToInstance = {
+        enabled: true,
+        targetInstanceId: input.exprTransfer.targetInstanceId,
+        savePath: transfer.savePath.trim(),
+        category: transfer.category || undefined,
+        tags: tags.length > 0 ? tags : undefined,
+        after: transfer.after,
+        leaveStopped: transfer.leaveStopped || undefined,
+        way: transfer.way,
+        condition: input.actionCondition ?? undefined,
+      }
     }
+
+    // The source stays even if FREE_SPACE isn't currently in the condition
+    // (user might add it later, or just want to preserve the setting)
+    const freeSpaceSource = formFreeSpaceSource(input)
 
     let sortingConfig: SortingConfig | undefined
     if (input.sortingType === "simple") {
@@ -1606,13 +1684,13 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   const isTagRule = formState.tagEnabled && !formState.deleteEnabled && !formState.categoryEnabled
   const previewCategory = formState.exprCategory || t("preferences.workflowDialog.uncategorized")
 
-  // Check if condition uses FREE_SPACE field (for free space source UI - shown regardless of action)
+  // Check if condition uses FREE_SPACE field (for preview view toggle - only for delete rules)
   const conditionUsesFreeSpace = useMemo(() => {
     return conditionUsesField(formState.actionCondition, "FREE_SPACE")
   }, [formState.actionCondition])
-
-  // Check if delete rule uses FREE_SPACE field (for preview view toggle - only for delete rules)
   const deleteUsesFreeSpace = formState.deleteEnabled && conditionUsesFreeSpace
+  // The free space source UI shows when the condition or the sorting reads FREE_SPACE.
+  const ruleUsesFreeSpace = formUsesFreeSpace(formState)
   const intervalOptions = useMemo(() => ([
     { value: "default", label: t("preferences.workflowDialog.interval.default") },
     { value: "60", label: t("preferences.workflowDialog.interval.oneMinute"), disabled: deleteUsesFreeSpace },
@@ -1642,6 +1720,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
     formState.moveEnabled,
     formState.externalProgramEnabled,
     formState.exportToInstanceEnabled,
+    formState.transferToInstanceEnabled,
   ].filter(Boolean).length
 
   const latestDryRunOperationCount = useMemo(
@@ -1901,6 +1980,18 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   }
 
   const validateExportTarget = useCallback((state: FormState): boolean => {
+    if (state.transferToInstanceEnabled) {
+      const target = state.exprTransfer.targetInstanceId
+      if (!target) {
+        toast.error(t("preferences.workflowDialog.toast.selectTargetInstance"))
+        return false
+      }
+      if (nonSelfInstances && !nonSelfInstances.some(i => i.id === target)) {
+        toast.error(t("preferences.workflowDialog.toast.targetInstanceMissing"))
+        setFormState(prev => ({ ...prev, exprTransfer: { ...prev.exprTransfer, targetInstanceId: null } }))
+        return false
+      }
+    }
     if (!state.exportToInstanceEnabled) return true
     if (!state.exprExportTargetInstanceId) {
       toast.error(t("preferences.workflowDialog.toast.selectTargetInstance"))
@@ -2182,7 +2273,6 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                     required
                     placeholder={t("preferences.workflowDialog.namePlaceholder")}
                     autoComplete="off"
-                    data-1p-ignore
                   />
                 </div>
                 <div className="flex items-center gap-2 rounded-md border px-3 py-2">
@@ -2252,16 +2342,14 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Label>{t("preferences.workflowDialog.priority.title")}</Label>
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[300px]">
-                          <p>{t("preferences.workflowDialog.priority.description")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[300px]">
+                        <p>{t("preferences.workflowDialog.priority.description")}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   <Select
                     value={formState.sortingType}
@@ -2497,6 +2585,11 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                     disabledStateValues={getDisabledStateValues(fieldCapabilities, t)}
                     groupOptions={groupedConditionOptions}
                   />
+                  {mixedActionConditions && (
+                    <div className="rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm">
+                      <p>{t("preferences.workflowDialog.mixedActionConditions")}</p>
+                    </div>
+                  )}
                   {formState.deleteEnabled && !formState.actionCondition && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm">
                       <p className="font-medium text-destructive">{t("preferences.workflowDialog.toast.deleteRequiresCondition")}</p>
@@ -2560,22 +2653,20 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                   <div className="rounded-lg border p-3 space-y-3 bg-muted/30">
                     <div className="flex items-center gap-2">
                       <Label className="text-sm font-medium">{t("preferences.workflowDialog.grouping.title")}</Label>
-                      <TooltipProvider delayDuration={150}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                              aria-label={t("preferences.workflowDialog.grouping.aria")}
-                            >
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-[340px]">
-                            <p>{t("preferences.workflowDialog.grouping.tooltip")}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild openOnTap>
+                          <button
+                            type="button"
+                            className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                            aria-label={t("preferences.workflowDialog.grouping.aria")}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[340px]">
+                          <p>{t("preferences.workflowDialog.grouping.tooltip")}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
 
                     <p className="text-xs text-muted-foreground">
@@ -2708,6 +2799,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                             moveEnabled: false,
                             externalProgramEnabled: false,
                             exportToInstanceEnabled: false,
+                            transferToInstanceEnabled: false,
                             // Safety: when selecting delete in "create new" mode, start disabled
                             enabled: !rule ? false : prev.enabled,
                           }))
@@ -3311,22 +3403,20 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                                     <Label htmlFor={`use-display-name-${index}`} className="text-sm cursor-pointer whitespace-nowrap">
                                       {t("preferences.workflowDialog.tag.useDisplayName")}
                                     </Label>
-                                    <TooltipProvider delayDuration={150}>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            type="button"
-                                            className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                                            aria-label={t("preferences.workflowDialog.tag.aboutDisplayNames")}
-                                          >
-                                            <Info className="h-3.5 w-3.5" />
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-[280px]">
-                                          <p>{t("preferences.workflowDialog.tag.displayNameDescription")}</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild openOnTap>
+                                        <button
+                                          type="button"
+                                          className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                                          aria-label={t("preferences.workflowDialog.tag.aboutDisplayNames")}
+                                        >
+                                          <Info className="h-3.5 w-3.5" />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-[280px]">
+                                        <p>{t("preferences.workflowDialog.tag.displayNameDescription")}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
                                   </div>
                                 )}
                                 {!tagAction.useTrackerAsTag && (
@@ -3472,22 +3562,20 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                             <Label htmlFor="block-if-cross-seed" className="text-sm cursor-pointer">
                               {t("preferences.workflowDialog.move.skipIfCrossSeedsDontMatch")}
                             </Label>
-                            <TooltipProvider delayDuration={150}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="shrink-0 inline-flex items-center text-muted-foreground hover:text-foreground"
-                                    aria-label={t("preferences.workflowDialog.move.aboutSkipping")}
-                                  >
-                                    <Info className="h-3.5 w-3.5" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-[320px]">
-                                  <p>{t("preferences.workflowDialog.move.skipDescription")}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild openOnTap>
+                                <button
+                                  type="button"
+                                  className="shrink-0 inline-flex items-center text-muted-foreground hover:text-foreground"
+                                  aria-label={t("preferences.workflowDialog.move.aboutSkipping")}
+                                >
+                                  <Info className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-[320px]">
+                                <p>{t("preferences.workflowDialog.move.skipDescription")}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       </div>
@@ -3733,6 +3821,31 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                       </div>
                     )}
 
+                    {/* Transfer to Instance */}
+                    {formState.transferToInstanceEnabled && (
+                      <div className="rounded-lg border p-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">{t("preferences.workflowDialog.transfer.title")}</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            aria-label={t("preferences.workflowDialog.transfer.remove")}
+                            onClick={() => setFormState(prev => ({ ...prev, transferToInstanceEnabled: false, exprTransfer: emptyTransferForm }))}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{t("preferences.workflowDialog.transfer.description")}</p>
+                        <TransferForm
+                          value={formState.exprTransfer}
+                          onChange={exprTransfer => setFormState(prev => ({ ...prev, exprTransfer }))}
+                          targets={nonSelfInstances}
+                        />
+                      </div>
+                    )}
+
                     {/* Delete - standalone only */}
                     {formState.deleteEnabled && (
                       <div className="rounded-lg border border-destructive/50 p-3 space-y-3">
@@ -3762,26 +3875,24 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <TooltipProvider delayDuration={150}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div>
-                                          <SelectItem
-                                            value="delete"
-                                            className="text-destructive focus:text-destructive"
-                                            disabled={keepFilesDisabled}
-                                          >
-                                            {t("preferences.workflowDialog.delete.keepFiles")}
-                                          </SelectItem>
-                                        </div>
-                                      </TooltipTrigger>
-                                      {keepFilesDisabled && (
-                                        <TooltipContent side="left" className="max-w-[280px]">
-                                          <p>{t("preferences.workflowDialog.delete.keepFilesDisabledReason")}</p>
-                                        </TooltipContent>
-                                      )}
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div>
+                                        <SelectItem
+                                          value="delete"
+                                          className="text-destructive focus:text-destructive"
+                                          disabled={keepFilesDisabled}
+                                        >
+                                          {t("preferences.workflowDialog.delete.keepFiles")}
+                                        </SelectItem>
+                                      </div>
+                                    </TooltipTrigger>
+                                    {keepFilesDisabled && (
+                                      <TooltipContent side="left" className="max-w-[280px]">
+                                        <p>{t("preferences.workflowDialog.delete.keepFilesDisabledReason")}</p>
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
                                   <SelectItem value="deleteWithFiles" className="text-destructive focus:text-destructive">{t("preferences.workflowDialog.delete.withFiles")}</SelectItem>
                                   <SelectItem value="deleteWithFilesPreserveCrossSeeds" className="text-destructive focus:text-destructive">{t("preferences.workflowDialog.delete.withFilesPreserveCrossSeeds")}</SelectItem>
                                   <SelectItem value="deleteWithFilesIncludeCrossSeeds" className="text-destructive focus:text-destructive">{t("preferences.workflowDialog.delete.withFilesIncludeCrossSeeds")}</SelectItem>
@@ -3793,34 +3904,32 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                         {/* Include Hardlinks checkbox - only for deleteWithFilesIncludeCrossSeeds mode */}
                         {formState.exprDeleteMode === "deleteWithFilesIncludeCrossSeeds" && (
                           <div className="flex items-center gap-2">
-                            <TooltipProvider delayDuration={150}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={formState.exprIncludeHardlinks}
-                                      onChange={(e) => setFormState(prev => ({ ...prev, exprIncludeHardlinks: e.target.checked }))}
-                                      // A checked box stays clickable, so a workflow whose instance lost the option can clear it.
-                                      disabled={!hasTrustedIdentity && !formState.exprIncludeHardlinks}
-                                      className="h-3.5 w-3.5 rounded border-border disabled:opacity-50"
-                                    />
-                                    <span className={!hasTrustedIdentity ? "opacity-50" : ""}>
-                                      {t("preferences.workflowDialog.delete.includeHardlinkedCopies")}
-                                    </span>
-                                  </label>
-                                </TooltipTrigger>
-                                <TooltipContent side="left" className="max-w-[320px]">
-                                  {hasTrustedIdentity ? (
-                                    <p>{t("preferences.workflowDialog.delete.includeHardlinkedCopiesDescription")}</p>
-                                  ) : isRemoteInstance ? (
-                                    <p>{t("preferences.workflowDialog.delete.remoteNotAvailable")}</p>
-                                  ) : (
-                                    <p>{t("preferences.workflowDialog.delete.localAccessRequired")}</p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={formState.exprIncludeHardlinks}
+                                    onChange={(e) => setFormState(prev => ({ ...prev, exprIncludeHardlinks: e.target.checked }))}
+                                    // A checked box stays clickable, so a workflow whose instance lost the option can clear it.
+                                    disabled={!hasTrustedIdentity && !formState.exprIncludeHardlinks}
+                                    className="h-3.5 w-3.5 rounded border-border disabled:pointer-events-none disabled:opacity-50"
+                                  />
+                                  <span className={!hasTrustedIdentity ? "opacity-50" : ""}>
+                                    {t("preferences.workflowDialog.delete.includeHardlinkedCopies")}
+                                  </span>
+                                </label>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-[320px]">
+                                {hasTrustedIdentity ? (
+                                  <p>{t("preferences.workflowDialog.delete.includeHardlinkedCopiesDescription")}</p>
+                                ) : isRemoteInstance ? (
+                                  <p>{t("preferences.workflowDialog.delete.remoteNotAvailable")}</p>
+                                ) : (
+                                  <p>{t("preferences.workflowDialog.delete.localAccessRequired")}</p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         )}
                       </div>
@@ -3829,27 +3938,25 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                   </div>
                 </div>
 
-                {/* Free Space Source - shown whenever FREE_SPACE is used in conditions */}
-                {conditionUsesFreeSpace && (
+                {/* Free Space Source - shown whenever FREE_SPACE is used in the conditions or the sorting */}
+                {ruleUsesFreeSpace && (
                   <div className="rounded-lg border p-3 space-y-2">
                     <div className="flex items-center gap-1.5">
                       <Label className="text-sm font-medium">{t("preferences.workflowDialog.freeSpace.title")}</Label>
-                      <TooltipProvider delayDuration={150}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                              aria-label={t("preferences.workflowDialog.freeSpace.aria")}
-                            >
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="left" className="max-w-[320px]">
-                            <p>{t("preferences.workflowDialog.freeSpace.description")}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild openOnTap>
+                          <button
+                            type="button"
+                            className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                            aria-label={t("preferences.workflowDialog.freeSpace.aria")}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-[320px]">
+                          <p>{t("preferences.workflowDialog.freeSpace.description")}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <Select
                       value={formState.exprFreeSpaceSourceType}
@@ -3879,13 +3986,62 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                         <SelectItem value="qbitPath" disabled={supportsFreeSpaceAtPath === false}>
                           {supportsFreeSpaceAtPath === false? t("preferences.workflowDialog.freeSpace.qbitPathSourceUnsupported"): t("preferences.workflowDialog.freeSpace.qbitPathSource")}
                         </SelectItem>
+                        <SelectItem value="allowance" disabled={!allowanceSourceAvailable}>
+                          {pathSourceWindowsBlocked? t("preferences.workflowDialog.freeSpace.allowanceSourceWindowsUnsupported"): !allowanceSourceAvailable? t("preferences.workflowDialog.freeSpace.allowanceSourceAccessRequired"): t("preferences.workflowDialog.freeSpace.allowanceSource")}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    {((formState.exprFreeSpaceSourceType === "path" && !pathSourceWindowsBlocked) || (formState.exprFreeSpaceSourceType === "qbitPath" && supportsFreeSpaceAtPath !== false)) && (
+                    {formState.exprFreeSpaceSourceType === "allowance" && !pathSourceWindowsBlocked && (
                       <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <Label htmlFor="free-space-allowance" className="text-xs">{t("preferences.workflowDialog.freeSpace.allowanceLabel")}</Label>
+                          <FieldHelp>{t("preferences.workflowDialog.freeSpace.allowanceHelp", { decimalUnit: t("preferences.workflowDialog.freeSpace.allowanceUnits.TB"), binaryUnit: unitLabel("TiB") })}</FieldHelp>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            id="free-space-allowance"
+                            type="number"
+                            min={0}
+                            step="any"
+                            inputMode="decimal"
+                            value={formState.exprFreeSpaceAllowance}
+                            onChange={(e) => {
+                              const nextAllowance = e.target.value
+                              setFormState(prev => ({ ...prev, exprFreeSpaceAllowance: nextAllowance }))
+                            }}
+                            className="h-8 text-xs"
+                          />
+                          <Select
+                            value={String(formState.exprFreeSpaceAllowanceUnit)}
+                            onValueChange={(value) => setFormState(prev => ({ ...prev, exprFreeSpaceAllowanceUnit: Number(value) }))}
+                          >
+                            <SelectTrigger className="h-8 w-24 text-xs" aria-label={t("preferences.workflowDialog.freeSpace.allowanceUnitAria")}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={String(ALLOWANCE_DECIMAL_UNITS.MB)}>{t("preferences.workflowDialog.freeSpace.allowanceUnits.MB")}</SelectItem>
+                              <SelectItem value={String(ALLOWANCE_DECIMAL_UNITS.GB)}>{t("preferences.workflowDialog.freeSpace.allowanceUnits.GB")}</SelectItem>
+                              <SelectItem value={String(ALLOWANCE_DECIMAL_UNITS.TB)}>{t("preferences.workflowDialog.freeSpace.allowanceUnits.TB")}</SelectItem>
+                              {(["MiB", "GiB", "TiB"] as const).map(unit => (
+                                <SelectItem key={unit} value={String(BYTES_PER_UNIT[unit])}>{unitLabel(unit)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+                    {(((formState.exprFreeSpaceSourceType === "path" || formState.exprFreeSpaceSourceType === "allowance") && !pathSourceWindowsBlocked) || (formState.exprFreeSpaceSourceType === "qbitPath" && supportsFreeSpaceAtPath !== false)) && (
+                      <div className="flex flex-col gap-1">
+                        {formState.exprFreeSpaceSourceType === "allowance" && (
+                          <div className="flex items-center gap-1.5">
+                            <Label htmlFor="free-space-source-path" className="text-xs">{t("preferences.workflowDialog.freeSpace.allowancePathLabel")}</Label>
+                            <FieldHelp>{t("preferences.workflowDialog.freeSpace.allowancePathHelp")}</FieldHelp>
+                          </div>
+                        )}
                         <div className="relative">
                           <Folder className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground z-10" />
                           <Input
+                            id="free-space-source-path"
                             ref={supportsPathAutocomplete ? freeSpacePathInputRef : undefined}
                             value={formState.exprFreeSpaceSourcePath}
                             autoComplete="off"
@@ -3923,7 +4079,6 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                                 <button
                                   key={entry}
                                   type="button"
-                                  title={entry}
                                   className={cn(
                                     "w-full px-3 py-1.5 text-xs text-left",
                                     freeSpaceHighlightedIndex === idx ? "bg-accent text-accent-foreground" : "hover:bg-accent hover:text-accent-foreground"
@@ -3931,7 +4086,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                                   onMouseDown={(e) => e.preventDefault()}
                                   onClick={() => handleFreeSpacePathSelectSuggestion(entry)}
                                 >
-                                  <span className="block truncate">{entry}</span>
+                                  <TruncatedText className="block" openOnTap={false}>{entry}</TruncatedText>
                                 </button>
                               ))}
                             </div>
@@ -3941,9 +4096,11 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                         {freeSpaceSourcePathError && (
                           <p className="text-xs text-destructive">{freeSpaceSourcePathError}</p>
                         )}
-                        <p className="text-xs text-muted-foreground">
-                          {formState.exprFreeSpaceSourceType === "qbitPath"? t("preferences.workflowDialog.freeSpace.qbitPathHelp"): t("preferences.workflowDialog.freeSpace.pathHelp")}
-                        </p>
+                        {formState.exprFreeSpaceSourceType !== "allowance" && (
+                          <p className="text-xs text-muted-foreground">
+                            {formState.exprFreeSpaceSourceType === "qbitPath"? t("preferences.workflowDialog.freeSpace.qbitPathHelp"): t("preferences.workflowDialog.freeSpace.pathHelp")}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -3953,22 +4110,20 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <Label className="text-xs">{t("preferences.workflowDialog.category.skipIfCrossSeedExists")}</Label>
-                      <TooltipProvider delayDuration={150}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                              aria-label={t("preferences.workflowDialog.category.aboutSkipping")}
-                            >
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-[320px]">
-                            <p>{t("preferences.workflowDialog.category.skipHelp")}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild openOnTap>
+                          <button
+                            type="button"
+                            className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                            aria-label={t("preferences.workflowDialog.category.aboutSkipping")}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[320px]">
+                          <p>{t("preferences.workflowDialog.category.skipHelp")}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <MultiSelect
                       options={categoryOptions}
@@ -4113,22 +4268,20 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                     </SelectContent>
                   </Select>
                   {deleteUsesFreeSpace && (
-                    <TooltipProvider delayDuration={150}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                            aria-label={t("preferences.workflowDialog.interval.cooldownAria")}
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[280px]">
-                          <p>{t("preferences.workflowDialog.interval.cooldownDescription")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild openOnTap>
+                        <button
+                          type="button"
+                          className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                          aria-label={t("preferences.workflowDialog.interval.cooldownAria")}
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[280px]">
+                        <p>{t("preferences.workflowDialog.interval.cooldownDescription")}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                   {deleteUsesFreeSpace && formState.intervalSeconds === 60 && (
                     <span className="text-xs text-yellow-500">{t("preferences.workflowDialog.interval.cooldownWarning")}</span>

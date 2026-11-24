@@ -4,8 +4,10 @@
 package pathutil
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // regression: #4073
@@ -181,6 +183,8 @@ func TestIsolationFolder(t *testing.T) {
 		{name: "name over 255 bytes of 2-byte characters", torrent: strings.Repeat("é", 200), want: strings.Repeat("é", 122)},
 		{name: "cut never splits a 4-byte character", torrent: strings.Repeat("a", 243) + "😀" + "bbb", want: strings.Repeat("a", 243)},
 		{name: "trailing dots and spaces after the cut", torrent: strings.Repeat("a", 241) + ". .." + "tail", want: strings.Repeat("a", 241)},
+		// regression: #4423
+		{name: "device name after the cut", torrent: "AUX" + strings.Repeat(" ", 300) + "x", want: "_AUX"},
 	}
 
 	for _, tt := range tests {
@@ -197,9 +201,140 @@ func TestHashedIsolationFolder(t *testing.T) {
 		t.Errorf("HashedIsolationFolder = %q, want %q", got, "Movie--abcdef12")
 	}
 
-	// A cut name keeps room for the hash inside the 255-byte limit.
 	got := HashedIsolationFolder("abcdef1234567890", strings.Repeat("é", 200))
 	if want := strings.Repeat("é", 122) + "--abcdef12"; got != want {
 		t.Errorf("HashedIsolationFolder = %q (%d bytes), want %q", got, len(got), want)
 	}
+}
+
+// regression: #4220
+func FuzzTorrentFilePathMatchesReference(f *testing.F) {
+	for _, seed := range [][3]string{
+		{"Album", "Disc 1", "01 - Track.flac"},
+		{"Album\u200e", "Disc\u200f 1", "01 \u2014 Track\u202e.flac"},
+		{"Album", "", "\u2019s.flac"},
+		{"Movie.\xe1\xff.2024", "sub\xff\xfe\u200e", "file.mkv"},
+		{"", "\u200e", "track.flac"},
+		{"\u202a\u202b\u202c\u202d", "\xe2\x80", "\xe2"},
+	} {
+		f.Add(seed[0], seed[1], seed[2])
+	}
+	filter := func(name string) string {
+		return strings.Map(func(r rune) rune {
+			switch r {
+			case '\u200e', '\u200f', '\u202a', '\u202b', '\u202c', '\u202d', '\u202e':
+				return -1
+			default:
+				return r
+			}
+		}, strings.ToValidUTF8(name, "\ufffd"))
+	}
+	f.Fuzz(func(t *testing.T, root, dir, file string) {
+		if got, want := TorrentPathName(root), filter(root); got != want {
+			t.Fatalf("TorrentPathName(%q) = %q, want %q", root, got, want)
+		}
+		parts := []string{filter(root)}
+		refused := false
+		for _, c := range []string{dir, file} {
+			switch {
+			case c == "":
+				parts = append(parts, "_")
+			case filter(c) == "":
+				refused = true
+			default:
+				parts = append(parts, filter(c))
+			}
+		}
+		want := strings.Join(parts, "/")
+		if parts[0] == "" {
+			want = strings.Join(parts[1:], "/")
+		}
+		got, err := TorrentFilePath(TorrentPathName(root), []string{dir, file})
+		if refused {
+			if err == nil {
+				t.Fatalf("TorrentFilePath(%q, %q, %q) = %q, want an error", root, dir, file, got)
+			}
+			return
+		}
+		if err != nil || got != want {
+			t.Fatalf("TorrentFilePath(%q, %q, %q) = %q, %v; want %q", root, dir, file, got, err, want)
+		}
+	})
+}
+
+func checkPathSegment(t *testing.T, call, got string) {
+	t.Helper()
+	if got == "" {
+		t.Fatalf("%s is empty", call)
+	}
+	if i := strings.IndexFunc(got, func(r rune) bool { return r < 0x20 || strings.ContainsRune(`<>:"/\|?*`, r) }); i >= 0 {
+		t.Fatalf("%s = %q holds %q, which a Windows file name cannot hold", call, got, got[i])
+	}
+	if strings.HasSuffix(got, ".") || strings.HasSuffix(got, " ") {
+		t.Fatalf("%s = %q ends in a dot or a space", call, got)
+	}
+}
+
+func FuzzSanitizePathSegment(f *testing.F) {
+	for _, seed := range []string{
+		"",
+		"Movie.2024.1080p",
+		"a/b\\c:d*e?f\"g<h>i|j",
+		"name. . ",
+		"..",
+		"\x00\x1f",
+		"CON",
+		"con.txt",
+		"LPT1 ",
+		"COM\u00b9.log",
+		"\xff\xfe",
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, name string) {
+		got := SanitizePathSegment(name)
+		call := fmt.Sprintf("SanitizePathSegment(%q)", name)
+		checkPathSegment(t, call, got)
+		if IsWindowsDeviceName(got) {
+			t.Fatalf("%s = %q is a Windows device name", call, got)
+		}
+	})
+}
+
+func FuzzIsolationFolder(f *testing.F) {
+	for _, seed := range []string{
+		"",
+		"Movie",
+		strings.Repeat("a", 300),
+		strings.Repeat("\u00e9", 200),
+		strings.Repeat("a", 244) + "\u00e9",
+		strings.Repeat("a", 240) + ". . . .x",
+		strings.Repeat(".", 300),
+		strings.Repeat(".", 250) + "x",
+		strings.Repeat("\xff", 300),
+		"AUX" + strings.Repeat(" ", 300) + "x",
+		"COM1" + strings.Repeat(" ", 241) + "x",
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, name string) {
+		got := IsolationFolder(name)
+		call := fmt.Sprintf("IsolationFolder(%q)", name)
+		checkPathSegment(t, call, got)
+		if hashed := HashedIsolationFolder("0123456789abcdef", name); len(hashed) > 255 {
+			t.Fatalf("HashedIsolationFolder of %q has %d bytes, more than the 255 of a file name", name, len(hashed))
+		}
+		if utf8.ValidString(name) && !utf8.ValidString(got) {
+			t.Fatalf("%s = %q cuts a character in two", call, got)
+		}
+		if IsWindowsDeviceName(got) {
+			t.Fatalf("%s = %q is a Windows device name", call, got)
+		}
+		full := SanitizePathSegment(name)
+		device, guarded := strings.CutPrefix(got, "_")
+		guarded = guarded && IsWindowsDeviceName(device) && strings.HasPrefix(full, device)
+		if got != "_" && !strings.HasPrefix(full, got) && !guarded {
+			t.Fatalf("%s = %q is not the start of %q", call, got, full)
+		}
+	})
 }

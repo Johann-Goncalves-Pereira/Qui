@@ -14,36 +14,44 @@ import (
 	"github.com/autobrr/qui/internal/services/jackett"
 )
 
-// searchGatherer runs the Torznab primary pass and the retry passes of one
-// cross-seed search. It decides retries with the usable predicate it is handed
-// and never parses or classifies a title itself (ADR 0007).
-type searchGatherer struct {
-	search        func(ctx context.Context, req *jackett.TorznabSearchRequest) (*jackett.SearchResponse, error)
-	idCapIndexers func(ctx context.Context, req *jackett.TorznabSearchRequest) []int
-	usable        func(jackett.SearchResult) bool
+// SearchGatherer runs the Torznab primary pass and the retry passes of one
+// search for one source. It decides retries with the usable predicate it is handed
+// and never parses or classifies a title itself (ADR 0007, ADR 0072).
+type SearchGatherer struct {
+	Search        func(ctx context.Context, req *jackett.TorznabSearchRequest) (*jackett.SearchResponse, error)
+	IDCapIndexers func(ctx context.Context, req *jackett.TorznabSearchRequest) []int
+	Usable        func(jackett.SearchResult) bool
 }
 
-type gatherInput struct {
-	req           *jackett.TorznabSearchRequest
-	tagSourcedIDs bool
-	// altTitle is the alternate-title query; empty skips that pass.
-	altTitle string
-	// altTitleSeason replaces the season on the alternate-title pass. Nil keeps the season of req.
-	altTitleSeason *int
-	torrentName    string
+type GatherInput struct {
+	Req           *jackett.TorznabSearchRequest
+	TagSourcedIDs bool
+	// AltTitle is the alternate-title query; empty skips that pass.
+	AltTitle string
+	// AltTitleSeason replaces the season on the alternate-title pass. Nil keeps the season of Req.
+	AltTitleSeason *int
+	TVSourceYear   int
+	TorrentName    string
+	LogPrefix      string
 }
 
-// gather returns the response with every pass's results merged, the covered
+var errSearchTimedOut = errors.New("search timed out")
+
+func (s *Service) newSearchGatherer(usable func(jackett.SearchResult) bool) SearchGatherer {
+	return SearchGatherer{Search: s.searchOnce, IDCapIndexers: s.jackettService.IndexerIDsWithIDSearchCaps, Usable: usable}
+}
+
+// Gather returns the response with every pass's results merged, the covered
 // indexer IDs, whether any indexer answered any pass, and the primary-pass or
 // context error. Passes search on waitCtx.
 // Only ctx cancellation aborts a retry. A failed yearless retry marks the
-// response partial. A failed per-indexer retry removes its targets from coverage.
-func (g searchGatherer) gather(ctx, waitCtx context.Context, in gatherInput) (*jackett.SearchResponse, []int, bool, error) {
-	req := in.req
-	resp, err := g.search(waitCtx, req)
+// response partial. A failed retry removes its targets from coverage.
+func (g SearchGatherer) Gather(ctx, waitCtx context.Context, in GatherInput) (*jackett.SearchResponse, []int, bool, error) {
+	req := in.Req
+	resp, err := g.Search(waitCtx, req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			err = errors.New("search timed out")
+			err = errSearchTimedOut
 		}
 		return nil, nil, false, err
 	}
@@ -56,62 +64,86 @@ func (g searchGatherer) gather(ctx, waitCtx context.Context, in gatherInput) (*j
 	// A failed retry uncovers indexers that did answer, so coverage cannot
 	// tell whether Torznab ran at all.
 	answered := len(covered) > 0
-	yearlessRetryRan := false
 
 	// Retry without year when the first pass turned up nothing usable, whether
 	// it returned no hits at all or only hits that release and size filtering
 	// rejected. The year is the narrowest primary-query constraint, so it is
-	// the first fallback to drop. This pass stays gated on the whole search:
-	// dropping the year fires on nearly every movie and has low per-indexer
-	// value, unlike the targeted passes below.
-	if req.Year > 0 && !slices.ContainsFunc(results, g.usable) {
-		log.Debug().
-			Str("torrentName", in.torrentName).
-			Int("year", req.Year).
-			Msg("[CROSSSEED-SEARCH] Zero results with year filter; retrying without year")
-
-		retryReq := *req
-		retryReq.Year = 0
-		retryResp, retryErr := g.search(waitCtx, &retryReq)
-		if retryErr != nil {
-			if ctxErr := ctx.Err(); ctxErr != nil {
-				return nil, nil, false, ctxErr
-			}
+	// the first fallback to drop, also on every later pass. This pass stays
+	// gated on the whole search: dropping the year fires on nearly every movie
+	// and has low per-indexer value, unlike the targeted passes below. An
+	// indexer that searched by ID got no year, so only the title indexers are
+	// searched again.
+	dropYear := req.Year > 0 && !slices.ContainsFunc(results, g.Usable)
+	addYear := in.TVSourceYear > 0 && req.Year == 0
+	var idCap []int
+	if dropYear || addYear || in.TagSourcedIDs {
+		idCap = g.IDCapIndexers(waitCtx, req)
+	}
+	if dropYear {
+		if targets := subtractInts(req.IndexerIDs, idCap); len(targets) > 0 {
 			log.Debug().
-				Err(retryErr).
-				Str("torrentName", in.torrentName).
-				Msg("[CROSSSEED-SEARCH] Yearless retry failed; continuing with primary results")
-			resp.Partial = true
-			covered = nil
-		} else if retryResp != nil {
-			// The retry is a tracked job of its own, so JobID and Cache come
-			// from it; the merged results keep both passes.
-			results = append(results, retryResp.Results...)
-			retryResp.Partial = resp.Partial || retryResp.Partial
-			resp = retryResp
-			covered = intersectInts(covered, retryResp.CoveredIndexerIDs)
-			answered = answered || len(retryResp.CoveredIndexerIDs) > 0
-			yearlessRetryRan = true
+				Str("torrentName", in.TorrentName).
+				Int("year", req.Year).
+				Ints("indexerIDs", targets).
+				Msg(in.LogPrefix + " Nothing usable with year filter; retrying title indexers without year")
+
+			retryReq := *req
+			retryReq.Year = 0
+			retryReq.IndexerIDs = targets
+			retryResp, retryErr := g.Search(waitCtx, &retryReq)
+			if retryErr != nil {
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					return nil, nil, false, ctxErr
+				}
+				log.Debug().
+					Err(retryErr).
+					Str("torrentName", in.TorrentName).
+					Ints("indexerIDs", targets).
+					Msg(in.LogPrefix + " Yearless retry failed; continuing with primary results")
+				resp.Partial = true
+				covered = subtractInts(covered, targets)
+			} else if retryResp != nil {
+				// The retry is a tracked job of its own, so JobID and Cache come
+				// from it; the merged results keep both passes and the requested
+				// indexers stay those of the primary. An indexer outside a narrowed
+				// retry has a history row only under the primary job, so outcomes
+				// stay on that job. A primary served from cache has no job, so the
+				// retry keeps its own.
+				results = append(results, retryResp.Results...)
+				retryResp.Partial = resp.Partial || retryResp.Partial
+				retryResp.RequestedIndexerIDs = resp.RequestedIndexerIDs
+				if resp.JobID != 0 && len(targets) < len(req.IndexerIDs) {
+					retryResp.JobID = resp.JobID
+				}
+				resp = retryResp
+				covered = uncoverMissed(covered, targets, retryResp.CoveredIndexerIDs)
+				answered = answered || len(retryResp.CoveredIndexerIDs) > 0
+			}
 		}
+	}
+	laterYear := req.Year
+	if dropYear {
+		laterYear = 0
 	}
 
 	// retry is a per-indexer retry: it re-queries only targets with query, as
 	// an internal continuation of the primary search. No history row of its
-	// own, IDs cleared so the title reaches ID-capable indexers, and the year
-	// the latest pass actually used. SkipCachePersist stays unset so repeated
+	// own, IDs cleared so the title reaches ID-capable indexers, and no year
+	// once the yearless gate dropped it. SkipCachePersist stays unset so repeated
 	// passes reuse the Torznab result cache instead of re-hitting indexers.
 	// Outcome reporting keys on indexer ID under the primary job. A failed
 	// pass drops its targets from the covered set.
-	retry := func(pass string, targets []int, query string, season *int) error {
+	retry := func(pass string, targets []int, query string, season *int, year int) error {
 		if len(targets) == 0 {
 			return nil
 		}
 		log.Debug().
-			Str("torrentName", in.torrentName).
+			Str("torrentName", in.TorrentName).
 			Str("pass", pass).
 			Str("query", query).
+			Int("year", year).
 			Ints("indexerIDs", targets).
-			Msg("[CROSSSEED-SEARCH] Nothing usable from primary pass; running per-indexer retry")
+			Msg(in.LogPrefix + " Nothing usable from primary pass; running per-indexer retry")
 
 		retryReq := *req
 		clearSearchRequestIDs(&retryReq)
@@ -120,21 +152,19 @@ func (g searchGatherer) gather(ctx, waitCtx context.Context, in gatherInput) (*j
 		if season != nil {
 			retryReq.Season = season
 		}
-		if yearlessRetryRan {
-			retryReq.Year = 0
-		}
+		retryReq.Year = year
 		retryReq.SkipHistory = true
-		retryResp, retryErr := g.search(waitCtx, &retryReq)
+		retryResp, retryErr := g.Search(waitCtx, &retryReq)
 		if retryErr != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return ctxErr
 			}
 			log.Debug().
 				Err(retryErr).
-				Str("torrentName", in.torrentName).
+				Str("torrentName", in.TorrentName).
 				Str("pass", pass).
 				Ints("indexerIDs", targets).
-				Msg("[CROSSSEED-SEARCH] Per-indexer retry failed; continuing with primary results")
+				Msg(in.LogPrefix + " Per-indexer retry failed; continuing with primary results")
 			covered = subtractInts(covered, targets)
 			return nil
 		}
@@ -145,25 +175,31 @@ func (g searchGatherer) gather(ctx, waitCtx context.Context, in gatherInput) (*j
 		answered = answered || len(retryResp.CoveredIndexerIDs) > 0
 		if len(retryResp.Results) > 0 {
 			log.Debug().
-				Str("torrentName", in.torrentName).
+				Str("torrentName", in.TorrentName).
 				Str("pass", pass).
 				Int("results", len(retryResp.Results)).
 				Ints("indexerIDs", targets).
-				Msg("[CROSSSEED-SEARCH] Per-indexer retry returned additional candidates")
+				Msg(in.LogPrefix + " Per-indexer retry returned additional candidates")
 			results = append(results, retryResp.Results...)
 			resp.Partial = resp.Partial || retryResp.Partial
 		}
 		return nil
 	}
-	unsatisfied := func() []int { return indexersWithoutUsableResults(req.IndexerIDs, results, g.usable) }
+	unsatisfied := func() []int { return indexersWithoutUsableResults(req.IndexerIDs, results, g.Usable) }
+
+	if addYear {
+		if err := retry("year", subtractInts(unsatisfied(), idCap), req.Query, nil, in.TVSourceYear); err != nil {
+			return nil, nil, false, err
+		}
+	}
 
 	// Indexers that searched by tag-sourced ID never saw the title query.
 	// Retry by title so an incorrect tag does not leave them without usable
 	// results. Indexers without ID caps already searched by title in the
 	// primary pass and are covered by the passes below.
-	if in.tagSourcedIDs {
-		targets := intersectInts(g.idCapIndexers(waitCtx, req), unsatisfied())
-		if err := retry("title retry after tag-sourced IDs", targets, req.Query, nil); err != nil {
+	if in.TagSourcedIDs {
+		targets := intersectInts(idCap, unsatisfied())
+		if err := retry("title retry after tag-sourced IDs", targets, req.Query, nil, laterYear); err != nil {
 			return nil, nil, false, err
 		}
 	}
@@ -171,13 +207,13 @@ func (g searchGatherer) gather(ctx, waitCtx context.Context, in gatherInput) (*j
 	// The title passes are skipped for arr-ID searches, which do not rely on
 	// title text; a tag-sourced ID primary keeps them because the IDs came
 	// from the file, not a resolver, and the retry request drops them.
-	if !req.OmitQueryForIDs || in.tagSourcedIDs {
+	if !req.OmitQueryForIDs || in.TagSourcedIDs {
 		// A tracker can index the same content under a different title
 		// (localized, romanized, or an *arr scene alias). An indexer that
 		// already produced a usable candidate is left alone, because
 		// cross-seed success is per tracker, not per search.
-		if in.altTitle != "" {
-			if err := retry("alternate title", unsatisfied(), in.altTitle, in.altTitleSeason); err != nil {
+		if in.AltTitle != "" {
+			if err := retry("alternate title", unsatisfied(), in.AltTitle, in.AltTitleSeason, laterYear); err != nil {
 				return nil, nil, false, err
 			}
 		}
@@ -185,7 +221,7 @@ func (g searchGatherer) gather(ctx, waitCtx context.Context, in gatherInput) (*j
 		// out "and". A literal q only matches one spelling; the match loop
 		// dedupes the merged candidates by GUID/download URL.
 		if altQuery, ok := alternateConnectorQuery(req.Query); ok {
-			if err := retry("alternate connector", unsatisfied(), altQuery, nil); err != nil {
+			if err := retry("alternate connector", unsatisfied(), altQuery, nil, laterYear); err != nil {
 				return nil, nil, false, err
 			}
 		}

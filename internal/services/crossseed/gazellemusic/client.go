@@ -117,7 +117,6 @@ type TorrentDetails struct {
 	ID       int64  `json:"id"`
 	InfoHash string `json:"infoHash"`
 	Size     int64  `json:"size"`
-	FileList string `json:"fileList"`
 }
 
 type SearchResponse struct {
@@ -197,7 +196,7 @@ func sharedLimiterForTracker(spec TrackerSpec) (*rate.Limiter, error) {
 // NewClient builds a client for one of the Sites. trackerHost is the API host
 // of the site: it selects the rate limit and the source flag. baseURL is the
 // address to talk to, and is empty outside tests, where it means the site
-// itself.
+// itself. In a test, a client with a baseURL has no rate limit.
 func NewClient(trackerHost, baseURL, apiKey string) (*Client, error) {
 	site, ok := SiteByHost(trackerHost)
 	if !ok {
@@ -210,6 +209,10 @@ func NewClient(trackerHost, baseURL, apiKey string) (*Client, error) {
 	}
 	if strings.TrimSpace(baseURL) == "" {
 		baseURL = "https://" + host
+	} else if testing.Testing() {
+		// The limit of a site is shared by the whole test binary, so each request
+		// to a test server would wait for the requests of the other tests.
+		limiter = rate.NewLimiter(rate.Inf, 1)
 	}
 
 	return &Client{
@@ -240,12 +243,14 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ur
 		}
 		return nil, 0, fmt.Errorf("rate limit wait failed: %w", err)
 	}
-	reqURL := fmt.Sprintf("%s/%s", strings.TrimSuffix(c.baseURL, "/"), endpoint)
-	if len(params) > 0 {
-		reqURL = fmt.Sprintf("%s?%s", reqURL, params.Encode())
+	reqURL, err := url.Parse(c.baseURL)
+	if err != nil {
+		return nil, 0, fmt.Errorf("parse base URL for %s: %w", endpoint, err)
 	}
+	reqURL = reqURL.JoinPath(endpoint)
+	reqURL.RawQuery = params.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, nil)
+	req, err := http.NewRequestWithContext(ctx, method, reqURL.String(), nil)
 	if err != nil {
 		return nil, 0, fmt.Errorf("create request for %s: %w", endpoint, err)
 	}
@@ -380,22 +385,6 @@ func (c *Client) SearchByFilename(ctx context.Context, filename string) ([]Torre
 		}
 	}
 	return results, nil
-}
-
-func (c *Client) GetTorrent(ctx context.Context, torrentID int64) (*TorrentResponse, error) {
-	params := url.Values{}
-	params.Set("id", strconv.FormatInt(torrentID, 10))
-
-	resp, err := c.ajax(ctx, "torrent", params)
-	if err != nil {
-		return nil, err
-	}
-
-	var torrentResp TorrentResponse
-	if err := json.Unmarshal(resp.Response, &torrentResp); err != nil {
-		return nil, err
-	}
-	return &torrentResp, nil
 }
 
 func (c *Client) DownloadTorrent(ctx context.Context, torrentID int64) ([]byte, error) {

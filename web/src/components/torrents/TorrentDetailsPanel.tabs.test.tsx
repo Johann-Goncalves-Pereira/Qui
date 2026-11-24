@@ -5,9 +5,10 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { SortedPeer, Torrent, TorrentFile, TorrentProperties, TorrentTracker, WebSeed } from "@/types"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import "@/i18n"
 import { makeTorrent } from "@/test/mockTorrent"
 import { TorrentDetailsPanel } from "./TorrentDetailsPanel"
@@ -77,14 +78,6 @@ vi.mock("./details", () => ({
   WebSeedsTable: ({ webseeds }: { webseeds?: WebSeed[] }) => <div data-testid="webseeds">{webseeds?.map(seed => seed.url).join(",")}</div>,
 }))
 
-beforeEach(() => {
-  vi.stubGlobal("ResizeObserver", class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  })
-})
-
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -95,7 +88,9 @@ function renderPanel(props: { initialTab: string; layout: "horizontal" | "mobile
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <TorrentDetailsPanel instanceId={1} torrent={makeTorrent({ hash: "a", progress: 0 })} onClose={vi.fn()} {...props} />
+      <TooltipProvider>
+        <TorrentDetailsPanel instanceId={1} torrent={makeTorrent({ hash: "a", progress: 0 })} onClose={vi.fn()} {...props} />
+      </TooltipProvider>
     </QueryClientProvider>
   )
 }
@@ -146,7 +141,9 @@ describe("TorrentDetailsPanel stream subscription", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = (hash: string) => (
       <QueryClientProvider client={client}>
-        <TorrentDetailsPanel instanceId={1} torrent={makeTorrent({ hash })} layout="horizontal" onClose={vi.fn()} />
+        <TooltipProvider>
+          <TorrentDetailsPanel instanceId={1} torrent={makeTorrent({ hash })} layout="horizontal" onClose={vi.fn()} />
+        </TooltipProvider>
       </QueryClientProvider>
     )
     mocks.liveHashes.length = 0
@@ -249,7 +246,9 @@ describe("TorrentDetailsPanel Reannounce In row", () => {
     const torrent = makeTorrent({ hash: "a", progress: 0, reannounce })
     return (
       <QueryClientProvider client={queryClient}>
-        <TorrentDetailsPanel instanceId={1} torrent={torrent} onClose={vi.fn()} initialTab="general" layout={layout} />
+        <TooltipProvider>
+          <TorrentDetailsPanel instanceId={1} torrent={torrent} onClose={vi.fn()} initialTab="general" layout={layout} />
+        </TooltipProvider>
       </QueryClientProvider>
     )
   }

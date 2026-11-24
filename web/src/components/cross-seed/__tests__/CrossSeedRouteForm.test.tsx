@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 
 import i18n from "@/i18n"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { server } from "@/test/msw/server"
 import { crossSeedRoutesKey } from "@/hooks/useCrossSeedRoutes"
 import type { CrossSeedRoute, CrossSeedRouteStatus, CrossSeedRouteTestResult, FilesystemCapabilities, Instance } from "@/types"
@@ -47,6 +48,7 @@ import { CrossSeedRouteForm } from "../CrossSeedRouteForm"
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  vi.unstubAllGlobals()
 })
 
 const localCapabilities: FilesystemCapabilities = { read: true, identity: true, trustedIdentity: true, write: true, content: true }
@@ -96,7 +98,9 @@ function renderForm(instance: Instance, canWriteLocally = instance.capabilities.
   seed?.(queryClient)
   const view = render(
     <QueryClientProvider client={queryClient}>
-      <CrossSeedRouteForm instance={instance} localWrite={canWriteLocally} />
+      <TooltipProvider>
+        <CrossSeedRouteForm instance={instance} localWrite={canWriteLocally} />
+      </TooltipProvider>
     </QueryClientProvider>
   )
   return { ...view, queryClient }

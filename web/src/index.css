@@ -55,6 +55,10 @@
 }
 
 @custom-variant dark (&:is(.dark *));
+/* A phone turned sideways, as useIsPhone in hooks/useMediaQuery.ts reads it. */
+@custom-variant sideways (@media (pointer: coarse) and (max-height: 499px) and (max-width: 1023px));
+/* A window too short for the compact rows of the sidebar. */
+@custom-variant short (@media (max-height: 760px));
 
 :root {
   --background: oklch(1 0 0);
@@ -241,12 +245,30 @@
     overflow: hidden;
   }
 
+  /* Full-height layouts subtract both, because #root clips what extends below the screen. */
+  :root {
+    --app-inset-top: env(safe-area-inset-top);
+    --app-fade-gap: 0px;
+  }
+
+  /* iOS 26.1+ Home Screen web apps fade the content below the status bar (autobrr/qui#2520); the top inset can be 0 there, so the gap is fixed. */
+  @media (display-mode: standalone) {
+    @supports (-webkit-touch-callout: none) {
+      :root {
+        --app-fade-gap: 20px;
+      }
+    }
+  }
+
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
     font-family: var(--font-sans);
-    /* Handle safe areas for iOS devices (except bottom - handled by MobileFooterNav) */
-    padding-top: env(safe-area-inset-top);
+  }
+
+  /* The safe-area space is on #root, not on body: an open dialog or menu locks scrolling, and the lock sets the padding of body to 0. MobileFooterNav handles the bottom. */
+  #root {
+    padding-top: var(--app-inset-top);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
@@ -279,7 +301,7 @@
 
   /* Icon transitions */
   .theme-transition svg:not([class*="lucide"]) {
-    transition: color 300ms cubic-bezier(0.4, 0.0, 0.2, 1), 
+    transition: color 300ms cubic-bezier(0.4, 0.0, 0.2, 1),
                 transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
   }
 
@@ -509,4 +531,15 @@ html[data-glass="on"] .bg-muted {
   }
 }
 
+/* The color of an instance mark: the hue that the user picked (--mark-hue), with the chroma of the theme's
+   primary color and a lightness that reads on the sidebar in light and dark mode. See lib/instance-marks.ts.
+   The name starts with text-, because menu and select items gray out each svg whose class has no text-. */
+@layer utilities {
+  .text-instance-mark {
+    color: oklch(from var(--primary) 0.55 clamp(0.07, c, 0.19) var(--mark-hue));
+  }
 
+  .dark .text-instance-mark {
+    color: oklch(from var(--primary) 0.75 clamp(0.07, c, 0.17) var(--mark-hue));
+  }
+}

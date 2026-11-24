@@ -4,21 +4,26 @@
 package handlers
 
 import (
-	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/autobrr/qui/internal/buildinfo"
 	"github.com/autobrr/qui/internal/config"
 	"github.com/autobrr/qui/internal/domain"
+	"github.com/autobrr/qui/internal/experimental"
 )
 
 type ApplicationHandler struct {
-	appConfig *config.AppConfig
-	startedAt time.Time
+	appConfig    *config.AppConfig
+	experimental *experimental.Features
+	startedAt    time.Time
 }
 
 type ApplicationDatabaseInfo struct {
@@ -27,32 +32,35 @@ type ApplicationDatabaseInfo struct {
 }
 
 type ApplicationInfoResponse struct {
-	Version         string                  `json:"version"`
-	Commit          string                  `json:"commit,omitempty"`
-	CommitShort     string                  `json:"commitShort,omitempty"`
-	BuildDate       string                  `json:"buildDate,omitempty"`
-	StartedAt       string                  `json:"startedAt"`
-	UptimeSeconds   int64                   `json:"uptimeSeconds"`
-	GoVersion       string                  `json:"goVersion"`
-	GoOS            string                  `json:"goOS"`
-	GoArch          string                  `json:"goArch"`
-	BaseURL         string                  `json:"baseUrl"`
-	Host            string                  `json:"host"`
-	Port            int                     `json:"port"`
-	ConfigDir       string                  `json:"configDir"`
-	DataDir         string                  `json:"dataDir"`
-	AuthMode        string                  `json:"authMode"`
-	OIDCEnabled     bool                    `json:"oidcEnabled"`
-	BuiltInLogin    bool                    `json:"builtInLoginEnabled"`
-	OIDCIssuerHost  string                  `json:"oidcIssuerHost,omitempty"`
-	CheckForUpdates bool                    `json:"checkForUpdates"`
-	Database        ApplicationDatabaseInfo `json:"database"`
+	Version              string                  `json:"version"`
+	Commit               string                  `json:"commit,omitempty"`
+	CommitShort          string                  `json:"commitShort,omitempty"`
+	BuildDate            string                  `json:"buildDate,omitempty"`
+	StartedAt            string                  `json:"startedAt"`
+	UptimeSeconds        int64                   `json:"uptimeSeconds"`
+	GoVersion            string                  `json:"goVersion"`
+	GoOS                 string                  `json:"goOS"`
+	GoArch               string                  `json:"goArch"`
+	BaseURL              string                  `json:"baseUrl"`
+	Host                 string                  `json:"host"`
+	Port                 int                     `json:"port"`
+	ConfigDir            string                  `json:"configDir"`
+	DataDir              string                  `json:"dataDir"`
+	AuthMode             string                  `json:"authMode"`
+	OIDCEnabled          bool                    `json:"oidcEnabled"`
+	BuiltInLogin         bool                    `json:"builtInLoginEnabled"`
+	OIDCIssuerHost       string                  `json:"oidcIssuerHost,omitempty"`
+	CheckForUpdates      bool                    `json:"checkForUpdates"`
+	Database             ApplicationDatabaseInfo `json:"database"`
+	ExperimentalFeatures []string                `json:"experimentalFeatures"`
+	ProblemReports       bool                    `json:"problemReports"`
 }
 
-func NewApplicationHandler(appConfig *config.AppConfig, startedAt time.Time) *ApplicationHandler {
+func NewApplicationHandler(appConfig *config.AppConfig, experimentalFeatures *experimental.Features, startedAt time.Time) *ApplicationHandler {
 	return &ApplicationHandler{
-		appConfig: appConfig,
-		startedAt: startedAt,
+		appConfig:    appConfig,
+		experimental: experimentalFeatures,
+		startedAt:    startedAt,
 	}
 }
 
@@ -66,26 +74,28 @@ func (h *ApplicationHandler) GetInfo(w http.ResponseWriter, _ *http.Request) {
 	commit := strings.TrimSpace(buildinfo.Commit)
 
 	response := ApplicationInfoResponse{
-		Version:         strings.TrimSpace(buildinfo.Version),
-		Commit:          commit,
-		CommitShort:     shortCommit(commit),
-		BuildDate:       strings.TrimSpace(buildinfo.Date),
-		StartedAt:       h.startedAt.UTC().Format(time.RFC3339),
-		UptimeSeconds:   uptimeSeconds(h.startedAt),
-		GoVersion:       runtime.Version(),
-		GoOS:            runtime.GOOS,
-		GoArch:          runtime.GOARCH,
-		BaseURL:         cfg.BaseURL,
-		Host:            cfg.Host,
-		Port:            cfg.Port,
-		ConfigDir:       h.appConfig.GetConfigDir(),
-		DataDir:         h.appConfig.GetDataDir(),
-		AuthMode:        authMode(cfg),
-		OIDCEnabled:     cfg.OIDCEnabled,
-		BuiltInLogin:    !cfg.OIDCDisableBuiltInLogin,
-		OIDCIssuerHost:  oidcIssuerHost(cfg.OIDCIssuer),
-		CheckForUpdates: cfg.CheckForUpdates,
-		Database:        databaseInfo(cfg, h.appConfig),
+		Version:              strings.TrimSpace(buildinfo.Version),
+		Commit:               commit,
+		CommitShort:          shortCommit(commit),
+		BuildDate:            strings.TrimSpace(buildinfo.Date),
+		StartedAt:            h.startedAt.UTC().Format(time.RFC3339),
+		UptimeSeconds:        uptimeSeconds(h.startedAt),
+		GoVersion:            runtime.Version(),
+		GoOS:                 runtime.GOOS,
+		GoArch:               runtime.GOARCH,
+		BaseURL:              cfg.BaseURL,
+		Host:                 cfg.Host,
+		Port:                 cfg.Port,
+		ConfigDir:            h.appConfig.GetConfigDir(),
+		DataDir:              h.appConfig.GetDataDir(),
+		AuthMode:             authMode(cfg),
+		OIDCEnabled:          cfg.OIDCEnabled,
+		BuiltInLogin:         !cfg.OIDCDisableBuiltInLogin,
+		OIDCIssuerHost:       oidcIssuerHost(cfg.OIDCIssuer),
+		CheckForUpdates:      cfg.CheckForUpdates,
+		Database:             databaseInfo(cfg, h.appConfig),
+		ExperimentalFeatures: h.experimental.Names(),
+		ProblemReports:       cfg.ProblemReports,
 	}
 
 	RespondJSON(w, http.StatusOK, response)
@@ -165,31 +175,24 @@ func normalizeDatabaseEngine(raw string) string {
 }
 
 func postgresTarget(cfg *domain.Config) string {
-	dsn := strings.TrimSpace(cfg.DatabaseDSN)
-	if dsn != "" {
-		if parsed, err := url.Parse(dsn); err == nil {
-			host := strings.TrimSpace(parsed.Host)
-			name := strings.TrimPrefix(strings.TrimSpace(parsed.Path), "/")
-			switch {
-			case host != "" && name != "":
-				return fmt.Sprintf("%s/%s", host, name)
-			case host != "":
-				return host
-			case name != "":
-				return name
-			}
-		}
-		return "dsn-configured"
-	}
-
 	host := strings.TrimSpace(cfg.DatabaseHost)
+	port := cfg.DatabasePort
 	name := strings.TrimSpace(cfg.DatabaseName)
 
+	if dsn := strings.TrimSpace(cfg.DatabaseDSN); dsn != "" {
+		parsed, err := pgconn.ParseConfig(dsn)
+		if err != nil {
+			return "dsn-configured"
+		}
+		host, port, name = parsed.Host, int(parsed.Port), parsed.Database
+	}
+
+	address := net.JoinHostPort(host, strconv.Itoa(port))
 	switch {
 	case host != "" && name != "":
-		return fmt.Sprintf("%s:%d/%s", host, cfg.DatabasePort, name)
+		return address + "/" + name
 	case host != "":
-		return fmt.Sprintf("%s:%d", host, cfg.DatabasePort)
+		return address
 	case name != "":
 		return name
 	default:

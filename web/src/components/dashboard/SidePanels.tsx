@@ -6,16 +6,21 @@
 import { IssueIcon, IssueLink } from "@/components/dashboard/InstanceList"
 import { SizeCalculatingMark } from "@/components/dashboard/UniqueSize"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { FieldHelp } from "@/components/ui/field-help"
 import {
+  allTimeTransfer,
   freeShare,
   instanceHealth,
   instanceIssues,
   isFirewalled,
+  isFreeShareEstimated,
   issueClass,
   isLowDisk,
+  reportsFreeSpace,
   type DashboardInstanceStats
 } from "@/lib/dashboard-overview"
 import { resolveDashboardSizes } from "@/lib/dashboard-stream"
+import { formatRatio } from "@/lib/statistics"
 import { themeArea } from "@/lib/theme-areas"
 import { cn, formatBytes } from "@/lib/utils"
 import { Link } from "@tanstack/react-router"
@@ -23,60 +28,62 @@ import { HardDrive, ShieldAlert, Unplug } from "lucide-react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
-function Section({ id, title, className, children }: { id: string; title: string; className?: string; children: ReactNode }) {
+function Section({ id, title, help, className, children }: { id: string; title: string; help?: string; className?: string; children: ReactNode }) {
   return (
     <Card {...themeArea("dashboard-card")} role="region" aria-labelledby={id} className={cn("gap-3 py-4", className)}>
-      <CardHeader className="px-4 lg:px-6">
+      <CardHeader className="flex items-center gap-1.5 px-4 lg:px-6">
         <CardTitle id={id}>{title}</CardTitle>
+        {help && <FieldHelp>{help}</FieldHelp>}
       </CardHeader>
       <CardContent className="px-4 lg:px-6">{children}</CardContent>
     </Card>
   )
 }
 
-/** The instances that are offline, are firewalled, or have a disk that is almost full, and the torrent counts with a problem. */
+/**
+ * The instances that are offline, are firewalled, or have a disk that is almost full, and the torrent counts with a
+ * problem. Nothing when no item needs an action.
+ */
 export function NeedsAttention({ statsData, className }: { statsData: DashboardInstanceStats[]; className?: string }) {
   const { t } = useTranslation("dashboard")
   const offline = statsData.filter(d => instanceHealth(d) === "offline")
   const lowDisk = statsData.filter(d => instanceHealth(d) === "ok" && isLowDisk(d))
   const firewalled = statsData.filter(isFirewalled)
   const issues = statsData.flatMap(instanceIssues).sort((a, b) => b.count - a.count)
-  const empty = offline.length + lowDisk.length + firewalled.length + issues.length === 0
+  if (offline.length + lowDisk.length + firewalled.length + issues.length === 0) return null
   const item = "-mx-2 flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5"
 
   return (
     <Section id="dashboard-attention" title={t("attention.title")} className={className}>
-      {empty ? <p className="text-sm text-muted-foreground">{t("attention.none")}</p> : (
-        <ul className="space-y-0.5 text-sm" data-testid="attention-list">
-          {offline.map(d => (
-            <li key={`offline-${d.instance.id}`} data-tone="red">
-              <Link to="/settings" search={{ tab: "instances" as const }} className={cn(item, "text-destructive hover:bg-muted")}>
-                <Unplug className="size-4 shrink-0" aria-hidden="true" /><span className="truncate">{t("attention.offline", { name: d.instance.name })}</span>
-              </Link>
-            </li>
-          ))}
-          {lowDisk.map(d => (
-            <li key={`disk-${d.instance.id}`} data-tone="red" className={cn(item, "text-destructive")}>
-              <HardDrive className="size-4 shrink-0" aria-hidden="true" />
-              <span className="truncate">{t("attention.lowDisk", { name: d.instance.name, free: formatBytes(d.serverState?.free_space_on_disk ?? 0) })}</span>
-            </li>
-          ))}
-          {firewalled.map(d => (
-            <li key={`firewalled-${d.instance.id}`} data-tone="yellow" className={cn(item, "text-yellow-600 dark:text-yellow-500")}>
-              <ShieldAlert className="size-4 shrink-0" aria-hidden="true" /><span className="truncate">{t("attention.firewalled", { name: d.instance.name })}</span>
-            </li>
-          ))}
-          {issues.map(issue => (
-            <li key={`${issue.instanceId}-${issue.kind}`}>
-              <IssueLink issue={issue} className={cn(item, "hover:bg-muted")}>
-                <IssueIcon issue={issue} className="size-4" />
-                <span className={cn("shrink-0 tabular-nums", issueClass(issue))}>{t(`issues.${issue.kind}`, { count: issue.count })}</span>
-                <span className="ml-auto truncate text-muted-foreground">{issue.instanceName}</span>
-              </IssueLink>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="space-y-0.5 text-sm" data-testid="attention-list">
+        {offline.map(d => (
+          <li key={`offline-${d.instance.id}`} data-tone="red">
+            <Link to="/settings" search={{ tab: "instances" as const }} className={cn(item, "text-destructive hover:bg-muted")}>
+              <Unplug className="size-4 shrink-0" aria-hidden="true" /><span className="truncate">{t("attention.offline", { name: d.instance.name })}</span>
+            </Link>
+          </li>
+        ))}
+        {lowDisk.map(d => (
+          <li key={`disk-${d.instance.id}`} data-tone="red" className={cn(item, "text-destructive")}>
+            <HardDrive className="size-4 shrink-0" aria-hidden="true" />
+            <span className="truncate">{t("attention.lowDisk", { name: d.instance.name, free: formatBytes(d.serverState?.free_space_on_disk ?? 0) })}</span>
+          </li>
+        ))}
+        {firewalled.map(d => (
+          <li key={`firewalled-${d.instance.id}`} data-tone="yellow" className={cn(item, "text-yellow-600 dark:text-yellow-500")}>
+            <ShieldAlert className="size-4 shrink-0" aria-hidden="true" /><span className="truncate">{t("attention.firewalled", { name: d.instance.name })}</span>
+          </li>
+        ))}
+        {issues.map(issue => (
+          <li key={`${issue.instanceId}-${issue.kind}`}>
+            <IssueLink issue={issue} className={cn(item, "hover:bg-muted")}>
+              <IssueIcon issue={issue} className="size-4" />
+              <span className={cn("shrink-0 tabular-nums", issueClass(issue))}>{t(`issues.${issue.kind}`, { count: issue.count })}</span>
+              <span className="ml-auto truncate text-muted-foreground">{issue.instanceName}</span>
+            </IssueLink>
+          </li>
+        ))}
+      </ul>
     </Section>
   )
 }
@@ -84,12 +91,11 @@ export function NeedsAttention({ statsData, className }: { statsData: DashboardI
 /** The free disk space of each instance that answers. */
 export function Storage({ statsData, className }: { statsData: DashboardInstanceStats[]; className?: string }) {
   const { t } = useTranslation("dashboard")
-  // qBittorrent reports -1 when it cannot read the free space.
-  const rows = statsData.filter(d => instanceHealth(d) === "ok" && (d.serverState?.free_space_on_disk ?? -1) >= 0)
+  const rows = statsData.filter(d => instanceHealth(d) === "ok" && reportsFreeSpace(d))
   if (rows.length === 0) return null
 
   return (
-    <Section id="dashboard-storage" title={t("storage.title")} className={className}>
+    <Section id="dashboard-storage" title={t("storage.title")} help={rows.some(isFreeShareEstimated) ? t("storage.help") : undefined} className={className}>
       <ul className="space-y-3">
         {rows.map(d => {
           const low = isLowDisk(d)
@@ -110,12 +116,13 @@ export function Storage({ statsData, className }: { statsData: DashboardInstance
   )
 }
 
-/** The torrents and the sizes of all instances, and the count of connected instances. */
+/** The torrents and the sizes of all instances, the count of connected instances, and the all-time transfer. */
 export function Library({ statsData, className }: { statsData: DashboardInstanceStats[]; className?: string }) {
   const { t, i18n } = useTranslation("dashboard")
   const sizes = resolveDashboardSizes(statsData.map(d => d.stats))
   const torrents = statsData.reduce((sum, d) => sum + (d.torrentCounts?.total ?? 0), 0)
   const connected = statsData.filter(d => d.instance.connected).length
+  const allTime = allTimeTransfer(statsData)
   const values: Array<{ key: string; label: string; value: string; calculating?: boolean }> = [
     { key: "torrents", label: t("library.torrents"), value: torrents.toLocaleString(i18n.resolvedLanguage ?? i18n.language) },
     { key: "instances", label: t("library.instances"), value: `${connected}/${statsData.length}` },
@@ -133,6 +140,21 @@ export function Library({ statsData, className }: { statsData: DashboardInstance
           </div>
         ))}
       </dl>
+      <div className="mt-3 border-t pt-3" data-testid="library-all-time">
+        <div className="text-xs font-medium">{t("library.allTime")}</div>
+        <dl className="mt-1 grid grid-cols-3 gap-2">
+          {[
+            { key: "uploaded", label: t("library.uploaded"), value: formatBytes(allTime.uploaded) },
+            { key: "downloaded", label: t("library.downloaded"), value: formatBytes(allTime.downloaded) },
+            { key: "ratio", label: t("library.ratio"), value: formatRatio(allTime) ?? "–" },
+          ].map(({ key, label, value }) => (
+            <div key={key} className="min-w-0">
+              <dd className="truncate text-sm font-semibold tabular-nums">{value}</dd>
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+            </div>
+          ))}
+        </dl>
+      </div>
     </Section>
   )
 }

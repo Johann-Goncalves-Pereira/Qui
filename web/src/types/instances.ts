@@ -26,17 +26,19 @@ export interface Instance {
   sshTier?: SSHTier
   // Whether the host advertises hardlink@openssh.com. Absent until a probe answers.
   sshHardlink?: boolean
-  // Hardlink mode settings (per-instance)
   useHardlinks: boolean
   hardlinkBaseDir: string
   hardlinkDirPreset: "flat" | "by-tracker" | "by-instance"
   // Reflink mode (copy-on-write) - mutually exclusive with hardlink mode
   useReflinks: boolean
-  // Fallback to regular mode when reflink/hardlink fails
   fallbackToRegularMode: boolean
   sortOrder: number
   isActive: boolean
   reannounceSettings: InstanceReannounceSettings
+  // The host:port that the user set for other BitTorrent clients, or "".
+  publicPeerAddress?: string
+  // The address that qui works out: publicPeerAddress, or else what qBittorrent reports. "" when it has none.
+  resolvedPublicPeerAddress?: string
 }
 
 export type SSHTier = "sftp" | "exec"
@@ -90,15 +92,15 @@ export interface InstanceFormData {
   basicPassword?: string
   tlsSkipVerify: boolean
   hasLocalFilesystemAccess: boolean
-  // Hardlink mode settings (per-instance)
   useHardlinks?: boolean
   hardlinkBaseDir?: string
   hardlinkDirPreset?: "flat" | "by-tracker" | "by-instance"
   // Reflink mode (copy-on-write) - mutually exclusive with hardlink mode
   useReflinks?: boolean
-  // Fallback to regular mode when reflink/hardlink fails
   fallbackToRegularMode?: boolean
   reannounceSettings: InstanceReannounceSettings
+  // The user's value only. Left out, the server keeps the stored value; "" clears it.
+  publicPeerAddress?: string
 }
 
 export interface InstanceReannounceSettings {
@@ -117,7 +119,6 @@ export interface InstanceReannounceSettings {
   trackers: string[]
 }
 
-// Reannounce settings constraints - shared across components
 export const REANNOUNCE_CONSTRAINTS = {
   MIN_INITIAL_WAIT: 5,
   MIN_INTERVAL: 5,
@@ -139,9 +140,6 @@ export interface InstanceCrossSeedCompletionSettings {
   delaySeconds: number
 }
 
-/**
- * A torrent match found by the backend using proper release metadata parsing (rls library).
- */
 export interface LocalCrossSeedMatch {
   instanceId: number
   instanceName: string

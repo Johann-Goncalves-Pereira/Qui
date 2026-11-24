@@ -140,7 +140,6 @@ func (s *Service) Notify(ctx context.Context, event Event) {
 		ctx = context.Background()
 	}
 
-	// An event that no target listens for would only fill the queue.
 	if !s.Listens(ctx, event.Type) {
 		return
 	}
@@ -454,8 +453,11 @@ func (s *Service) formatEvent(ctx context.Context, event Event, humanReadableMet
 	case EventAutomationsRunFailed:
 		title := "Automations run failed"
 		return formatAutomationsEvent(instanceLabel, title, event.Title, customMessage, humanReadableMetrics)
+	case EventTransferFailed:
+		return formatCustomEvent(instanceLabel, "Transfer failed", event.Title, customMessage)
+	case EventTransferFinished:
+		return formatCustomEvent(instanceLabel, "Transfer finished", event.Title, customMessage)
 	case EventSystemNotice:
-		// A System notice is about qui, not about one instance.
 		return formatCustomEvent("", "System notice", event.Title, customMessage)
 	default:
 		return "", ""
@@ -934,6 +936,7 @@ func discordEventColor(eventType EventType) int {
 		EventCrossSeedCompletionFailed,
 		EventCrossSeedWebhookFailed,
 		EventAutomationsRunFailed,
+		EventTransferFailed,
 		EventSystemNotice:
 		return discordColorError
 	case EventTorrentCompleted,
@@ -944,10 +947,9 @@ func discordEventColor(eventType EventType) int {
 		EventCrossSeedSearchSucceeded,
 		EventCrossSeedCompletionSucceeded,
 		EventCrossSeedWebhookSucceeded,
-		EventAutomationsActionsApplied:
+		EventAutomationsActionsApplied,
+		EventTransferFinished:
 		return discordColorSuccess
-	case EventTorrentAdded:
-		return discordColorInfo
 	default:
 		return discordColorInfo
 	}

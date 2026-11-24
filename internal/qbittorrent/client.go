@@ -88,6 +88,10 @@ type Client struct {
 	countsGen   atomic.Uint64
 	countsCache atomic.Pointer[cachedInstanceCounts]
 
+	// fullList is the Sync snapshot of the last sync update that left no
+	// torrent out, so that it lists each torrent of qBittorrent.
+	fullList atomic.Pointer[qbt.SyncSnapshot]
+
 	completionMu      sync.Mutex
 	completionState   map[string]bool
 	completionNotify  TorrentCompletionHandler
@@ -116,6 +120,12 @@ type Client struct {
 // a short creation budget (e.g. the 3s login warm) from being baked into the
 // transport for the life of the client.
 func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiKey string, basicUsername, basicPassword *string, tlsSkipVerify bool, loginTimeout, transportTimeout time.Duration) (*Client, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), loginTimeout)
+	defer cancel()
+	return newClient(ctx, instanceID, instanceHost, username, password, apiKey, basicUsername, basicPassword, tlsSkipVerify, transportTimeout)
+}
+
+func newClient(ctx context.Context, instanceID int, instanceHost, username, password, apiKey string, basicUsername, basicPassword *string, tlsSkipVerify bool, transportTimeout time.Duration) (*Client, error) {
 	// Strip credentials embedded in the host URL (user:pass@host) so they never
 	// reach go-qbt request URLs, whose error strings get logged verbatim all
 	// over qui. They move to basic auth, which is what URL userinfo means.
@@ -142,9 +152,6 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 	}
 
 	qbtClient := qbt.NewClient(cfg)
-
-	ctx, cancel := context.WithTimeout(context.Background(), loginTimeout)
-	defer cancel()
 
 	if err := qbtClient.LoginCtx(ctx); err != nil {
 		return nil, fmt.Errorf("failed to connect to qBittorrent instance: %w", err)
@@ -242,6 +249,9 @@ func (c *Client) IsHealthy() bool {
 }
 
 func (c *Client) handleSyncUpdate(update qbt.SyncUpdate) {
+	if len(update.Changes.TorrentsLeftOut) == 0 {
+		c.fullList.Store(update.Snapshot)
+	}
 	c.prunePeerSyncManagers(update.Snapshot)
 	if !ServerStateOnly(update.Changes) {
 		c.countsGen.Add(1)
@@ -250,8 +260,6 @@ func (c *Client) handleSyncUpdate(update qbt.SyncUpdate) {
 	c.updateServerState(update.ServerState)
 	c.handleCompletionUpdates(update)
 	c.handleAddedUpdates(update)
-	log.Trace().Int("instanceID", c.instanceID).Int("torrentCount", update.Snapshot.Len()).Msg("Sync manager update received, marking client as healthy")
-
 	c.dispatchSyncUpdate(update)
 }
 
@@ -674,7 +682,7 @@ func (c *Client) StartSyncManager(ctx context.Context) error {
 		return errors.New("sync manager not initialized")
 	}
 
-	return syncManager.Start(ctx)
+	return syncManager.Sync(ctx)
 }
 
 const torrentAddedGraceWindow = 60 * time.Second
@@ -999,8 +1007,6 @@ func (c *Client) prunePeerSyncManagers(snapshot *qbt.SyncSnapshot) {
 
 // applyOptimisticCacheUpdate applies optimistic updates for the given hashes and action
 func (c *Client) applyOptimisticCacheUpdate(hashes []string, action string, _ map[string]any) {
-	log.Debug().Int("instanceID", c.instanceID).Str("action", action).Int("hashCount", len(hashes)).Msg("Starting optimistic cache update")
-
 	now := time.Now()
 	var snapshot torrentIndex = noTorrents{}
 	if syncManager := c.SyncOwner(); syncManager != nil {
@@ -1025,7 +1031,7 @@ func (c *Client) applyOptimisticCacheUpdate(hashes []string, action string, _ ma
 				UpdatedAt:     now,
 				Action:        action,
 			}, 30*time.Second)
-			log.Debug().Int("instanceID", c.instanceID).Str("hash", hash).Str("action", action).Msg("Created optimistic update for " + action)
+			log.Trace().Int("instanceID", c.instanceID).Str("hash", hash).Str("action", action).Msg("Created optimistic update for " + action)
 		}
 	}
 
@@ -1132,7 +1138,7 @@ func (c *Client) getOptimisticUpdates() map[string]*OptimisticTorrentUpdate {
 // clearOptimisticUpdate removes an optimistic update for a specific torrent
 func (c *Client) clearOptimisticUpdate(hash string) {
 	c.optimisticUpdates.Delete(hash)
-	log.Debug().Int("instanceID", c.instanceID).Str("hash", hash).Msg("Cleared optimistic update")
+	log.Trace().Int("instanceID", c.instanceID).Str("hash", hash).Msg("Cleared optimistic update")
 }
 
 // getTargetState returns the target state for the given action and progress

@@ -14,13 +14,11 @@ import {
   storeMode,
   storeThemeId
 } from "@/lib/theme-storage";
-import { isSpreadsheetDocumentTitle, SPREADSHEET_THEME_IDS, spreadsheetDocumentTitle } from "@/lib/spreadsheet-disguise";
 import type { PreviewableThemeCss } from "@/lib/custom-theme-preview";
 import { loadThemeFonts } from "./fontLoader";
 import { parseThemeCSS } from "./themeParser";
 import { getStoredVariation, setStoredVariation } from "@/hooks/usePersistedThemeVariation";
 
-// Theme constants
 const THEME_DARK = "dark";
 const THEME_LIGHT = "light";
 const THEME_AUTO = "auto";
@@ -38,7 +36,6 @@ const THEME_TRANSITION_CSS = `
   }
 `;
 
-// Type definitions
 export type ThemeMode = typeof THEME_DARK | typeof THEME_LIGHT | typeof THEME_AUTO;
 
 interface ThemeChangeEvent extends CustomEvent {
@@ -50,7 +47,6 @@ interface ThemeChangeEvent extends CustomEvent {
   };
 }
 
-// Utility functions
 const getSystemPreference = (): MediaQueryList => {
   return window.matchMedia("(prefers-color-scheme: dark)");
 };
@@ -108,7 +104,6 @@ const paintCustomCss = (css: string): void => {
   applyCustomThemeStyle(css);
 };
 
-// Paints the preview over the theme that applyTheme painted.
 const paintPreview = (isDark: boolean): void => {
   if (!preview) return;
   const root = document.documentElement;
@@ -119,7 +114,6 @@ const paintPreview = (isDark: boolean): void => {
   document.body?.style.removeProperty("background-color");
 };
 
-// Sync the html/body background to the theme.
 const applyCriticalBackground = (root: HTMLElement, cssVars: Record<string, string>): void => {
   const backgroundColor = cssVars["--background"];
   if (!backgroundColor) {
@@ -131,22 +125,17 @@ const applyCriticalBackground = (root: HTMLElement, cssVars: Record<string, stri
   }
 };
 
-// Core theme application logic
 const applyTheme = async (theme: Theme, variation: string | null, isDark: boolean, withTransition = false): Promise<void> => {
   const root = document.documentElement;
 
-  // Kick off font loading in the background (non-blocking)
-  // Fonts will render when ready; no need to wait
   loadThemeFonts(theme);
 
   if (ENABLE_THEME_TRANSITIONS && withTransition) {
     root.classList.add(THEME_TRANSITION_CLASS);
   }
 
-  // For lightOnly themes, force light mode regardless of user preference
   const effectiveIsDark = theme.lightOnly ? false : isDark;
 
-  // Apply dark mode class
   if (effectiveIsDark) {
     root.classList.add(THEME_DARK);
   } else {
@@ -161,11 +150,9 @@ const applyTheme = async (theme: Theme, variation: string | null, isDark: boolea
     paintCustomCss(theme.rawCss);
     appliedCustomCss = theme.rawCss;
   } else {
-    // Built-in theme: drop any injected custom stylesheet and apply vars inline.
     removeCustomThemeStyle();
     appliedCustomCss = null;
 
-    // Clean up all variation variables to prevent stale values
     Array.from(root.style)
       .filter(prop => prop.startsWith("--variation"))
       .forEach(prop => root.style.removeProperty(prop));
@@ -174,7 +161,6 @@ const applyTheme = async (theme: Theme, variation: string | null, isDark: boolea
       root.style.setProperty(key, value);
     });
 
-    // Apply variation if provided
     if (variation && theme.variations && theme.variations.length > 0) {
       const variationColor = cssVars[`--variation-${variation}`];
       if (variationColor) {
@@ -201,16 +187,6 @@ const applyTheme = async (theme: Theme, variation: string | null, isDark: boolea
     });
   }
 
-  // Spreadsheet disguise: the tab title is a tell. Set/restore it on theme
-  // application so every page (not just those running useTitleBarSpeeds)
-  // carries the boring title.
-  if (SPREADSHEET_THEME_IDS.has(theme.id)) {
-    // data-theme is already stamped above, so this reads the right variant.
-    document.title = spreadsheetDocumentTitle();
-  } else if (isSpreadsheetDocumentTitle(document.title)) {
-    document.title = "qui";
-  }
-
   if (ENABLE_THEME_TRANSITIONS && withTransition) {
     setTimeout(() => {
       root.classList.remove(THEME_TRANSITION_CLASS);
@@ -218,9 +194,7 @@ const applyTheme = async (theme: Theme, variation: string | null, isDark: boolea
   }
 };
 
-// Event handlers
 const handleSystemThemeChange = async (event: MediaQueryListEvent): Promise<void> => {
-  // Only apply system theme if set to auto or not set
   if (getCurrentThemeMode() === THEME_AUTO) {
     const theme = getCurrentTheme();
     const variation = getThemeVariation(theme.id);
@@ -229,7 +203,6 @@ const handleSystemThemeChange = async (event: MediaQueryListEvent): Promise<void
   }
 };
 
-// CSS injection
 const injectThemeStyles = (): void => {
   if (!document.getElementById(THEME_STYLES_ID)) {
     const style = document.createElement("style");
@@ -239,13 +212,11 @@ const injectThemeStyles = (): void => {
   }
 };
 
-// Media query listener setup with fallback
 const addMediaQueryListener = (
   mediaQuery: MediaQueryList,
   handler: (event: MediaQueryListEvent) => void
 ): void => {
   try {
-    // Modern approach
     mediaQuery.addEventListener("change", handler);
   } catch {
     try {
@@ -261,8 +232,6 @@ const addMediaQueryListener = (
     }
   }
 };
-
-// Public API
 
 // License enforcement lives server-side: premium CSS is never served to an
 // unlicensed install, so a premium theme id can only ever resolve to a locked
@@ -298,7 +267,6 @@ export const setTheme = async (themeId: string, mode?: ThemeMode, variation?: st
       dispatchThemeChange(currentMode, defaultTheme, true, currentVariation);
       return;
     }
-    // The mode chosen during the visit carries over.
     mode ??= storedMode() ?? undefined;
     endDefaultThemeVisit();
   }
@@ -317,7 +285,6 @@ export const setTheme = async (themeId: string, mode?: ThemeMode, variation?: st
     if (variation) {
       setStoredVariation(themeId, variation);
     }
-    // Get variation for default theme
     const currentVariation = getThemeVariation(defaultTheme.id);
     if (currentVariation) {
       setStoredVariation(defaultTheme.id, currentVariation);
@@ -339,7 +306,6 @@ export const setTheme = async (themeId: string, mode?: ThemeMode, variation?: st
     storeMode(mode);
   }
 
-  // Validate and store variation
   const currentVariation = (variation && theme.variations?.includes(variation))? variation: getThemeVariation(theme.id);
 
   if (currentVariation) {
@@ -375,7 +341,6 @@ export const paintCustomThemePreview = (css: PreviewableThemeCss): void => {
   paintPreview(isDarkMode(getCurrentThemeMode()));
 };
 
-/** Paints the active theme again. Without a preview, it does nothing. */
 export const endCustomThemePreview = async (): Promise<void> => {
   if (!preview) return;
   preview = null;
@@ -391,13 +356,10 @@ export const initializeTheme = async (): Promise<void> => {
   const variation = getThemeVariation(theme.id);
   const systemPreference = getSystemPreference();
 
-  // Determine initial theme
   let isDark: boolean;
   if (mode === THEME_DARK || mode === THEME_LIGHT) {
-    // User has explicit preference
     isDark = mode === THEME_DARK;
   } else {
-    // No preference or auto - follow system
     isDark = systemPreference.matches;
     if (!mode) {
       storeMode(THEME_AUTO);
@@ -407,14 +369,12 @@ export const initializeTheme = async (): Promise<void> => {
   migrateLegacyGlassTheme(storedThemeId(), storeThemeId);
   await applyTheme(theme, variation, isDark, false);
 
-  // Always listen for system theme changes
   addMediaQueryListener(systemPreference, handleSystemThemeChange);
 };
 
 export const setThemeVariation = async (variation: string): Promise<void> => {
   const theme = getCurrentTheme();
 
-  // Validate variation exists for this theme
   if (!theme.variations?.includes(variation)) {
     console.warn(`Variation "${variation}" not found for theme "${theme.id}"`);
     return;
@@ -443,14 +403,12 @@ export const getThemeVariation = (themeId?: string): string | null => {
   return theme.variations[0];
 };
 
-// When colorVar is provided, return string
 export function getThemeColors(
   theme: Theme,
   colorVar: "--primary" | "--secondary" | "--accent",
   mode?: "light" | "dark"
 ): string;
 
-// When colorVar is not provided, return object
 export function getThemeColors(
   theme: Theme
 ): {
@@ -470,16 +428,13 @@ export function getThemeColors(
   accent: string;
   variations?: Array<{ id: string; color: string }>;
 } {
-  // Use passed mode if specified
   const isDark = mode ? mode === "dark" : document.documentElement.classList.contains("dark");
   const cssVars = isDark ? theme.cssVars.dark : theme.cssVars.light;
 
-  // Helper to resolve variation colors
   const resolveColor = (varName: "--primary" | "--secondary" | "--accent"): string => {
     const colorValue = cssVars[varName];
 
     if (colorValue === "var(--variation-color)") {
-      // Get stored variation or fallback to first variation
       const variation = getThemeVariation(theme.id);
       if (!variation) return "";
       return cssVars[`--variation-${variation}`] || "";
@@ -487,12 +442,10 @@ export function getThemeColors(
     return colorValue || "";
   };
 
-  // Return single color if colorVar passed
   if (colorVar) {
     return resolveColor(colorVar);
   }
 
-  // Otherwise return all
   return {
     primary: resolveColor("--primary"),
     secondary: resolveColor("--secondary"),
@@ -504,7 +457,6 @@ export function getThemeColors(
   };
 }
 
-// Re-export for backward compatibility
 export { getSystemTheme };
 export { themes };
 export { getStoredVariation };

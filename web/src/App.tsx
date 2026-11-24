@@ -10,12 +10,8 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { SyncStreamProvider } from "@/contexts/SyncStreamContext"
 import { useDynamicFavicon } from "@/hooks/useDynamicFavicon"
 import { ActionTransitionProvider } from "@/components/transitions/ActionTransition"
-import { initializePWANativeTheme } from "@/utils/pwaNativeTheme"
-import { initializeTheme } from "@/utils/theme"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider } from "@tanstack/react-router"
-import { useEffect } from "react"
-import { setupPWAAutoUpdate } from "./pwa"
 import { router } from "./router"
 
 
@@ -30,15 +26,6 @@ const queryClient = new QueryClient({
 
 function App() {
   useDynamicFavicon()
-
-  useEffect(() => {
-    initializeTheme().catch(console.error)
-    initializePWANativeTheme()
-
-    if (import.meta.env.PROD) {
-      setupPWAAutoUpdate()
-    }
-  }, [])
 
   return (
     <QueryClientProvider client={queryClient}>

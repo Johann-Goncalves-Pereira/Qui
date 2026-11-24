@@ -89,16 +89,17 @@ The test shows a tier and a list of checks.
 | **Tier: SFTP + commands** | qui can run commands on the host. qui can read file identity there, which tells qui when two paths are the same file. |
 | **Tier: SFTP** | qui only has SFTP. qui cannot read file identity. |
 | **SFTP** | The server has SFTP. qui needs it for all file access. |
-| **Free space (statvfs)** | The server reports free disk space. The automation setting **Path on server** needs it. |
+| **Free space (statvfs)** | The server reports free disk space. The automation setting **Path on server** and the real disk usage in the **Storage** bars on the Dashboard need it. Without it, the bars show an estimate. |
 | **Hardlinks (hardlink@openssh.com)** | The server can create hardlinks. Cross-seed hardlink mode needs it. |
 | **Limits extension** | The server reports its SFTP limits. No feature needs it. |
-| **Commands** | The login can run a shell. |
-| **GNU find and stat** | The host has the GNU versions of `find` and `stat`. |
+| **Commands** | The login can run commands with `sh`. |
+| **GNU find and stat** | The host has the GNU version of `find`, and the GNU or the uutils version of `stat`. |
 
-qui gets the tier **SFTP + commands** when the login runs a POSIX shell and the host has GNU `find` and `stat`. A normal Linux server has both. qui gets the tier **SFTP** in these cases:
+qui gets the tier **SFTP + commands** when the login can run commands and the host has GNU `find` and a `stat` from GNU coreutils or uutils coreutils. Ubuntu 25.10 and later use the `stat` from uutils coreutils. A normal Linux server has both tools. qui works with every login shell, for example bash, zsh, fish, tcsh, or nushell, because qui gives each command to `sh` on the host. qui gets the tier **SFTP** in these cases:
 
 - The provider limits the login to SFTP.
-- The login shell is not a POSIX shell, for example fish.
+- The login shell prints text to standard output each time that it starts, for example a welcome message from `.bashrc`.
+- The login shell cannot find `sh`.
 - The host has other versions of the tools, for example BSD or macOS.
 
 The other pages name the two tiers by what qui can do:
@@ -106,7 +107,7 @@ The other pages name the two tiers by what qui can do:
 - "a remote instance where qui can run commands on the host" is the tier **SFTP + commands**.
 - "a remote instance where qui only has SFTP" is the tier **SFTP**.
 
-qui tests again each time that it connects, and the tier follows the result. In **Settings → Instances**, the card of a remote instance shows **Over SSH**. Point at the label to read the limits of the instance. The SSH tab shows the same limits below the settings.
+qui tests again each time that it connects, and the tier follows the result. In **Settings → Instances**, the row of a remote instance shows **Files over SSH**. To read the limits of the instance, open the instance and look below the settings on the SSH tab.
 
 ## What works over SSH
 
@@ -122,8 +123,10 @@ qui tests again each time that it connects, and the tier follows the result. In 
 | Removal of [leftover folders](./torrent-management.md#deleting-and-moving-torrents) after a delete or a move | Yes | Yes | Yes |
 | Automations: [Path on server](./automations.md#free-space-source) for free space | Yes | Yes | Yes |
 | Automations: Has Missing Files condition | Yes | Yes | Yes |
+| Dashboard: real disk usage in [Storage](./dashboard.md#storage-and-library) | Yes | Yes | Yes |
 | Automations: Hardlink Scope conditions, hardlink grouping, and **Include hardlinked copies** | Yes | No | No |
 | Detection of hardlinked cross-seeds in the delete dialog | Yes | No | No |
+| [Transfer](./transfers.md#cross-seeds-on-hardlinks): cross-seeds on hardlinks move with the torrent | Yes | No | No |
 | Content file download, MediaInfo, and BDInfo | Yes | No | No |
 | Cross-seed ID fallback from MKV tags | Yes | No | No |
 

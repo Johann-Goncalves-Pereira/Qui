@@ -68,6 +68,8 @@
     "externalPrograms": "Externí programy",
     "exportTorrent": "Exportovat torrent",
     "exportTorrents": "Exportovat torrenty ({{count}})",
+    "transferToInstance": "Přenést do instance…",
+    "shareWithSomeone": "Sdílet s někým…",
     "copy": "Kopírovat...",
     "copyName": "Kopírovat název",
     "copyHash": "Kopírovat hash",
@@ -768,37 +770,18 @@
   "crossSeedDialog": {
     "title": "Hledat křížová sdílení",
     "torrentLabel": "Torrent",
-    "category": "Kategorie: {{category}}",
-    "size": "Velikost: {{size}}",
-    "servedFromCache": "Poskytováno z mezipaměti",
-    "freshSearch": "Nová hledání",
-    "cached": "Z mezipaměti {{time}}",
-    "expires": "Vyprší {{time}}",
-    "refreshFromIndexers": "Aktualizovat z indexerů",
     "partialResults": "Částečné výsledky - některé indexery neodpověděly",
     "arrLookupFailed": "Vyhledání ID metadat selhalo - hledáno pouze podle názvu, výsledky mohou být neúplné",
     "arrNoIds": "Pro tuto release nebyla nalezena žádná ID metadat - hledáno pouze podle názvu",
     "torznabFailed": "Hledání přes Torznab selhalo - zobrazeny jsou pouze výsledky z RED/OPS",
-    "searchScope": "Hledat rozsah",
     "noIndexers": "Nejsou dostupné žádné Torznab indexery",
     "noIndexersHelp": "Přidejte nebo povolte Torznab indexery v Nastavení pro hledání křížových sdílení.",
-    "capabilityNote": "Poznámka o schopnostech",
-    "capabilityDescription": "Tyto indexery nemají požadované schopnosti/kategorie pro tento torrent a budou přeskočeny serverem:",
-    "smartFilteringActive": "Inteligentní filtrování je aktivní",
-    "indexersFiltered_one": "{{count}} indexer odfiltrován",
-    "indexersFiltered_few": "{{count}} indexery odfiltrovány",
-    "indexersFiltered_other": "{{count}} indexerů odfiltrováno",
-    "excludedDescription": "Už stahujete tuto verzi z těchto trackerů, takže jsou vyloučeny z hledání.",
     "searchingIndexers": "Hledání indexerů…",
     "noMatchesFound": "Žádné shody nebyly nalezeny ve vašem hledání.",
-    "selectReleasesToAdd": "Vyberte verze, které chcete přidat",
     "selectAll": "Vybrat vše",
-    "clear": "Vymazat",
     "tagAddedTorrents": "Přidat tagy k přidaným torrentům",
     "startPaused": "Spustit pozastaveno",
-    "latestAddAttempt": "Poslední pokus o přidání",
     "close": "Zavřít",
-    "addSelected": "Přidat vybrané",
     "adding": "Přidávání…",
     "retry": "Zkusit znovu",
     "seeders": "{{count}} seederů",
@@ -810,38 +793,51 @@
     "addedToBlocklist": "Přidáno do blokovacího seznamu",
     "missingInstance": "Chybí instance pro blokovací seznam",
     "trace": {
-      "title": "Rozpis vyhledávání",
-      "summaryBadge": "{{total}} kandidátů, {{matches}} shod",
-      "summary": "Vráceno {{total}} kandidátů. Odmítnuto: {{release}} neshoda release, {{size}} neshoda velikosti, {{late}} filtr obsahu, {{duplicates}} duplicity. Zbývá {{matches}} shod.",
-      "indexersHeading": "Indexery",
+      "title": "Podrobnosti hledání",
       "status": {
-        "searched": "prohledáno",
         "notCovered": "neúplné",
-        "error": "chyba",
-        "excluded": "vyloučeno"
+        "error": "chyba"
       },
-      "candidateCount": "{{count}} kandidátů",
       "rejectionsHeading": "Odmítnutí kandidáti",
       "reasonCount": "{{reason}} · {{count}}",
       "moreCandidates": "+{{count}} dalších se stejným důvodem",
       "copyReport": "Kopírovat report",
       "copied": "Report zkopírován do schránky",
-      "copyFailed": "Report se nepodařilo zkopírovat"
+      "copyFailed": "Report se nepodařilo zkopírovat",
+      "rejectedCount_one": "Odmítnutí kandidáti: {{count}}",
+      "rejectedCount_few": "Odmítnutí kandidáti: {{count}}",
+      "rejectedCount_other": "Odmítnutí kandidáti: {{count}}",
+      "stats": {
+        "returned": "Kandidáti z Torznabu",
+        "release": "Neshoda vydání",
+        "size": "Neshoda velikosti",
+        "late": "Filtr obsahu",
+        "duplicates": "Duplikáty",
+        "matches": "Shody z Torznabu"
+      }
     },
     "scope": {
-      "allIndexers": "Všechny indexery",
-      "selectCustom": "Vybrat vlastní",
-      "selectedCount": "{{count}} vybraných",
-      "selectIndexers": "Vybrat indexery",
-      "availableIndexers": "Dostupné indexery",
-      "selectAllIndexers": "Vybrat vše",
-      "clearSelection": "Vymazat výběr",
       "search": "Hledat",
       "searching": "Hledání",
-      "noneSelected": "Žádné vybrané",
-      "enabledIndexers": "{{count}} povolených {{suffix}}",
-      "selectedOfTotal": "{{selected}} z {{total}} vybraných",
-      "indexersForSearch": "{{count}} {{suffix}} pro hledání"
+      "alreadySeeded": "nedotázán: už ho tam seedujete",
+      "heading": "Indexery",
+      "searchCount_one": "Hledat v {{count}} indexeru",
+      "searchCount_few": "Hledat ve {{count}} indexerech",
+      "searchCount_other": "Hledat v {{count}} indexerech",
+      "unsupported_one": "{{count}} další indexer nepodporuje tento typ obsahu",
+      "unsupported_few": "{{count}} další indexery nepodporují tento typ obsahu",
+      "unsupported_other": "{{count}} dalších indexerů nepodporuje tento typ obsahu",
+      "matchCount_one": "{{count}} shoda",
+      "matchCount_few": "{{count}} shody",
+      "matchCount_other": "{{count}} shod",
+      "selectNone": "Zrušit výběr",
+      "checking": "Zjišťuji, které indexery se k torrentu hodí…",
+      "nothingLeft": "Pro tento torrent nezbývá žádný indexer k hledání.",
+      "selectAll": "Vybrat vše",
+      "change": "Změnit",
+      "searchAgain": "Hledat znovu",
+      "done": "Hotovo",
+      "nonePicked": "Není vybrán žádný indexer"
     },
     "status": {
       "added": "Přidáno",
@@ -862,25 +858,17 @@
       "belowThreshold": "Přeskočeno - pod prahovou hodnotou"
     },
     "rateLimitHelp": {
-      "why": "Proč to nastalo:",
-      "whyDescription": "Trackery omezují frekvenci požadavků, aby se zabránilo zneužití a zablokování.",
-      "whatYouCanDo": "Co můžete udělat:",
-      "wait": "Počkejte 30-60 minut před opětovným pokusem",
-      "fewerIndexers": "Vyhledávejte s méně indexery",
-      "useRss": "Použijte funkci RSS automatizace pro trvalé křížové sdílení",
-      "checkIndexers": "Zkontrolujte help stránky indexerů a zjistěte, které jsou omezené"
+      "wait": "Počkejte 30-60 minut před opětovným pokusem"
     },
     "routedTo": "Křížová sdílení jdou do instance pro křížové sdílení {{instance}}.",
     "gazelle": {
-      "heading": "RED/OPS",
       "willAsk": "bude dotázán",
       "willAskRejected": "bude dotázán: web minule odmítl klíč API",
       "match": "shoda",
       "noMatch": "žádná shoda",
       "openSettings": "Otevřít nastavení",
+      "noApiKeys": "RED/OPS je zapnuto, ale není nastaven žádný klíč API",
       "notAsked": {
-        "disabled": "nedotázán: vypnuto",
-        "noApiKey": "nedotázán: chybí klíč API",
         "cooldown": "nedotázán: nedávno prohledán",
         "notSelected": "nedotázán: nevybrán",
         "sourceSite": "nedotázán: torrent pochází z {{site}}",
@@ -893,7 +881,19 @@
         "timedOut": "selhalo: vypršel časový limit",
         "other": "selhalo: {{detail}}"
       }
-    }
+    },
+    "cachedAgo": "Výsledky z mezipaměti · {{time}}",
+    "refresh": "Obnovit",
+    "tag": "Tag",
+    "selectedOfTotal": "Vybráno {{selected}} z {{total}}",
+    "resultsSelectedOfTotal": "Vybráno {{selected}} z {{total}} shod",
+    "addCount_one": "Přidat {{count}} torrent",
+    "addCount_few": "Přidat {{count}} torrenty",
+    "addCount_other": "Přidat {{count}} torrentů",
+    "openOnIndexer": "Otevřít na {{indexer}}",
+    "problem": "{{name}}: {{status}}",
+    "problemDetail": "{{name}}: {{status}} ({{detail}})",
+    "add": "Přidat"
   },
   "columnFilter": {
     "filterColumn": "Filtrovat {{column}}",
@@ -1583,19 +1583,11 @@
     "incognito": "Anonymní",
     "add": "Přidat",
     "tasks": "Úlohy",
-    "done": "Dokončeno",
     "actionsForCount": "Akce pro {{count}} torrent(y)",
     "actionsForAll": "Akce pro všechny {{count}} torrent(y)",
     "selection": {
       "selectedCount": "{{count}} vybráno",
       "allSelectedCount": "Všechny {{count}} vybrány(o)"
-    },
-    "searchModal": {
-      "title": "Hledat torrenty",
-      "description": "Hledat podle názvu, kategorie nebo tagů. Podporuje globální vzory jako *.mkv nebo *1080p*.",
-      "placeholder": "Hledat torrenty...",
-      "globExamples": "*.mkv, *1080p*, *S[0-9][0-9]E[0-9][0-9]*",
-      "autoSearches": "Automatické hledání po zadání"
     },
     "ratio": "Poměr:",
     "added": "Přidáno {{time}}"
@@ -1676,6 +1668,9 @@
     "trackerDown": "Tracker nedostupný",
     "unregistered": "Neregistrovaný",
     "trackerError": "Chyba trackeru",
+    "helperTransfer": "Pomocník přenosu",
+    "helperShare": "Pomocník sdílení",
+    "helperHint": "qui přidal tento torrent pro přenos nebo sdílení. Jeho soubory patří jinému torrentu.",
     "now": "nyní",
     "yes": "Ano",
     "no": "Ne"
@@ -1814,6 +1809,137 @@
       "title": "Seskupte svá křížová sdílení",
       "description": "Zobrazí kopie jednoho torrentu jako jeden řádek.",
       "action": "Vyzkoušet"
+    },
+    "displayProfiles": {
+      "title": "Profily zobrazení",
+      "description": "Dejte každé obrazovce vlastní sloupce, hustotu řádků a postranní panely. Profil tohoto prohlížeče vyberete tady.",
+      "action": "Vytvořit profil"
+    }
+  },
+  "displayProfiles": {
+    "chipAriaLabel": "Profil zobrazení: {{name}}",
+    "menuLabel": "Profil zobrazení",
+    "defaultName": "Výchozí",
+    "manage": "Spravovat profily…",
+    "sheetDescription": "Každý prohlížeč si vybírá vlastní profil.",
+    "settings": {
+      "title": "Profily zobrazení",
+      "holds": "Obsahuje: sloupce · hustotu řádků · postranní panely · sekce filtrů · stromy kategorií · prázdné filtry",
+      "holdsHelp": "Profil určuje, jak vypadá seznam torrentů: které sloupce se zobrazují, jejich pořadí a šířku, roztažení sloupce Název, hustotu řádků, otevřené postranní panely a sekce filtrů, sbalené stromy kategorií a zda se zobrazují prázdné filtry. Určuje také, které řádky instancí na stránce Domů jsou otevřené. Každý prohlížeč používá jeden profil a volbu si pamatuje jen tento prohlížeč. Prohlížeč, který si nikdy žádný nevybral, a anonymní okno používají Default. Ostatní nastavení sdílejí všechny profily.",
+      "thisBrowser": "Tento prohlížeč",
+      "use": "Použít v tomto prohlížeči",
+      "makeProfile": "Vytvořit profil pro notebook nebo telefon",
+      "themesSync": "Motivy se synchronizují samostatně: <sync>Synchronizace motivu</sync>",
+      "renameAriaLabel": "Přejmenovat {{name}}",
+      "saveName": "Uložit název",
+      "cancelRename": "Zrušit přejmenování",
+      "editAriaLabel": "Upravit {{name}}",
+      "editTitle": "Upravit profil",
+      "delete": "Smazat…",
+      "deleteTitle": "Smazat {{name}}?",
+      "deleteDescription": "Ostatní prohlížeče, které ho používají, přejdou na {{defaultName}}.",
+      "deleteConfirm": "Smazat",
+      "look": "{{density}} · {{filterSidebar}}",
+      "densities": {
+        "table": "Řádky tabulky",
+        "dense": "Kompaktní řádky",
+        "stacked": "Skládané karty"
+      },
+      "filterSidebarOpen": "panel filtrů otevřený",
+      "filterSidebarClosed": "panel filtrů zavřený"
+    },
+    "nameErrors": {
+      "empty": "Zadejte název.",
+      "tooLong": "Použijte nejvýše {{max}} znaků.",
+      "duplicate": "Tento název už má jiný profil."
+    },
+    "ownSortAndFilters": {
+      "label": "Vlastní řazení a filtry",
+      "help": "<lead>Když je zapnuto, tento profil si drží vlastní:</lead><list><item>řazení seznamu torrentů</item><item>filtry sloupců a filtry postranního panelu</item><item>instance, které ukazuje sjednocený pohled</item><item>Seskupit kopie, zapnuto nebo vypnuto</item><item>poslední otevřená karta panelu podrobností</item><item>instance, kterou ukazují stránky záloh a RSS</item></list><note>Změna těchto hodnot v tomto profilu se nedostane do jiných profilů. Když je vypnuto, tento profil je sdílí se všemi ostatními profily, které nemají vlastní. Vypnutím se vlastní hodnoty tohoto profilu smažou.</note>",
+      "offWarning": "Vypnutím se smaže vlastní řazení a filtry profilu {{name}}.",
+      "defaultShares": "Vždy sdílí řazení a filtry",
+      "defaultSharesHelp": "Default vždy sdílí řazení, filtry a další volby zobrazení se všemi profily, které nemají vlastní. Chcete-li mít vlastní, vytvořte jiný profil a zapněte Vlastní řazení a filtry."
+    },
+    "deletedToast": "Profil {{name}} byl smazán. Tento prohlížeč teď používá {{defaultName}}.",
+    "newProfile": "Nový profil z tohoto nastavení…",
+    "newDialog": {
+      "title": "Nový profil",
+      "copies": "Zkopíruje <profile>{{name}}</profile>: sloupce, hustotu, postranní panely a filtry. Tento prohlížeč ho pak používá.",
+      "name": "Název",
+      "namePlaceholder": "Například Notebook",
+      "nameCount": "{{length}}/{{max}}",
+      "cancel": "Zrušit",
+      "create": "Vytvořit"
+    },
+    "iconPicker": {
+      "trigger": "Ikona: {{icon}}. Změnit ikonu a barvu",
+      "letter": "První písmeno názvu",
+      "color": "Barva"
+    },
+    "iconGroups": {
+      "devices": "Zařízení",
+      "places": "Místa",
+      "use": "Použití",
+      "mood": "Nálada"
+    },
+    "icons": {
+      "appWindow": "Okno aplikace",
+      "monitor": "Monitor",
+      "laptop": "Notebook",
+      "tablet": "Tablet",
+      "smartphone": "Chytrý telefon",
+      "tv": "TV",
+      "server": "Server",
+      "gamepad": "Herní ovladač",
+      "house": "Dům",
+      "briefcase": "Aktovka",
+      "building": "Budova",
+      "sofa": "Pohovka",
+      "bed": "Postel",
+      "coffee": "Káva",
+      "plane": "Letadlo",
+      "train": "Vlak",
+      "rows": "Řádky",
+      "table": "Tabulka",
+      "list": "Seznam",
+      "eye": "Oko",
+      "gauge": "Ukazatel",
+      "zap": "Blesk",
+      "download": "Stahování",
+      "upload": "Nahrávání",
+      "sprout": "Výhonek",
+      "bookmark": "Záložka",
+      "moon": "Měsíc",
+      "sun": "Slunce",
+      "star": "Hvězda",
+      "heart": "Srdce",
+      "flame": "Plamen",
+      "rocket": "Raketa"
+    },
+    "colors": {
+      "none": "Žádná (barva textu)",
+      "sky": "Nebeská",
+      "emerald": "Smaragdová",
+      "amber": "Jantarová",
+      "rose": "Růžová",
+      "violet": "Fialová",
+      "orange": "Oranžová",
+      "teal": "Modrozelená",
+      "pink": "Sytě růžová"
+    },
+    "columns": {
+      "headingEveryInstance": "Sloupce v {{profile}} · každá instance",
+      "headingOneInstance": "Sloupce v {{profile}} · jen {{instance}}",
+      "unifiedView": "Unifikované zobrazení",
+      "thisInstance": "tato instance"
+    },
+    "sameColumns": {
+      "label": "Stejné sloupce na každé instanci",
+      "menuHelp": "Řazení a filtry sloupců zůstávají pro každou instanci zvlášť.",
+      "helpOn": "Jedno nastavení sloupců pro {{instances}}.",
+      "helpOff": "Každá instance si ponechá své. Po zapnutí dostane každá instance sloupce z {{instance}}.",
+      "helpOffNoInstance": "Každá instance si ponechá své.",
+      "unifiedViewInList": "unifikované zobrazení"
     }
   }
 }
