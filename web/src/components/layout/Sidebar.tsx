@@ -31,7 +31,6 @@ import { SystemNoticeList } from "@/components/ui/SystemNoticeList"
 import { UpdateBanner } from "@/components/ui/UpdateBanner"
 import { useAuth } from "@/hooks/useAuth"
 import { useCrossSeedInstanceState } from "@/hooks/useCrossSeedInstanceState"
-import { usePersistedCompactViewState } from "@/hooks/usePersistedCompactViewState"
 import { useTransferQueue } from "@/hooks/useTransferQueue"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
 import { useTheme } from "@/hooks/useTheme"
@@ -197,7 +196,7 @@ export function Sidebar({ iconOnly, onToggleIconOnly, onHide, flyout = false, on
   const appVersion = getAppVersion()
 
   const brand = (
-    <span className="flex items-center gap-2">
+    <span className="ml-auto flex items-center">
       {theme === "swizzin" ? (
         <SwizzinLogo className="h-5 w-5" />
       ) : theme === "napster" ? (
@@ -205,7 +204,6 @@ export function Sidebar({ iconOnly, onToggleIconOnly, onHide, flyout = false, on
       ) : (
         <Logo className="h-5 w-5" />
       )}
-      qui
     </span>
   )
   // The brand row drags the desktop window. The buttons in it stay clickable.
@@ -238,18 +236,15 @@ export function Sidebar({ iconOnly, onToggleIconOnly, onHide, flyout = false, on
   ))
   const iconOnlyToggleLabel = iconOnly ? t("sidebar.expandSidebar") : t("sidebar.collapseToIcons")
   const IconOnlyToggleIcon = iconOnly ? PanelLeftOpen : PanelLeftClose
-  // The top row has the height of the header, so the button is level with the title beside it.
-  const { viewMode } = usePersistedCompactViewState("desktop")
-
   return (
     <div {...themeArea("app-sidebar")} className="flex h-full w-full flex-col border-r bg-sidebar border-sidebar-border">
-      <div className={cn("flex flex-shrink-0 items-center pl-6 pr-[18px]", viewMode === "dense" ? "h-12" : "h-16")} style={brandRowStyle}>
+      <div className="flex h-12 flex-shrink-0 items-center px-4" style={brandRowStyle}>
         <h2 inert={iconOnly} className={cn("flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap text-lg font-semibold text-sidebar-foreground", labelClassName)}>
           {isDemo ? (
             <a href="/" target="_top" className="flex items-center gap-2 hover:opacity-80">{brand}</a>
           ) : brand}
         </h2>
-        <div className="sticky right-[18px] -ml-1.5 flex flex-shrink-0 items-center gap-0.5" style={brandRowButtonsStyle}>
+        <div className="sticky right-4 -ml-1.5 flex flex-shrink-0 items-center gap-0.5" style={brandRowButtonsStyle}>
           {flyout ? (
             <SidebarHeaderButton label={t("sidebar.keepOpen")} tooltipSide="bottom" onClick={onPin} disabled={!settingsSettled}>
               <Pin className="h-4 w-4" />
