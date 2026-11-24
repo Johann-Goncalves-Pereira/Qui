@@ -43,6 +43,7 @@ import { useDebounce } from "@/hooks/useDebounce"
 import { instanceCapabilitiesQuery } from "@/hooks/useInstanceCapabilities"
 import { useInstances } from "@/hooks/useInstances"
 import { useIsMobile } from "@/hooks/useMediaQuery"
+import { useDesktopChrome } from "@/hooks/useDesktopChrome"
 import { usePersistedCompactViewState } from "@/hooks/usePersistedCompactViewState"
 import { usePersistedFilterSidebarState } from "@/hooks/usePersistedFilterSidebarState"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
@@ -64,7 +65,7 @@ import { Cog, FileEdit, FunnelPlus, FunnelX, Info, ListTodo, PanelLeftOpen, Plus
 import { useSystemNotices } from "@/hooks/useSystemNotices"
 import { useUpdateBannerDismissed } from "@/hooks/useUpdateBannerDismissed"
 import { systemNoticeDotColor, topSystemNoticeSeverity } from "@/lib/system-notice"
-import { type CSSProperties, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
 
@@ -162,12 +163,7 @@ function UnifiedActionDropdown({ icon, tooltip, label, instances, onSelectInstan
 
 export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebarOpen = false, openSidebarButtonRef, onOpenSidebar }: HeaderProps) {
   const showTitleOnDesktop = sidebarIconOnly || sidebarHidden
-  // The desktop shell on macOS draws its traffic lights over the top left corner of the window.
-  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
-  const isDesktopMac = typeof window !== "undefined" && window.quiDesktop !== undefined && isMac
-  const dragAreaStyle: CSSProperties | undefined = isDesktopMac
-    ? ({ WebkitAppRegion: "drag" } as CSSProperties)
-    : undefined
+  const desktopChrome = useDesktopChrome({ sidebarHidden })
   const { t } = useTranslation("common")
   const navigate = useNavigate()
   const routeSearch = useSearch({ strict: false }) as { q?: string; modal?: string;[key: string]: unknown }
@@ -339,8 +335,7 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
     setInstanceSettingsOpen(false)
   }, [selectedInstanceId])
 
-  // Desktop header uses h-12 (48px) in both standard and dense modes
-  const headerHeight = "lg:h-12"
+  const headerHeight = viewMode === "dense" ? "lg:h-12" : "lg:h-16"
   const innerHeight = viewMode === "dense" ? "h-10 lg:h-auto" : "h-12 lg:h-auto"
   const smInnerHeight = viewMode === "dense" ? "sm:h-10 lg:h-auto" : "sm:h-12 lg:h-auto"
 
@@ -350,19 +345,17 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
     <header
       {...themeArea("app-header")}
       className={cn(
-        "relative sticky top-0 z-50 hidden md:flex flex-wrap lg:flex-nowrap items-start lg:items-center justify-between sm:border-b bg-background pl-2 pr-4 md:pl-4 md:pr-4 lg:static py-2 lg:py-0 transition-[padding] duration-300 ease-out",
-        sidebarHidden
-          ? (isDesktopMac ? "lg:pl-20" : "lg:pl-4")
-          : "lg:pl-2",
+        "sticky top-0 z-50 hidden md:flex flex-wrap lg:flex-nowrap items-start lg:items-center justify-between sm:border-b bg-background pl-2 pr-4 md:pl-4 md:pr-4 lg:pl-2 lg:static py-2 lg:py-0",
         headerHeight,
+        desktopChrome.headerClassName,
         !isInstanceRoute && "sideways:hidden"
       )}
     >
-      {isDesktopMac && sidebarHidden && (
+      {desktopChrome.showTrafficLightsDragRegion && (
         <div
           data-slot="traffic-lights-drag-region"
           className="absolute left-0 top-0 h-12 w-20"
-          style={dragAreaStyle}
+          style={desktopChrome.style}
           aria-hidden="true"
         />
       )}
@@ -374,7 +367,7 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
             showTitleOnDesktop && "lg:flex",
             !shouldShowQuiOnMobile && "hidden sm:flex" // Hide on mobile when on instance routes
           )}
-          logoOnly={sidebarHidden}
+          logoOnly={desktopChrome.logoOnly}
           instanceName={instanceName}
           activeInstances={activeInstances}
           selectedInstanceId={selectedInstanceId}

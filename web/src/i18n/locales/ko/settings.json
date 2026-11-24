@@ -1113,22 +1113,7 @@
     "enableToConfigure": "구성하려면 활성화",
     "redDescription": "redacted.sh 조회에 사용됩니다. 교체하려면 붙여 넣고, 제거하려면 지우세요.",
     "opsDescription": "orpheus.network 조회에 사용됩니다. 교체하려면 붙여 넣고, 제거하려면 지우세요.",
-    "save": "저장",
-    "companionTitle": "Gazelle Podman 컴패니언",
-    "checking": "확인 중...",
-    "running": "실행 중 (:7001)",
-    "stopped": "중지됨",
-    "notInstalled": "설치되지 않음",
-    "openWebUiTitle": "Gazelle WebUI 열기 (http://localhost:7001)",
-    "openWebUi": "WebUI 열기",
-    "restartContainerTitle": "Gazelle 컨테이너 다시 시작",
-    "restart": "다시 시작",
-    "stopContainerTitle": "Gazelle 컨테이너 중지",
-    "stop": "중지",
-    "start": "Gazelle 시작",
-    "installAndRun": "Gazelle 설치 및 실행",
-    "companionDescription": "데스크톱 데이터 디렉터리에 상태를 유지하며 7001 포트에 매핑된 로컬 OPSnet/Gazelle 트래커 스택을 배포합니다.",
-    "initialInstallNotice": "OPSnet/Gazelle 저장소를 복제하고 Podman Compose 컨테이너를 빌드하는 중입니다... 초기 설치 시 몇 분 정도 걸릴 수 있습니다."
+    "save": "저장"
   },
   "searchCache": {
     "title": "검색 캐시",
@@ -1175,9 +1160,7 @@
         "upToDate": "최신 상태",
         "upToDateDetail": "최신 버전을 실행 중입니다",
         "notCheckedYet": "아직 확인되지 않음",
-        "lastChecked": "마지막 확인 {{date}}",
-        "managedByDesktop": "Desktop에서 관리",
-        "managedByDesktopDetail": "업데이트와 컨테이너 수명 주기는 Qui Desktop에서 관리합니다"
+        "lastChecked": "마지막 확인 {{date}}"
       },
       "actions": {
         "checkForUpdates": "업데이트 확인"

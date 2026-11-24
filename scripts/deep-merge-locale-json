@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Deep-merge unmerged web/src/i18n/locales/**/*.json during a conflicted merge.
+# Prefer ours for leaf conflicts; keep keys from both sides (BR-desktop-58).
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "deep-merge-locale-json: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+mapfile -t UNMERGED < <(git diff --name-only --diff-filter=U | grep -E '^web/src/i18n/locales/.+\.json$' || true)
+
+if [ "${#UNMERGED[@]}" -eq 0 ]; then
+  echo "deep-merge-locale-json: no unmerged locale JSON files"
+  exit 0
+fi
+
+python3 - "$ROOT" "${UNMERGED[@]}" <<'PY'
+import json, subprocess, sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+files = sys.argv[2:]
+
+def deep_merge(a, b):
+    if isinstance(a, dict) and isinstance(b, dict):
+        out = dict(a)
+        for k, v in b.items():
+            if k in out:
+                out[k] = deep_merge(out[k], v)
+            else:
+                out[k] = v
+        return out
+    return a if a is not None else b
+
+for rel in files:
+    ours = json.loads(subprocess.check_output(["git", "show", f":2:{rel}"], text=True))
+    theirs = json.loads(subprocess.check_output(["git", "show", f":3:{rel}"], text=True))
+    merged = deep_merge(ours, theirs)
+    path = root / rel
+    path.write_text(json.dumps(merged, ensure_ascii=False, indent=2) + "\n")
+    subprocess.check_call(["git", "add", rel])
+    print(f"deep-merge-locale-json: merged {rel}")
+PY

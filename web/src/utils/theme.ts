@@ -4,7 +4,7 @@
  */
 
 import { themes, getThemeById, getDefaultTheme, type Theme } from "@/config/themes";
-import { applyGlassOpacity, migrateLegacyGlassTheme, readGlassOpacity } from "@/lib/glass";
+import { migrateLegacyGlassTheme, onThemeApplied } from "@/lib/desktop-theme";
 import {
   cacheAppliedTheme,
   endDefaultThemeVisit,
@@ -171,21 +171,9 @@ const applyTheme = async (theme: Theme, variation: string | null, isDark: boolea
 
   root.setAttribute("data-theme", theme.id);
   applyCriticalBackground(root, cssVars);
-  applyGlassOpacity(readGlassOpacity());
   cacheAppliedTheme(theme, cssVars);
   paintPreview(isDark);
-
-  if (typeof window !== "undefined" && window.quiDesktop?.syncTheme) {
-    void window.quiDesktop.syncTheme({
-      id: theme.id,
-      name: theme.name,
-      isDark: effectiveIsDark,
-      cssVars: theme.cssVars,
-      rawCss: theme.rawCss,
-    }).catch(() => {
-      // Ignore desktop theme sync errors
-    });
-  }
+  onThemeApplied(theme, effectiveIsDark);
 
   if (ENABLE_THEME_TRANSITIONS && withTransition) {
     setTimeout(() => {

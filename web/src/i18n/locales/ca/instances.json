@@ -7,25 +7,13 @@
       "disconnected": "Desconnectada"
     },
     "tooltips": {
-      "disableInstance": "Desactiva la instància",
-      "enableInstance": "Activa la instància",
       "moveUp": "Mou cap amunt",
       "moveDown": "Mou cap avall"
     },
     "actions": {
-      "edit": "Edita",
       "testConnection": "Prova la connexió",
       "delete": "Elimina",
       "changeIcon": "Canvia la icona"
-    },
-    "labels": {
-      "username": "Nom d'usuari:",
-      "basicAuth": "Autenticació bàsica:",
-      "tlsVerification": "Verificació TLS:",
-      "tlsSkipped": "Omesa",
-      "tlsStrict": "Estricta",
-      "testingConnection": "S'està provant la connexió...",
-      "fileAccess": "Accés als fitxers:"
     },
     "deleteDialog": {
       "title": "Elimina la instància",
@@ -35,7 +23,6 @@
     },
     "toast": {
       "instanceDisabledTitle": "Instància desactivada",
-      "testDisabledDescription": "Activa la instància abans de provar la connexió.",
       "testSuccessTitle": "La prova de connexió ha anat bé",
       "testSuccessDescription": "S'ha connectat correctament a la instància de qBittorrent",
       "testFailedTitle": "Ha fallat la prova de connexió",
@@ -57,11 +44,6 @@
     "decryptionDescription": "No s'ha pogut desxifrar la contrasenya desada. Això sol passar quan ha canviat el secret de la sessió.",
     "reenterPassword": "Torna a introduir la contrasenya",
     "recentErrors": "Errors recents ({{count}})",
-    "copyContainerPassword": "Copy Container Password",
-    "copiedPassword": "Password Copied",
-    "copiedContainerPassword": "Container password copied to clipboard",
-    "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password",
     "errorTypes": {
       "connection": "Connexió",
       "authentication": "Autenticació",
@@ -105,20 +87,15 @@
       "apiKeyRequired": "Cal una clau d'API"
     },
     "buttons": {
-      "saving": "S'està desant...",
       "updateInstance": "Actualitza la instància",
-      "addInstance": "Afegeix la instància",
-      "cancel": "Cancel·la"
+      "addInstance": "Afegeix la instància"
     },
     "toast": {
-      "missingCredentialsTitle": "Falten credencials",
       "instanceUpdatedTitle": "Instància actualitzada",
       "instanceUpdatedDescription": "S'ha actualitzat la instància correctament. S'està provant la connexió en segon pla...",
-      "updateFailedTitle": "No s'ha pogut actualitzar",
       "updateFailedDescription": "No s'ha pogut actualitzar la instància",
       "instanceCreatedTitle": "Instància creada",
       "instanceCreatedDescription": "S'ha creat la instància correctament. S'està provant la connexió en segon pla...",
-      "createFailedTitle": "No s'ha pogut crear",
       "createFailedDescription": "No s'ha pogut crear la instància"
     },
     "authType": {
@@ -2147,7 +2124,6 @@
     "local": "Local",
     "remote": "Per SSH",
     "none": "Cap",
-    "localFull": "qui llegeix i escriu els fitxers d'aquesta instància en aquesta màquina.",
     "limits": {
       "noIdentity": "Sense identitat dels fitxers: qui no pot saber quan dos camins són el mateix fitxer. L'exploració d'orfes no pot suprimir aquí, i una destinació de hardlink existent atura una addició per hardlink.",
       "noReflinks": "Sense reflinks en una instància remota.",

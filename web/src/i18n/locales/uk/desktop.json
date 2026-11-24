@@ -1,0 +1,172 @@
+{
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipQui": "Контейнер Qui ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Podman.",
+    "tooltipQbit": "Контейнер qBittorrent-nox ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Podman.",
+    "tooltipGazelle": "Companion Gazelle ({{state}}) на порту {{port}}. Натисніть, щоб відкрити WebUI.",
+    "copyright": "{{year}} autobrr"
+  },
+  "podman": {
+    "qui": {
+      "title": "Конфігурація контейнера Qui",
+      "description": "Офіційні параметри Podman для autobrr/qui згідно з документацією розгортання."
+    },
+    "qbit": {
+      "title": "Конфігурація контейнера qBittorrent-nox",
+      "description": "Офіційні параметри Podman для linuxserver/qbittorrent згідно з документацією розгортання."
+    },
+    "state": {
+      "running": "Працює"
+    },
+    "toast": {
+      "quiSaved": "Конфігурацію контейнера Qui збережено",
+      "qbitSaved": "Конфігурацію контейнера qBittorrent-nox збережено",
+      "quiRestartStarted": "Перезапуск контейнера Qui розпочато",
+      "qbitRestartStarted": "Перезапуск контейнера qBittorrent-nox розпочато",
+      "copyCommandSuccess": "Команду podman run скопійовано в буфер обміну",
+      "saveFailed": "Не вдалося зберегти конфігурацію",
+      "restartFailed": "Не вдалося перезапустити контейнер",
+      "genericSaveError": "Помилка збереження конфігурації",
+      "genericRestartError": "Помилка перезапуску контейнера",
+      "copyCommandFailed": "Не вдалося скопіювати в буфер обміну",
+      "copiedUsername": "Copied username to clipboard",
+      "copiedPassword": "Copied password to clipboard"
+    },
+    "fields": {
+      "hostWebUiPort": "Порт веб-інтерфейсу на хості",
+      "podmanImage": "Podman-образ",
+      "volumeBindMounts": "Прив’язки томів (bind)",
+      "hostConfigDirQui": "Каталог конфігурації хоста (/config)",
+      "hostConfigDirQuiHelp": "Зберігає config.toml, базу qui.db, кеш іконок і журнали під час роботи.",
+      "hostDataDir": "Каталог даних хоста (/data)",
+      "hostDataDirHelp": "Потрібен для hardlink/reflink cross-seed і сканування «сиріт».",
+      "hostConfigDirQbit": "Каталог конфігурації хоста (/config)",
+      "hostConfigDirQbitHelp": "Містить qBittorrent.conf, журнали, файли стану та резервні копії торрентів.",
+      "hostDownloadsDir": "Каталог завантажень хоста (/downloads)",
+      "hostDownloadsHelp": "Типова цільова папка для активних і завершених торрентів.",
+      "puid": "PUID",
+      "puidHelp": "ID користувача",
+      "pgid": "PGID",
+      "pgidHelp": "ID групи",
+      "umask": "UMASK",
+      "umaskHelpQui": "наприклад 002 або 022",
+      "umaskHelpQbit": "наприклад 022 або 002",
+      "logLevel": "Рівень журналу (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Рівень журналу",
+      "restartPolicy": "Політика перезапуску",
+      "restartPolicyPlaceholder": "Політика перезапуску",
+      "timezone": "Часовий пояс (TZ)",
+      "baseUrl": "Базова URL-адреса (QUI__BASE_URL)",
+      "baseUrlHelp": "Необов’язкова публічна URL-адреса, коли Qui за зворотним проксі.",
+      "bitTorrentPeerPort": "Пір-порт BitTorrent",
+      "peerPortHelp": "Вхідний трафік TCP і UDP (типово: 6881).",
+      "podmanCommandPreview": "Попередній перегляд команди Podman",
+      "webUiCredentials": "WebUI Administrator Credentials",
+      "webUiUsername": "Username",
+      "webUiPassword": "Password",
+      "temporarySessionPassword": "Temporary Session Password",
+      "noPasswordDetected": "No password detected in logs",
+      "show": "Show",
+      "hide": "Hide",
+      "clickToCopy": "Click to copy",
+      "webUiCredentialsHelp": "Required to authenticate Qui Desktop's companion instance (Settings → Instances). Click the password to toggle blur or use the copy button.",
+      "webUiCredentialsManualHelp": "No temporary session password found in logs. If a custom password was set in WebUI preferences, use that password in Settings → Instances.",
+      "copy": "Копіювати",
+      "copied": "Скопійовано",
+      "quiImageHelp": "наприклад qui-desktop:local або ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "наприклад lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Проброшено на порт контейнера 7476 (типово: 7476).",
+      "qbitPortMappedHelp": "Проброшено на порт контейнера 8080 (типово: 8080).",
+      "dataPathPlaceholder": "/шлях/до/завантажень (необов’язково)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Перезапустити контейнер",
+      "cancel": "Скасувати",
+      "saveApply": "Зберегти та застосувати"
+    }
+  },
+  "desktopUpdate": {
+    "title": "Доступне оновлення Qui Desktop",
+    "subtitle": "Версія {{version}} готова до завантаження та встановлення. Поточна версія: {{current}}.",
+    "whatsNew": "Що нового в {{version}}",
+    "noChangelog": "Покращення продуктивності, виправлення помилок і обслуговування.",
+    "dataSafetyTitle": "Безпека даних і резервні копії перед оновленням",
+    "backupNotice": "Перед оновленням архівується знімок резервної копії.",
+    "storageNotice": "Налаштування бази даних, дані торентів і сховища зберігаються.",
+    "inProgress": "Завантаження оновлення та оновлення контейнера Qui... Інтерфейс автоматично перезавантажиться.",
+    "applied": "Оновлення успішно застосовано! Вебінтерфейс оновлюється...",
+    "failed": "Не вдалося застосувати оновлення.",
+    "later": "Пізніше",
+    "updating": "Оновлення...",
+    "done": "Готово",
+    "downloadAndUpdate": "Завантажити й оновити"
+  },
+  "containerUpdate": {
+    "title": "Container Updates Available",
+    "subtitle": "Updates are available for: {{components}}",
+    "componentsTitle": "Components to Update",
+    "reloadRequirementsTitle": "Reload & Restart Requirements",
+    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
+    "backupNotice": "A pre-update backup of your container configurations and databases is created automatically before updating.",
+    "storageNotice": "All application settings, torrent data, and configurations are safely preserved.",
+    "inProgress": "Pulling container images and updating services... Interface will refresh if required.",
+    "applied": "Containers updated successfully!",
+    "failed": "Failed to update containers.",
+    "later": "Later",
+    "updating": "Updating Containers...",
+    "done": "Updated",
+    "updateNow": "Update Now"
+  },
+  "gazelle": {
+    "companionTitle": "Podman-супутник Gazelle",
+    "checking": "Перевірка...",
+    "running": "Працює (:7001)",
+    "stopped": "Зупинено",
+    "notInstalled": "Не встановлено",
+    "openWebUiTitle": "Відкрити WebUI Gazelle (http://localhost:7001)",
+    "openWebUi": "Відкрити WebUI",
+    "restartContainerTitle": "Перезапустити контейнер Gazelle",
+    "restart": "Перезапустити",
+    "stopContainerTitle": "Зупинити контейнер Gazelle",
+    "stop": "Зупинити",
+    "start": "Запустити Gazelle",
+    "installAndRun": "Встановити та запустити Gazelle",
+    "companionDescription": "Розгорнути локальний стек трекера OPSnet/Gazelle на порту 7001 зі збереженням стану в каталозі даних десктопу.",
+    "initialInstallNotice": "Клонування репозиторію OPSnet/Gazelle та збирання контейнерів Podman Compose... це може зайняти кілька хвилин під час першого встановлення."
+  },
+  "application": {
+    "build": {
+      "statuses": {
+        "managedByDesktop": "Керується Desktop",
+        "managedByDesktopDetail": "Оновлення та життєві цикли контейнерів керуються Qui Desktop"
+      }
+    }
+  },
+  "updateBanner": {
+    "desktopUpdateAvailable": "Доступне оновлення Qui Desktop",
+    "reviewAndUpdate": "Переглянути й оновити"
+  },
+  "instances": {
+    "errorDisplay": {
+      "copyContainerPassword": "Copy Container Password",
+      "copiedPassword": "Password Copied",
+      "copiedContainerPassword": "Container password copied to clipboard",
+      "noContainerPasswordFound": "No temporary password detected in container logs",
+      "failedToCopyPassword": "Failed to copy password"
+    }
+  }
+}

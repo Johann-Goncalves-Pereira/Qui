@@ -3,63 +3,21 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { AlertCircle, Check, ChevronDown, Copy, KeyRound } from "lucide-react"
-import { useState } from "react"
+import { AlertCircle, ChevronDown, KeyRound } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
 
+import { DesktopAuthRemediationCard } from "@/components/instances/DesktopAuthRemediationCard"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
-import { usePodmanServices } from "@/hooks/usePodmanServices"
 import { formatErrorMessage } from "@/lib/format-error-message"
 import type { InstanceResponse } from "@/types"
-
-/** Whether an error looks like qBittorrent rejected the credentials, as with the generated password of a new container. */
-export function isQBitAuthError(errorMessage?: string, errorType?: string): boolean {
-  if (!errorMessage && !errorType) return false
-  const text = `${errorType ?? ""} ${errorMessage ?? ""}`.toLowerCase()
-  return (
-    text.includes("qbit re-login") ||
-    text.includes("authentication") ||
-    text.includes("401") ||
-    text.includes("403") ||
-    text.includes("could not get webapi version") ||
-    text.includes("password required")
-  )
-}
 
 /** The errors of one instance, under its row: a saved password that qui cannot read, and the last connection errors. */
 export function InstanceErrorDisplay({ instance, onEdit }: { instance: InstanceResponse; onEdit: () => void }) {
   const { t } = useTranslation("instances")
   const { formatTimestamp } = useDateTimeFormatters()
-  const { getQBitConfig } = usePodmanServices()
-  const [copiedContainerPass, setCopiedContainerPass] = useState(false)
-  const [isCopyingPass, setIsCopyingPass] = useState(false)
   const recentErrors = instance.connected ? [] : instance.recentErrors ?? []
-  const hasAuthError =
-    !instance.connected &&
-    (instance.hasDecryptionError || recentErrors.some((error) => isQBitAuthError(error.errorMessage, error.errorType)))
-
-  const handleCopyContainerPass = async () => {
-    try {
-      setIsCopyingPass(true)
-      const qbitConfig = await getQBitConfig()
-      if (qbitConfig.password) {
-        await navigator.clipboard.writeText(qbitConfig.password)
-        setCopiedContainerPass(true)
-        toast.success(t("errorDisplay.copiedContainerPassword"))
-        setTimeout(() => setCopiedContainerPass(false), 2000)
-      } else {
-        toast.error(t("errorDisplay.noContainerPasswordFound"))
-      }
-    } catch (err) {
-      console.error("[InstanceErrorDisplay] copy container password failed:", err)
-      toast.error(t("errorDisplay.failedToCopyPassword"))
-    } finally {
-      setIsCopyingPass(false)
-    }
-  }
 
   return (
     <div className="space-y-2.5">
@@ -101,47 +59,7 @@ export function InstanceErrorDisplay({ instance, onEdit }: { instance: InstanceR
         </Collapsible>
       )}
 
-      {hasAuthError && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
-          <div className="flex items-center gap-2 font-medium text-amber-400">
-            <KeyRound aria-hidden="true" className="size-4 shrink-0" />
-            <span>{t("errorDisplay.authGuideTitle")}</span>
-          </div>
-          <p className="mt-1.5 leading-relaxed text-amber-200/90">{t("errorDisplay.authGuideDescription")}</p>
-          <div className="mt-2 space-y-1.5 text-amber-200/80">
-            <div className="flex items-start gap-1.5">
-              <span className="font-semibold text-amber-400">1.</span>
-              <span>{t("errorDisplay.authGuideStep1")}</span>
-            </div>
-            <div className="flex items-start gap-1.5">
-              <span className="font-semibold text-amber-400">2.</span>
-              <span>{t("errorDisplay.authGuideStep2")}</span>
-            </div>
-          </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={isCopyingPass}
-              onClick={() => void handleCopyContainerPass()}
-              className="h-7 border-amber-500/40 px-3 text-xs text-amber-300 hover:bg-amber-500/20"
-            >
-              {copiedContainerPass ? <Check className="mr-1.5 size-3 text-emerald-400" /> : <Copy className="mr-1.5 size-3" />}
-              {copiedContainerPass ? t("errorDisplay.copiedPassword") : t("errorDisplay.copyContainerPassword")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={onEdit}
-              className="h-7 border-amber-500/40 px-3 text-xs text-amber-300 hover:bg-amber-500/20"
-            >
-              {t("errorDisplay.configureCredentials")}
-            </Button>
-          </div>
-        </div>
-      )}
+      <DesktopAuthRemediationCard instance={instance} onEdit={onEdit} />
     </div>
   )
 }

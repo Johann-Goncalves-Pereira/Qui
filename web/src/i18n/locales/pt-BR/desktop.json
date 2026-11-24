@@ -1,0 +1,172 @@
+{
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipQui": "Contêiner Qui ({{state}}) na porta {{port}}. Clique para configurar o Podman.",
+    "tooltipQbit": "Contêiner qBittorrent-nox ({{state}}) na porta {{port}}. Clique para configurar o Podman.",
+    "tooltipGazelle": "Companheiro Gazelle ({{state}}) na porta {{port}}. Clique para abrir a WebUI.",
+    "copyright": "{{year}} autobrr"
+  },
+  "podman": {
+    "qui": {
+      "title": "Configuração do contêiner Qui",
+      "description": "Parâmetros oficiais do Podman para autobrr/qui conforme a documentação de implantação."
+    },
+    "qbit": {
+      "title": "Configuração do contêiner qBittorrent-nox",
+      "description": "Parâmetros oficiais do Podman para linuxserver/qbittorrent conforme a documentação de implantação."
+    },
+    "state": {
+      "running": "Em execução"
+    },
+    "toast": {
+      "quiSaved": "Configuração do contêiner Qui salva",
+      "qbitSaved": "Configuração do contêiner qBittorrent-nox salva",
+      "quiRestartStarted": "Reinício do contêiner Qui iniciado",
+      "qbitRestartStarted": "Reinício do contêiner qBittorrent-nox iniciado",
+      "copyCommandSuccess": "Comando podman run copiado para a área de transferência",
+      "saveFailed": "Falha ao salvar a configuração",
+      "restartFailed": "Falha ao reiniciar o contêiner",
+      "genericSaveError": "Erro ao salvar a configuração",
+      "genericRestartError": "Erro ao reiniciar o contêiner",
+      "copyCommandFailed": "Não foi possível copiar para a área de transferência",
+      "copiedUsername": "Copied username to clipboard",
+      "copiedPassword": "Copied password to clipboard"
+    },
+    "fields": {
+      "hostWebUiPort": "Porta da interface web no host",
+      "podmanImage": "Imagem Podman",
+      "volumeBindMounts": "Montagens de volume (bind)",
+      "hostConfigDirQui": "Diretório de configuração no host (/config)",
+      "hostConfigDirQuiHelp": "Armazena config.toml, banco qui.db, cache de ícones e logs em tempo de execução.",
+      "hostDataDir": "Diretório de dados no host (/data)",
+      "hostDataDirHelp": "Necessário para operações de hardlink/reflink de cross-seed e varreduras de órfãos.",
+      "hostConfigDirQbit": "Diretório de configuração no host (/config)",
+      "hostConfigDirQbitHelp": "Contém qBittorrent.conf, logs, arquivos de estado e backups de torrent.",
+      "hostDownloadsDir": "Diretório de downloads no host (/downloads)",
+      "hostDownloadsHelp": "Pasta padrão onde torrents ativos e concluídos são salvos.",
+      "puid": "PUID",
+      "puidHelp": "ID do usuário",
+      "pgid": "PGID",
+      "pgidHelp": "ID do grupo",
+      "umask": "UMASK",
+      "umaskHelpQui": "ex.: 002 ou 022",
+      "umaskHelpQbit": "ex.: 022 ou 002",
+      "logLevel": "Nível de log (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Nível de log",
+      "restartPolicy": "Política de reinício",
+      "restartPolicyPlaceholder": "Política de reinício",
+      "timezone": "Fuso horário (TZ)",
+      "baseUrl": "URL base (QUI__BASE_URL)",
+      "baseUrlHelp": "URL pública opcional quando o Qui está atrás de um proxy reverso.",
+      "bitTorrentPeerPort": "Porta peer BitTorrent",
+      "peerPortHelp": "Tráfego TCP e UDP de entrada (padrão: 6881).",
+      "podmanCommandPreview": "Pré-visualização do comando Podman",
+      "webUiCredentials": "WebUI Administrator Credentials",
+      "webUiUsername": "Username",
+      "webUiPassword": "Password",
+      "temporarySessionPassword": "Temporary Session Password",
+      "noPasswordDetected": "No password detected in logs",
+      "show": "Show",
+      "hide": "Hide",
+      "clickToCopy": "Click to copy",
+      "webUiCredentialsHelp": "Required to authenticate Qui Desktop's companion instance (Settings → Instances). Click the password to toggle blur or use the copy button.",
+      "webUiCredentialsManualHelp": "No temporary session password found in logs. If a custom password was set in WebUI preferences, use that password in Settings → Instances.",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "quiImageHelp": "ex.: qui-desktop:local ou ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "ex.: lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Mapeada para a porta 7476 do contêiner (padrão: 7476).",
+      "qbitPortMappedHelp": "Mapeada para a porta 8080 do contêiner (padrão: 8080).",
+      "dataPathPlaceholder": "/caminho/para/downloads (opcional)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Reiniciar contêiner",
+      "cancel": "Cancelar",
+      "saveApply": "Salvar e aplicar"
+    }
+  },
+  "desktopUpdate": {
+    "title": "Atualização do Qui Desktop disponível",
+    "subtitle": "A versão {{version}} está pronta para baixar e instalar. A versão atual é {{current}}.",
+    "whatsNew": "Novidades em {{version}}",
+    "noChangelog": "Melhorias de desempenho, correções de bugs e manutenção.",
+    "dataSafetyTitle": "Segurança dos dados e backups pré-atualização",
+    "backupNotice": "Um snapshot de backup pré-atualização é arquivado antes de atualizar.",
+    "storageNotice": "Configurações do banco, dados de torrents e vaults são preservados com segurança.",
+    "inProgress": "Baixando a atualização e atualizando o container Qui... A interface será recarregada automaticamente em breve.",
+    "applied": "Atualização aplicada com sucesso! A interface web está atualizando...",
+    "failed": "Falha ao aplicar a atualização.",
+    "later": "Depois",
+    "updating": "Atualizando...",
+    "done": "Concluído",
+    "downloadAndUpdate": "Baixar e atualizar"
+  },
+  "containerUpdate": {
+    "title": "Container Updates Available",
+    "subtitle": "Updates are available for: {{components}}",
+    "componentsTitle": "Components to Update",
+    "reloadRequirementsTitle": "Reload & Restart Requirements",
+    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
+    "backupNotice": "A pre-update backup of your container configurations and databases is created automatically before updating.",
+    "storageNotice": "All application settings, torrent data, and configurations are safely preserved.",
+    "inProgress": "Pulling container images and updating services... Interface will refresh if required.",
+    "applied": "Containers updated successfully!",
+    "failed": "Failed to update containers.",
+    "later": "Later",
+    "updating": "Updating Containers...",
+    "done": "Updated",
+    "updateNow": "Update Now"
+  },
+  "gazelle": {
+    "companionTitle": "Companheiro Podman Gazelle",
+    "checking": "Verificando...",
+    "running": "Executando (:7001)",
+    "stopped": "Parado",
+    "notInstalled": "Não instalado",
+    "openWebUiTitle": "Abrir WebUI do Gazelle (http://localhost:7001)",
+    "openWebUi": "Abrir WebUI",
+    "restartContainerTitle": "Reiniciar contêiner do Gazelle",
+    "restart": "Reiniciar",
+    "stopContainerTitle": "Parar contêiner do Gazelle",
+    "stop": "Parar",
+    "start": "Iniciar Gazelle",
+    "installAndRun": "Instalar e executar Gazelle",
+    "companionDescription": "Implantar uma pilha de rastreador local OPSnet/Gazelle mapeada na porta 7001 com estado persistente no diretório de dados do desktop.",
+    "initialInstallNotice": "Clonando repositório OPSnet/Gazelle e construindo contêineres Podman Compose... isso pode levar vários minutos na instalação inicial."
+  },
+  "application": {
+    "build": {
+      "statuses": {
+        "managedByDesktop": "Gerenciado pelo Desktop",
+        "managedByDesktopDetail": "Atualizações e ciclos de vida dos containers são gerenciados pelo Qui Desktop"
+      }
+    }
+  },
+  "updateBanner": {
+    "desktopUpdateAvailable": "Atualização do Qui Desktop disponível",
+    "reviewAndUpdate": "Revisar e atualizar"
+  },
+  "instances": {
+    "errorDisplay": {
+      "copyContainerPassword": "Copy Container Password",
+      "copiedPassword": "Password Copied",
+      "copiedContainerPassword": "Container password copied to clipboard",
+      "noContainerPasswordFound": "No temporary password detected in container logs",
+      "failedToCopyPassword": "Failed to copy password"
+    }
+  }
+}

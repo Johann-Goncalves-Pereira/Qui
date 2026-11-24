@@ -7,25 +7,13 @@
       "disconnected": "已断开"
     },
     "tooltips": {
-      "disableInstance": "禁用实例",
-      "enableInstance": "启用实例",
       "moveUp": "上移",
       "moveDown": "下移"
     },
     "actions": {
-      "edit": "编辑",
       "testConnection": "测试连接",
       "delete": "删除",
       "changeIcon": "更改图标"
-    },
-    "labels": {
-      "username": "用户名：",
-      "basicAuth": "基本认证：",
-      "tlsVerification": "TLS 验证：",
-      "tlsSkipped": "已跳过",
-      "tlsStrict": "严格",
-      "testingConnection": "正在测试连接...",
-      "fileAccess": "文件访问："
     },
     "deleteDialog": {
       "title": "删除实例",
@@ -35,7 +23,6 @@
     },
     "toast": {
       "instanceDisabledTitle": "实例已禁用",
-      "testDisabledDescription": "请先启用实例，再测试连接。",
       "testSuccessTitle": "连接测试成功",
       "testSuccessDescription": "已成功连接到 qBittorrent 实例",
       "testFailedTitle": "连接测试失败",
@@ -57,11 +44,6 @@
     "decryptionDescription": "无法解密已保存的密码。这通常是因为会话密钥已更改。",
     "reenterPassword": "重新输入密码",
     "recentErrors": "近期错误（{{count}}）",
-    "copyContainerPassword": "Copy Container Password",
-    "copiedPassword": "Password Copied",
-    "copiedContainerPassword": "Container password copied to clipboard",
-    "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password",
     "errorTypes": {
       "connection": "连接",
       "authentication": "身份验证",
@@ -105,20 +87,15 @@
       "apiKeyRequired": "必须填写 API 密钥"
     },
     "buttons": {
-      "saving": "保存中...",
       "updateInstance": "更新实例",
-      "addInstance": "添加实例",
-      "cancel": "取消"
+      "addInstance": "添加实例"
     },
     "toast": {
-      "missingCredentialsTitle": "缺少凭据",
       "instanceUpdatedTitle": "实例已更新",
       "instanceUpdatedDescription": "实例更新成功。正在后台测试连接...",
-      "updateFailedTitle": "更新失败",
       "updateFailedDescription": "无法更新实例",
       "instanceCreatedTitle": "实例已创建",
       "instanceCreatedDescription": "实例创建成功。正在后台测试连接...",
-      "createFailedTitle": "创建失败",
       "createFailedDescription": "无法创建实例"
     },
     "authType": {
@@ -2116,7 +2093,6 @@
     "local": "本地",
     "remote": "通过 SSH",
     "none": "无",
-    "localFull": "qui 在本机读写此实例的文件。",
     "limits": {
       "noIdentity": "无文件标识：qui 无法判断两个路径是否指向同一文件。孤立项目扫描在此无法删除，且已存在的硬链接目标会阻止硬链接添加。",
       "noReflinks": "远程实例不支持引用链接。",

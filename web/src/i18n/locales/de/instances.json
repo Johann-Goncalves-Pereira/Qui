@@ -7,25 +7,13 @@
       "disconnected": "Getrennt"
     },
     "tooltips": {
-      "disableInstance": "Instanz deaktivieren",
-      "enableInstance": "Instanz aktivieren",
       "moveUp": "Nach oben",
       "moveDown": "Nach unten"
     },
     "actions": {
-      "edit": "Bearbeiten",
       "testConnection": "Verbindung testen",
       "delete": "Löschen",
       "changeIcon": "Symbol ändern"
-    },
-    "labels": {
-      "username": "Benutzername:",
-      "basicAuth": "Basic Auth:",
-      "tlsVerification": "TLS-Überprüfung:",
-      "tlsSkipped": "Übersprungen",
-      "tlsStrict": "Strikt",
-      "testingConnection": "Verbindung wird getestet...",
-      "fileAccess": "Dateizugriff:"
     },
     "deleteDialog": {
       "title": "Instanz löschen",
@@ -35,7 +23,6 @@
     },
     "toast": {
       "instanceDisabledTitle": "Instanz deaktiviert",
-      "testDisabledDescription": "Aktiviere die Instanz, bevor du die Verbindung testest.",
       "testSuccessTitle": "Verbindungstest erfolgreich",
       "testSuccessDescription": "Erfolgreich mit der qBittorrent-Instanz verbunden",
       "testFailedTitle": "Verbindungstest fehlgeschlagen",
@@ -57,11 +44,6 @@
     "decryptionDescription": "Das gespeicherte Passwort kann nicht entschlüsselt werden. Das passiert üblicherweise, wenn sich das Session-Secret geändert hat.",
     "reenterPassword": "Passwort erneut eingeben",
     "recentErrors": "Letzte Fehler ({{count}})",
-    "copyContainerPassword": "Copy Container Password",
-    "copiedPassword": "Password Copied",
-    "copiedContainerPassword": "Container password copied to clipboard",
-    "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password",
     "errorTypes": {
       "connection": "Verbindung",
       "authentication": "Authentifizierung",
@@ -105,20 +87,15 @@
       "apiKeyRequired": "API-Schlüssel ist erforderlich"
     },
     "buttons": {
-      "saving": "Wird gespeichert...",
       "updateInstance": "Instanz aktualisieren",
-      "addInstance": "Instanz hinzufügen",
-      "cancel": "Abbrechen"
+      "addInstance": "Instanz hinzufügen"
     },
     "toast": {
-      "missingCredentialsTitle": "Fehlende Anmeldedaten",
       "instanceUpdatedTitle": "Instanz aktualisiert",
       "instanceUpdatedDescription": "Instanz erfolgreich aktualisiert. Verbindungstest läuft im Hintergrund...",
-      "updateFailedTitle": "Aktualisierung fehlgeschlagen",
       "updateFailedDescription": "Aktualisieren der Instanz fehlgeschlagen",
       "instanceCreatedTitle": "Instanz erstellt",
       "instanceCreatedDescription": "Instanz erfolgreich erstellt. Verbindungstest läuft im Hintergrund...",
-      "createFailedTitle": "Erstellen fehlgeschlagen",
       "createFailedDescription": "Erstellen der Instanz fehlgeschlagen"
     },
     "authType": {
@@ -2147,7 +2124,6 @@
     "local": "Lokal",
     "remote": "Über SSH",
     "none": "Keiner",
-    "localFull": "qui liest und schreibt die Dateien dieser Instanz auf diesem Rechner.",
     "limits": {
       "noIdentity": "Keine Dateiidentität: qui erkennt nicht, wenn zwei Pfade dieselbe Datei sind. Der Orphan-Scan kann hier nicht löschen, und ein vorhandenes Hardlink-Ziel stoppt ein Hinzufügen per Hardlink.",
       "noReflinks": "Keine Reflinks auf einer Remote-Instanz.",

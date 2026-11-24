@@ -27,7 +27,7 @@ INTERNAL_WEB_DIR = internal/web
 # Go build flags
 LDFLAGS = -ldflags "-X github.com/autobrr/qui/internal/buildinfo.Version=$(VERSION) -X github.com/autobrr/qui/internal/buildinfo.Commit=$(GIT_COMMIT) -X github.com/autobrr/qui/internal/buildinfo.Date=$(BUILD_DATE)"
 
-.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh desktop-version-bump desktop-publish-release desktop-publish-qui-image upstream-sync upstream-sync-fork install-hooks clean test test-postgres test-frontend test-frontend-changed help themes-fetch themes-clean lint lint-full lint-ratchet lint-version typecheck-frontend check-i18n check-feature-map check-regression-marker lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
+.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose clean test test-postgres test-frontend test-frontend-changed help themes-fetch themes-clean lint lint-full lint-ratchet lint-version typecheck-frontend check-i18n check-feature-map check-regression-marker lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
 
 # Default target
 all: build
@@ -54,39 +54,6 @@ frontend:
 backend:
 	@echo "Building backend..."
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/qui
-
-# Electron shell against Vite with all dependencies orchestrated in hot-reload mode.
-desktop-dev:
-	./desktop-dev.sh
-
-# Rebuild qui-desktop:local, recreate container, clear Electron caches.
-desktop-refresh:
-	./scripts/desktop-refresh
-
-# Dry-merge autobrr/qui develop into HEAD (local gate; no GitHub Actions).
-upstream-sync:
-	./scripts/upstream-sync-check
-
-# Synchronize develop with autobrr/qui develop via PR with merge commit (--merge).
-upstream-sync-fork:
-	./scripts/upstream-sync-fork
-
-
-# After squash-merge: bump desktop patch via PR + tag (no Actions; $0 spend).
-desktop-version-bump:
-	./scripts/desktop-version-bump-local
-
-# Publish/refresh GitHub Release Latest for current desktop/package.json version.
-desktop-publish-release:
-	./scripts/desktop-publish-release-local
-
-# Build+push fork Qui Docker image (GUI) to lowercase GHCR for downloadable apps.
-desktop-publish-qui-image:
-	./scripts/desktop-publish-qui-image
-
-# Install committed .githooks (blocks develop push; runs upstream-sync on push).
-install-hooks:
-	./scripts/install-local-hooks
 
 # Development mode - run both frontend and backend
 dev:
@@ -425,3 +392,5 @@ help:
 	@echo "  make clean          - Clean build artifacts"
 	@echo "  make deps           - Install dependencies"
 	@echo "  make help           - Show this help message"
+
+-include mk/fork.mk

@@ -73,4 +73,34 @@ describe('local upstream-sync gate (BR-desktop-21)', () => {
 		)
 		expect(bumpScript).toContain('upstream-sync-fork')
 	})
+
+	it('auto-merges locale JSON conflicts and enforces the hotspot allowlist (BR-desktop-58)', () => {
+		const script = readFileSync(
+			path.join(repoRoot, 'scripts/upstream-sync-check'),
+			'utf8',
+		)
+		expect(script).toContain('deep-merge-locale-json')
+		expect(script).toContain('locale-only')
+		expect(script).toContain('fork-hotspot-check')
+
+		const hotspot = readFileSync(
+			path.join(repoRoot, 'scripts/fork-hotspot-check'),
+			'utf8',
+		)
+		expect(hotspot).toContain('fork-upstream-hotspots.txt')
+		expect(hotspot).toMatch(/exit 1/)
+
+		const allowlist = readFileSync(
+			path.join(repoRoot, 'scripts/fork-upstream-hotspots.txt'),
+			'utf8',
+		)
+		expect(allowlist).toMatch(/Makefile|web\/src\//)
+
+		const deepMerge = readFileSync(
+			path.join(repoRoot, 'scripts/deep-merge-locale-json'),
+			'utf8',
+		)
+		expect(deepMerge).toContain('web/src/i18n/locales')
+		expect(deepMerge).toContain('deep_merge')
+	})
 })

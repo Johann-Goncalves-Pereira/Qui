@@ -37,6 +37,7 @@ function formatSessionAuth(user: User | undefined): string {
 /** The Application tab: the build of qui and its updates, the support shortcut, the runtime, the sign-in setup, and the storage paths. */
 export function ApplicationInfoPanel({ openUpdate, onUpdateOpened }: { openUpdate: boolean; onUpdateOpened: () => void }) {
   const { t } = useTranslation("settings")
+  const { t: tDesktop } = useTranslation("desktop")
   const { formatISOTimestamp, formatTimestamp } = useDateTimeFormatters()
   const appInfoQuery = useQuery({
     queryKey: ["application-info"],
@@ -100,8 +101,8 @@ export function ApplicationInfoPanel({ openUpdate, onUpdateOpened }: { openUpdat
   const updateStatus = (): { label: string; detail?: string } => {
     if (isDesktop) {
       return {
-        label: t("application.build.statuses.managedByDesktop", { defaultValue: "Managed by Desktop" }),
-        detail: t("application.build.statuses.managedByDesktopDetail", { defaultValue: "Updates and container lifecycles are managed by Qui Desktop" }),
+        label: tDesktop("application.build.statuses.managedByDesktop"),
+        detail: tDesktop("application.build.statuses.managedByDesktopDetail"),
       }
     }
     if (!info?.checkForUpdates) {

@@ -1122,22 +1122,7 @@
     "enableToConfigure": "Ativar para configurar",
     "redDescription": "Usado para pesquisas no redacted.sh. Cole para substituir; limpe para remover.",
     "opsDescription": "Usado para pesquisas no orpheus.network. Cole para substituir; limpe para remover.",
-    "save": "Salvar",
-    "companionTitle": "Companheiro Podman Gazelle",
-    "checking": "Verificando...",
-    "running": "Executando (:7001)",
-    "stopped": "Parado",
-    "notInstalled": "Não instalado",
-    "openWebUiTitle": "Abrir WebUI do Gazelle (http://localhost:7001)",
-    "openWebUi": "Abrir WebUI",
-    "restartContainerTitle": "Reiniciar contêiner do Gazelle",
-    "restart": "Reiniciar",
-    "stopContainerTitle": "Parar contêiner do Gazelle",
-    "stop": "Parar",
-    "start": "Iniciar Gazelle",
-    "installAndRun": "Instalar e executar Gazelle",
-    "companionDescription": "Implantar uma pilha de rastreador local OPSnet/Gazelle mapeada na porta 7001 com estado persistente no diretório de dados do desktop.",
-    "initialInstallNotice": "Clonando repositório OPSnet/Gazelle e construindo contêineres Podman Compose... isso pode levar vários minutos na instalação inicial."
+    "save": "Salvar"
   },
   "searchCache": {
     "title": "Cache de Busca",
@@ -1184,9 +1169,7 @@
         "upToDate": "Atualizado",
         "upToDateDetail": "Executando a versão mais recente",
         "notCheckedYet": "Não verificado ainda",
-        "lastChecked": "Última verificação: {{date}}",
-        "managedByDesktop": "Gerenciado pelo Desktop",
-        "managedByDesktopDetail": "Atualizações e ciclos de vida dos containers são gerenciados pelo Qui Desktop"
+        "lastChecked": "Última verificação: {{date}}"
       },
       "actions": {
         "checkForUpdates": "Verificar atualizações"

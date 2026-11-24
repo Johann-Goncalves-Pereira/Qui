@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# BR-desktop-58: fail if the fork edits a new upstream path outside the hotspot
+# allowlist and outside fork-owned prefixes.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "fork-hotspot-check: not inside a git repository" >&2
+  exit 1
+}
+cd "$ROOT"
+
+UPSTREAM_URL="${QUI_UPSTREAM_URL:-https://github.com/autobrr/qui.git}"
+UPSTREAM_REF="${QUI_UPSTREAM_REF:-develop}"
+ALLOWLIST_FILE="${ROOT}/scripts/fork-upstream-hotspots.txt"
+
+git fetch --no-tags --quiet "$UPSTREAM_URL" "$UPSTREAM_REF"
+UPSTREAM_TIP="$(git rev-parse FETCH_HEAD)"
+
+mapfile -t DIVERGED < <(git diff --name-only "${UPSTREAM_TIP}...HEAD" | sed '/^$/d' | sort -u)
+
+is_fork_owned() {
+  local f="$1"
+  case "$f" in
+    desktop/*|mk/*|docs/desktop/*|Casks/*|.cursor/*|.githooks/*|.agents/skills/qui-fork-*|.gemini/skills/qui-fork-*|.claude/skills/qui-fork-*)
+      return 0 ;;
+    scripts/desktop-*|scripts/upstream-sync*|scripts/install-local*|scripts/fork-*|scripts/deep-merge-locale*)
+      return 0 ;;
+    web/src/desktop.css|web/src/desktop.css/*)
+      return 0 ;;
+    web/src/i18n/locales/*/desktop.json)
+      return 0 ;;
+    web/src/lib/desktop-*|web/src/hooks/useDesktop*|web/src/hooks/usePodman*)
+      return 0 ;;
+    web/src/components/Desktop*|web/src/components/*/Desktop*|web/src/components/ui/Desktop*|web/src/components/ui/ContainerUpdate*|web/src/components/layout/StatusBar*|web/src/components/podman/*|web/src/components/settings/Vpn*|web/src/components/settings/GazellePodman*|web/src/components/transitions/*)
+      return 0 ;;
+    internal/services/license/license_env_override.go|tests/fork-isolation*|desktop/tests/upstream-sync*|desktop-dev.sh)
+      return 0 ;;
+  esac
+  return 1
+}
+
+declare -A ALLOWED=()
+while IFS= read -r line || [ -n "$line" ]; do
+  [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+  ALLOWED["$line"]=1
+done < "$ALLOWLIST_FILE"
+
+violations=()
+for f in "${DIVERGED[@]}"; do
+  if is_fork_owned "$f"; then
+    continue
+  fi
+  if [[ -n "${ALLOWED[$f]:-}" ]]; then
+    continue
+  fi
+  # Shared locale namespaces are no longer the place for new desktop strings;
+  # editing them still requires an allowlist entry (legacy injection).
+  violations+=("$f")
+done
+
+if [ "${#violations[@]}" -eq 0 ]; then
+  echo "fork-hotspot-check: ok (${#DIVERGED[@]} diverged path(s) within allowlist / fork-owned prefixes)"
+  exit 0
+fi
+
+echo "fork-hotspot-check: fork edits upstream paths outside scripts/fork-upstream-hotspots.txt:" >&2
+printf '  %s\n' "${violations[@]}" >&2
+echo "Move the change into a fork-owned module (docs/desktop/fork-isolation.md) or add the path to the allowlist with a reason." >&2
+exit 1

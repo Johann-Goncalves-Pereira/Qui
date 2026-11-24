@@ -7,25 +7,13 @@
       "disconnected": "Disconnesso"
     },
     "tooltips": {
-      "disableInstance": "Disabilita istanza",
-      "enableInstance": "Abilita istanza",
       "moveUp": "Sposta su",
       "moveDown": "Sposta giù"
     },
     "actions": {
-      "edit": "Modifica",
       "testConnection": "Prova connessione",
       "delete": "Elimina",
       "changeIcon": "Cambia icona"
-    },
-    "labels": {
-      "username": "Nome utente:",
-      "basicAuth": "Basic Auth:",
-      "tlsVerification": "Verifica TLS:",
-      "tlsSkipped": "Ignorata",
-      "tlsStrict": "Rigorosa",
-      "testingConnection": "Prova della connessione in corso...",
-      "fileAccess": "Accesso ai file:"
     },
     "deleteDialog": {
       "title": "Elimina istanza",
@@ -35,7 +23,6 @@
     },
     "toast": {
       "instanceDisabledTitle": "Istanza disabilitata",
-      "testDisabledDescription": "Abilita l'istanza prima di provare la connessione.",
       "testSuccessTitle": "Prova di connessione riuscita",
       "testSuccessDescription": "Connessione all'istanza qBittorrent riuscita",
       "testFailedTitle": "Prova di connessione non riuscita",
@@ -57,11 +44,6 @@
     "decryptionDescription": "Impossibile decifrare la password salvata. Di solito accade quando il segreto della sessione è cambiato.",
     "reenterPassword": "Inserisci di nuovo la password",
     "recentErrors": "Errori recenti ({{count}})",
-    "copyContainerPassword": "Copy Container Password",
-    "copiedPassword": "Password Copied",
-    "copiedContainerPassword": "Container password copied to clipboard",
-    "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password",
     "errorTypes": {
       "connection": "Connessione",
       "authentication": "Autenticazione",
@@ -105,20 +87,15 @@
       "apiKeyRequired": "La chiave API è obbligatoria"
     },
     "buttons": {
-      "saving": "Salvataggio...",
       "updateInstance": "Aggiorna istanza",
-      "addInstance": "Aggiungi istanza",
-      "cancel": "Annulla"
+      "addInstance": "Aggiungi istanza"
     },
     "toast": {
-      "missingCredentialsTitle": "Credenziali mancanti",
       "instanceUpdatedTitle": "Istanza aggiornata",
       "instanceUpdatedDescription": "Istanza aggiornata correttamente. Prova della connessione in background...",
-      "updateFailedTitle": "Aggiornamento non riuscito",
       "updateFailedDescription": "Impossibile aggiornare l'istanza",
       "instanceCreatedTitle": "Istanza creata",
       "instanceCreatedDescription": "Istanza creata correttamente. Prova della connessione in background...",
-      "createFailedTitle": "Creazione non riuscita",
       "createFailedDescription": "Impossibile creare l'istanza"
     },
     "authType": {
@@ -2147,7 +2124,6 @@
     "local": "Locale",
     "remote": "Via SSH",
     "none": "Nessuno",
-    "localFull": "qui legge e scrive i file di questa istanza su questa macchina.",
     "limits": {
       "noIdentity": "Nessuna identità dei file: qui non riconosce quando due percorsi sono lo stesso file. La scansione orfani non può eliminare qui e una destinazione hardlink esistente blocca un'aggiunta con hardlink.",
       "noReflinks": "Nessun reflink su un'istanza remota.",

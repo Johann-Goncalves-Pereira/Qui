@@ -33,7 +33,7 @@ interface QBitPodmanConfigDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-function containerStateLabel(state: string, t: TFunction<"common">): string {
+function containerStateLabel(state: string, t: TFunction<"desktop">): string {
   const key = `podman.state.${state}` as const
   const translated = t(key)
   return translated === key ? state : translated
@@ -43,7 +43,7 @@ export function QBitPodmanConfigDialog({
   open,
   onOpenChange,
 }: QBitPodmanConfigDialogProps) {
-  const { t } = useTranslation("common")
+  const { t } = useTranslation("desktop")
   const { getQBitConfig, saveQBitConfig, restartContainer, statuses } =
     usePodmanServices()
 

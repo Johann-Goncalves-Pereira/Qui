@@ -140,13 +140,27 @@ function renderHeader(props: { sidebarHidden?: boolean } = {}) {
 }
 
 describe("Header layout height (BR-web-02)", () => {
-  it("renders header banner with lg:h-12 and never lg:h-16 in standard mode", () => {
+  afterEach(() => {
+    delete (window as unknown as { quiDesktop?: unknown }).quiDesktop
+  })
+
+  it("renders header banner with lg:h-12 and never lg:h-16 on desktop in standard mode", () => {
+    ;(window as unknown as { quiDesktop?: unknown }).quiDesktop = {}
     mocks.viewMode = "standard"
     renderHeader()
 
     const banner = screen.getByRole("banner")
     expect(banner.className).toContain("lg:h-12")
     expect(banner.className).not.toContain("lg:h-16")
+  })
+
+  it("keeps the upstream lg:h-16 header in a standalone browser in standard mode (BR-desktop-59)", () => {
+    mocks.viewMode = "standard"
+    renderHeader()
+
+    const banner = screen.getByRole("banner")
+    expect(banner.className).toContain("lg:h-16")
+    expect(banner.className).not.toContain("lg:h-12")
   })
 
   it("renders header banner with lg:h-12 in dense mode", () => {
@@ -234,7 +248,7 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     expect(banner.textContent).not.toContain("qui")
   })
 
-  it("applies lg:pl-4 in standalone browser mode and omits 'qui' text when sidebar is collapsed", () => {
+  it("keeps upstream lg:pl-2 in standalone browser mode when sidebar is collapsed", () => {
     delete (window as unknown as { quiDesktop?: unknown }).quiDesktop
     Object.defineProperty(window.navigator, "userAgent", {
       value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -246,10 +260,11 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     })
 
     const banner = screen.getByRole("banner")
-    // Browser viewport has no native traffic lights; uses standard padding
-    expect(banner.className).toContain("lg:pl-4")
+    expect(banner.className).toContain("lg:pl-2")
     expect(banner.className).not.toContain("lg:pl-20")
-    expect(banner.textContent).not.toContain("qui")
+    expect(banner.className).not.toContain("lg:pl-4")
+    expect(banner.textContent).toContain("qui")
+    expect(container.querySelector("[data-slot=\"traffic-lights-drag-region\"]")).toBeNull()
     expect(container.querySelector("svg")).not.toBeNull()
   })
 })

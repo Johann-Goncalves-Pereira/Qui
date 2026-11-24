@@ -7,25 +7,13 @@
       "disconnected": "Odpojeno"
     },
     "tooltips": {
-      "disableInstance": "Vypnout instanci",
-      "enableInstance": "Zapnout instanci",
       "moveUp": "Přesunout nahoru",
       "moveDown": "Přesunout dolů"
     },
     "actions": {
-      "edit": "Editovat",
       "testConnection": "Testovat připojení",
       "delete": "Smazat",
       "changeIcon": "Změnit ikonu"
-    },
-    "labels": {
-      "username": "Uživatelské jméno:",
-      "basicAuth": "Základní autentizace:",
-      "tlsVerification": "TLS ověření:",
-      "tlsSkipped": "Přeskočit",
-      "tlsStrict": "Striktní",
-      "testingConnection": "Testuji připojení...",
-      "fileAccess": "Přístup k souborům:"
     },
     "deleteDialog": {
       "title": "Smazat instanci",
@@ -35,7 +23,6 @@
     },
     "toast": {
       "instanceDisabledTitle": "Instance vypnutá",
-      "testDisabledDescription": "Povolte instanci před testováním připojení.",
       "testSuccessTitle": "Test připojení úspěšný",
       "testSuccessDescription": "Úspěšně připojeno k instanci qBittorrentu",
       "testFailedTitle": "Test připojení selhal",
@@ -57,11 +44,6 @@
     "decryptionDescription": "Nepodařilo se dešifrovat uložené heslo. To obvykle nastane, když se změní session secret.",
     "reenterPassword": "Znovu zadat heslo",
     "recentErrors": "Poslední Chyby ({{count}})",
-    "copyContainerPassword": "Copy Container Password",
-    "copiedPassword": "Password Copied",
-    "copiedContainerPassword": "Container password copied to clipboard",
-    "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password",
     "errorTypes": {
       "connection": "Připojení",
       "authentication": "Ověření",
@@ -105,20 +87,15 @@
       "apiKeyRequired": "Klíč API je povinný"
     },
     "buttons": {
-      "saving": "Ukládám...",
       "updateInstance": "Aktualizovat instanci",
-      "addInstance": "Přidat instanci",
-      "cancel": "Zrušit"
+      "addInstance": "Přidat instanci"
     },
     "toast": {
-      "missingCredentialsTitle": "Chybí přihlašovací údaje",
       "instanceUpdatedTitle": "Instance aktualizována",
       "instanceUpdatedDescription": "Instance aktualizována úspěšně. Testování připojení probíhá v pozadí...",
-      "updateFailedTitle": "Aktualizace selhala",
       "updateFailedDescription": "Nepodařilo se aktualizovat instanci",
       "instanceCreatedTitle": "Instance vytvořena",
       "instanceCreatedDescription": "Instance vytvořena úspěšně. Testování připojení probíhá v pozadí...",
-      "createFailedTitle": "Vytvoření selhalo",
       "createFailedDescription": "Nepodařilo se vytvořit instanci"
     },
     "authType": {
@@ -2184,7 +2161,6 @@
     "local": "Lokální",
     "remote": "Přes SSH",
     "none": "Žádný",
-    "localFull": "qui čte a zapisuje soubory této instance na tomto počítači.",
     "limits": {
       "noIdentity": "Bez identity souborů: qui nepozná, že dvě cesty vedou ke stejnému souboru. Vyhledání sirotků zde nemůže mazat a existující cíl hardlinku zastaví přidání přes hardlink.",
       "noReflinks": "Na vzdálené instanci nejsou reflinky k dispozici.",

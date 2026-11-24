@@ -1131,22 +1131,7 @@
     "enableToConfigure": "Povolit konfiguraci",
     "redDescription": "Použito pro redacted.sh hledání. Vložit k nahrazení; vymazat k odstranění.",
     "opsDescription": "Použito pro orpheus.network hledání. Vložit k nahrazení; vymazat k odstranění.",
-    "save": "Uložit",
-    "companionTitle": "Doprovodný Podman Gazelle",
-    "checking": "Kontrola...",
-    "running": "Běží (:7001)",
-    "stopped": "Zastaveno",
-    "notInstalled": "Nenainstalováno",
-    "openWebUiTitle": "Otevřít WebUI Gazelle (http://localhost:7001)",
-    "openWebUi": "Otevřít WebUI",
-    "restartContainerTitle": "Restartovat kontejner Gazelle",
-    "restart": "Restartovat",
-    "stopContainerTitle": "Zastavit kontejner Gazelle",
-    "stop": "Zastavit",
-    "start": "Spustit Gazelle",
-    "installAndRun": "Nainstalovat a spustit Gazelle",
-    "companionDescription": "Nasadit místní stack trackeru OPSnet/Gazelle namapovaný na port 7001 s trvalým stavem v datovém adresáři desktopu.",
-    "initialInstallNotice": "Klonování repozitáře OPSnet/Gazelle a sestavování kontejnerů Podman Compose... při počáteční instalaci to může trvat několik minut."
+    "save": "Uložit"
   },
   "searchCache": {
     "title": "Vyhledávací mezipaměť",
@@ -1193,9 +1178,7 @@
         "upToDate": "Aktuální",
         "upToDateDetail": "Spouští se nejnovější verze",
         "notCheckedYet": "Neprovedený test pouze",
-        "lastChecked": "Poslední kontrola {{date}}",
-        "managedByDesktop": "Spravováno Desktopem",
-        "managedByDesktopDetail": "Aktualizace a životní cykly kontejnerů spravuje Qui Desktop"
+        "lastChecked": "Poslední kontrola {{date}}"
       },
       "actions": {
         "checkForUpdates": "Zkontrolovat aktualizace"

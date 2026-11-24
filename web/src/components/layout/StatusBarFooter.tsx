@@ -24,6 +24,7 @@ import { useTranslation } from "react-i18next"
 
 export function StatusBarFooter() {
   const { t, i18n } = useTranslation("common")
+  const { t: tDesktop } = useTranslation("desktop")
   const { statuses } = usePodmanServices()
   const { isFooterVisible } = useMobileScroll()
 
@@ -58,12 +59,12 @@ export function StatusBarFooter() {
                   )}
                 />
                 <span className="font-mono text-[11px] font-medium">
-                  {t("statusBar.serviceQuiLabel", { port: statuses.qui.port })}
+                  {tDesktop("statusBar.serviceQuiLabel", { port: statuses.qui.port })}
                 </span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
-              {t("statusBar.tooltipQui", {
+              {tDesktop("statusBar.tooltipQui", {
                 state: statuses.qui.state,
                 port: statuses.qui.port,
               })}
@@ -85,12 +86,12 @@ export function StatusBarFooter() {
                   )}
                 />
                 <span className="font-mono text-[11px] font-medium">
-                  {t("statusBar.serviceQbitLabel", { port: statuses.qbit.port })}
+                  {tDesktop("statusBar.serviceQbitLabel", { port: statuses.qbit.port })}
                 </span>
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
-              {t("statusBar.tooltipQbit", {
+              {tDesktop("statusBar.tooltipQbit", {
                 state: statuses.qbit.state,
                 port: statuses.qbit.port,
               })}
@@ -114,7 +115,7 @@ export function StatusBarFooter() {
                   <Radio className="h-3 w-3 text-muted-foreground/70" />
                   <span className="h-1.5 w-1.5 rounded-full flex-shrink-0 bg-emerald-500" />
                   <span className="font-mono text-[11px] font-medium">
-                    {t("statusBar.serviceGazelleLabel", {
+                    {tDesktop("statusBar.serviceGazelleLabel", {
                       port: statuses.gazelle.port || 7001,
                       defaultValue: `gazelle:${statuses.gazelle.port || 7001}`,
                     })}
@@ -122,7 +123,7 @@ export function StatusBarFooter() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
-                {t("statusBar.tooltipGazelle", {
+                {tDesktop("statusBar.tooltipGazelle", {
                   state: statuses.gazelle.state,
                   port: statuses.gazelle.port || 7001,
                   defaultValue: `Gazelle companion (${statuses.gazelle.state}) on port ${statuses.gazelle.port || 7001}. Click to open WebUI.`,
@@ -141,7 +142,7 @@ export function StatusBarFooter() {
             <span>•</span>
             <div className="flex items-center gap-1">
               <Copyright className="h-2.5 w-2.5" />
-              <span>{t("statusBar.copyright", { year })}</span>
+              <span>{tDesktop("statusBar.copyright", { year })}</span>
             </div>
           </div>
 

@@ -127,10 +127,22 @@ To eliminate this divergence:
 Agents: follow `.cursor/skills/qui-fork-local-upstream-sync/SKILL.md` and `.cursor/skills/qui-fork-finish-pr/SKILL.md` (also
 linked from `AGENTS.md`). On this fork, finish-PR workflows must always invoke or verify upstream fork synchronization.
 
+## Keeping conflicts rare
+
+Prefer syncing when behind by a small number of commits (weekly, or when
+behind ≥ 20). Large gaps recreate the 50-file conflict sets.
+
+Fork code that would otherwise patch high-churn upstream files must follow
+[fork-isolation.md](fork-isolation.md): fork-owned modules plus thin injection.
+The sync gate deep-merges locale JSON conflicts when possible and rejects new
+edits to upstream paths outside `scripts/fork-upstream-hotspots.txt`.
+
 ## Related spec
 
 - `BR-desktop-21` — local upstream-sync fails closed on conflicts.
 - `BR-desktop-42` — fork finish-PR workflow enforces upstream synchronization via `upstream-sync-fork`.
+- `BR-desktop-57` — fork desktop patches live in fork-owned modules with thin injection.
+- `BR-desktop-58` — locale auto-merge and hotspot allowlist on the sync gate.
 
 
 

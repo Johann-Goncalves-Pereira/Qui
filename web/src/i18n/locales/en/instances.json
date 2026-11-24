@@ -7,25 +7,13 @@
       "disconnected": "Disconnected"
     },
     "tooltips": {
-      "disableInstance": "Disable instance",
-      "enableInstance": "Enable instance",
       "moveUp": "Move up",
       "moveDown": "Move down"
     },
     "actions": {
-      "edit": "Edit",
       "testConnection": "Test Connection",
       "delete": "Delete",
       "changeIcon": "Change icon"
-    },
-    "labels": {
-      "username": "Username:",
-      "basicAuth": "Basic Auth:",
-      "tlsVerification": "TLS Verification:",
-      "tlsSkipped": "Skipped",
-      "tlsStrict": "Strict",
-      "testingConnection": "Testing connection...",
-      "fileAccess": "File access:"
     },
     "deleteDialog": {
       "title": "Delete Instance",
@@ -35,7 +23,6 @@
     },
     "toast": {
       "instanceDisabledTitle": "Instance Disabled",
-      "testDisabledDescription": "Enable the instance before testing the connection.",
       "testSuccessTitle": "Test Connection Successful",
       "testSuccessDescription": "Successfully connected to qBittorrent instance",
       "testFailedTitle": "Test Connection Failed",
@@ -57,16 +44,6 @@
     "decryptionDescription": "Unable to decrypt saved password. This usually happens when the session secret has changed.",
     "reenterPassword": "Re-enter Password",
     "recentErrors": "Recent Errors ({{count}})",
-    "authGuideTitle": "qBittorrent Authentication Required",
-    "authGuideDescription": "Modern qBittorrent (v4.6.1+) generates an administrator password on initial start and rejects unauthenticated connections.",
-    "authGuideStep1": "Click the qbittorrent:8080 service badge in the bottom status bar footer to copy the container's generated password.",
-    "authGuideStep2": "Edit this instance, set qBittorrent Authentication to Username / Password (default username: admin), paste the password, and save.",
-    "configureCredentials": "Configure Instance Credentials",
-    "copyContainerPassword": "Copy Container Password",
-    "copiedPassword": "Password Copied",
-    "copiedContainerPassword": "Container password copied to clipboard",
-    "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password",
     "errorTypes": {
       "connection": "Connection",
       "authentication": "Authentication",
@@ -110,20 +87,15 @@
       "apiKeyRequired": "API key is required"
     },
     "buttons": {
-      "saving": "Saving...",
       "updateInstance": "Update Instance",
-      "addInstance": "Add Instance",
-      "cancel": "Cancel"
+      "addInstance": "Add Instance"
     },
     "toast": {
-      "missingCredentialsTitle": "Missing Credentials",
       "instanceUpdatedTitle": "Instance Updated",
       "instanceUpdatedDescription": "Instance updated successfully. Connection testing in background...",
-      "updateFailedTitle": "Update Failed",
       "updateFailedDescription": "Failed to update instance",
       "instanceCreatedTitle": "Instance Created",
       "instanceCreatedDescription": "Instance created successfully. Connection testing in background...",
-      "createFailedTitle": "Create Failed",
       "createFailedDescription": "Failed to create instance"
     },
     "authType": {
@@ -2152,7 +2124,6 @@
     "local": "Local",
     "remote": "Over SSH",
     "none": "None",
-    "localFull": "qui reads and writes this instance's files on this machine.",
     "limits": {
       "noIdentity": "No file identity: qui cannot tell when two paths are the same file. Orphan scan cannot delete here, and an existing hardlink target stops a hardlink add.",
       "noReflinks": "No reflinks on a remote instance.",
