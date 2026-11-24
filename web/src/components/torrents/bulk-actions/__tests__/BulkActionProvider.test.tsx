@@ -8,9 +8,21 @@ import { act, cleanup, fireEvent, render, renderHook } from "@testing-library/re
 import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@/lib/api", () => ({
-  api: { bulkAction: vi.fn(), getDeleteCrossSeeds: vi.fn(), addCrossSeedBlocklist: vi.fn(), renameTorrent: vi.fn(), getTorrents: vi.fn() },
-}))
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>()
+  return {
+    ...actual,
+    api: {
+      bulkAction: vi.fn(),
+      getDeleteCrossSeeds: vi.fn(),
+      addCrossSeedBlocklist: vi.fn(),
+      renameTorrent: vi.fn(),
+      getTorrents: vi.fn(),
+      createCategory: vi.fn(),
+      getCategories: vi.fn(),
+    },
+  }
+})
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -162,6 +174,8 @@ beforeEach(() => {
   resetPendingListRefetchesForTests()
   localStorage.clear()
   mockedApi.bulkAction.mockResolvedValue(undefined as never)
+  mockedApi.createCategory.mockResolvedValue({ message: "Category created successfully" })
+  mockedApi.getCategories.mockResolvedValue({})
 })
 
 afterEach(() => {
@@ -871,7 +885,83 @@ describe("bulk action module - dialogs with values", () => {
     await flush()
 
     expect(dialogTitle()).toBeNull()
+    expect(mockedApi.createCategory).not.toHaveBeenCalled()
     expect(mockedApi.bulkAction.mock.calls).toEqual([[INSTANCE_ID, expect.objectContaining({ action: "setCategory", category: "", hashes: ["h1"] })]])
+  })
+
+  it("creates a typed new category before assigning it", async () => {
+    const { result } = renderModule({
+      actionTarget: ticks("h1"),
+      instanceIds: [INSTANCE_ID],
+      listFacts: { ...LIST_FACTS, isCrossInstance: true, categories: { movies: { name: "movies", savePath: "/m" } } },
+    })
+
+    act(() => result.current.pick({ action: "setCategory" }))
+    confirmDialog("category", "  anime  ")
+    await flush()
+
+    expect(mockedApi.createCategory.mock.calls).toEqual([[INSTANCE_ID, "anime"]])
+    expect(mockedApi.bulkAction.mock.calls).toEqual([[INSTANCE_ID, expect.objectContaining({ action: "setCategory", category: "anime", hashes: ["h1"] })]])
+    expect(mockedToast.success).toHaveBeenCalledWith("actionToasts.success.setCategory/1")
+  })
+
+  it("assigns a listed category without creating it", async () => {
+    const { result } = renderModule({
+      actionTarget: ticks("h1"),
+      instanceIds: [INSTANCE_ID],
+      listFacts: { ...LIST_FACTS, isCrossInstance: true, categories: { movies: { name: "movies", savePath: "/m" } } },
+    })
+
+    act(() => result.current.pick({ action: "setCategory" }))
+    confirmDialog("category", "movies")
+    await flush()
+
+    expect(mockedApi.createCategory).not.toHaveBeenCalled()
+    expect(mockedApi.bulkAction.mock.calls).toEqual([[INSTANCE_ID, expect.objectContaining({ action: "setCategory", category: "movies", hashes: ["h1"] })]])
+  })
+
+  it("creates a new category on each Unified target instance before assigning", async () => {
+    const { result } = renderModule({
+      instanceId: ALL_INSTANCES_ID,
+      instanceIds: [3, 4],
+      actionTarget: pairs([{ instanceId: 3, hash: "a" }, { instanceId: 4, hash: "b" }]),
+      listFacts: CROSS_INSTANCE_FACTS,
+    })
+
+    act(() => result.current.pick({ action: "setCategory" }))
+    confirmDialog("category", "docs")
+    await flush()
+
+    expect(mockedApi.createCategory.mock.calls).toEqual([
+      [3, "docs"],
+      [4, "docs"],
+    ])
+    expect(mockedApi.bulkAction.mock.calls).toEqual([[0, expect.objectContaining({
+      action: "setCategory",
+      category: "docs",
+      targets: [{ instanceId: 3, hash: "a" }, { instanceId: 4, hash: "b" }],
+    })]])
+  })
+
+  it("does not assign when creating a new category fails and the name is still missing", async () => {
+    mockedApi.createCategory.mockRejectedValueOnce(new Error("Failed to create category"))
+    mockedApi.getCategories.mockResolvedValueOnce({})
+    const { result } = renderModule({
+      actionTarget: ticks("h1"),
+      instanceIds: [INSTANCE_ID],
+      listFacts: { ...LIST_FACTS, isCrossInstance: true, categories: {} },
+    })
+
+    act(() => result.current.pick({ action: "setCategory" }))
+    confirmDialog("category", "broken")
+    await flush()
+
+    expect(mockedApi.createCategory).toHaveBeenCalledWith(INSTANCE_ID, "broken")
+    expect(mockedApi.bulkAction).not.toHaveBeenCalled()
+    expect(mockedToast.error).toHaveBeenCalledWith("actionToasts.failed.setCategory/1", {
+      description: "Failed to create category",
+    })
+    expect(dialogTitle()).toBe("category")
   })
 
   it("opens the warning before the location dialog, then sets the location with the 1000ms refetch", async () => {
