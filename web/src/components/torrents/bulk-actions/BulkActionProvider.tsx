@@ -18,7 +18,7 @@ import { useCrossSeedWarning } from "@/hooks/useCrossSeedWarning"
 import { usePersistedCrossSeedBlocklist } from "@/hooks/usePersistedCrossSeedBlocklist"
 import { useInstanceMetadata } from "@/hooks/useInstanceMetadata"
 import { usePersistedDeleteFiles } from "@/hooks/usePersistedDeleteFiles"
-import { actionRefetchDelay, failedActionCount, getActionErrorMessage, invalidateInstanceCaches, removeDeletedTorrents, scheduleTorrentListRefetches, showSuccessToast, showTagUpdateError, updateTags } from "./bulk-action-requests"
+import { actionRefetchDelay, ensureCategoriesThenSet, failedActionCount, getActionErrorMessage, invalidateInstanceCaches, removeDeletedTorrents, scheduleTorrentListRefetches, showSuccessToast, showTagUpdateError, updateTags } from "./bulk-action-requests"
 import { useTorrentExporter } from "@/hooks/useTorrentExporter"
 import { api } from "@/lib/api"
 import { useIncognitoMode } from "@/lib/incognito"
@@ -28,7 +28,7 @@ import { buildTorrentActionTargets, type TorrentActionTarget } from "@/lib/torre
 import { actionTargetInstanceIds, actionTargetRequest, EMPTY_ACTION_TARGET } from "@/lib/torrent-selection"
 import { anyTorrentHasTag, getCommonCategory, getCommonSavePath, getTorrentHashesWithTag } from "@/lib/torrent-utils"
 import { formatBytes } from "@/lib/utils"
-import type { CrossInstanceTorrent } from "@/types"
+import type { Category, CrossInstanceTorrent } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type MouseEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
@@ -63,6 +63,15 @@ interface RenameRequest {
   instanceId: number
   hash: string
   name: string
+}
+
+interface CategoryRequest {
+  scope: number
+  count: number
+  instanceIds: number[]
+  category: string
+  knownCategories: Record<string, Category>
+  request: Parameters<typeof ensureCategoriesThenSet>[4]
 }
 
 interface DeletePlan {
@@ -229,9 +238,24 @@ export function BulkActionProvider({ children }: { children: ReactNode }) {
     },
   })
 
+  const { mutate: mutateCategory, isPending: isCategoryPending } = useMutation({
+    mutationFn: ({ scope, instanceIds, category, knownCategories, request }: CategoryRequest) =>
+      ensureCategoriesThenSet(scope, instanceIds, category, knownCategories, request, queryClient),
+    onSuccess: (_, { count }) => {
+      scheduleTorrentListRefetches(queryClient, actionRefetchDelay("setCategory"))
+      showSuccessToast(t, "setCategory", Math.max(1, count))
+      dispatch({ type: "requestSucceeded", action: "setCategory" })
+    },
+    onError: (error: Error, { count }) => {
+      toast.error(getActionErrorMessage(t, "setCategory", Math.max(1, count)), {
+        description: error.message || t("actionToasts.unexpectedError"),
+      })
+    },
+  })
+
   // One mutation reports only its latest call, so the two speed-limit requests need their own flag.
   const [isSpeedLimitsPending, setIsSpeedLimitsPending] = useState(false)
-  const isPending = isRequestPending || isDeletePending || isTagsPending || isRenamePending || isSpeedLimitsPending
+  const isPending = isRequestPending || isDeletePending || isTagsPending || isRenamePending || isCategoryPending || isSpeedLimitsPending
 
   const send = useCallback((values: BulkRequestValues) => {
     const target = publishedRef.current
@@ -272,6 +296,26 @@ export function BulkActionProvider({ children }: { children: ReactNode }) {
     }
     const request = { instanceIds: published.instanceIds, ...actionTargetRequest(published.actionTarget) }
     mutateTags({ scope: requestInstanceId(published), count: published.actionTarget.count, plan, request })
+  }
+
+  const confirmCategory = (category: string) => {
+    if (!published) return
+    const { actionTarget, instanceIds } = published
+    const createIds = instanceIds?.length
+      ? instanceIds
+      : actionTarget.kind === "ticks" && actionTarget.targets?.length
+        ? [...new Set(actionTarget.targets.map((target) => target.instanceId))]
+        : published.instanceId === ALL_INSTANCES_ID
+          ? []
+          : [published.instanceId]
+    mutateCategory({
+      scope: requestInstanceId(published),
+      count: actionTarget.count,
+      instanceIds: createIds,
+      category,
+      knownCategories: lists.categories,
+      request: { instanceIds, ...actionTargetRequest(actionTarget) },
+    })
   }
 
   const confirmSpeedLimits = async (uploadLimit: number, downloadLimit: number) => {
@@ -409,7 +453,7 @@ export function BulkActionProvider({ children }: { children: ReactNode }) {
         onOpenChange={close}
         availableCategories={lists.categories}
         hashCount={count}
-        onConfirm={(category) => send({ action: "setCategory", category })}
+        onConfirm={confirmCategory}
         isPending={isPending}
         initialCategory={getCommonCategory(previewTorrents)}
         isLoadingCategories={lists.isLoadingCategories}
