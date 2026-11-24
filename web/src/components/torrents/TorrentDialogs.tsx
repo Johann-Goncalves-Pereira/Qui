@@ -1231,6 +1231,8 @@ export const SetCategoryDialog = memo(function SetCategoryDialog({
       setDialogCategories(availableCategories || {})
       setDialogUseSubcategories(useSubcategories)
     } else if (!open && wasOpen.current) {
+      setChoice({ source: "list", category: "" })
+      setSearchQuery("")
       setDialogCategories({})
       setDialogUseSubcategories(useSubcategories)
     }
@@ -1238,14 +1240,11 @@ export const SetCategoryDialog = memo(function SetCategoryDialog({
   }, [availableCategories, availableCategoryCount, dialogCategoryCount, initialCategory, open, useSubcategories])
 
   const handleConfirm = useCallback(() => {
-    onConfirm(choice.category)
-    setChoice({ source: "list", category: "" })
-    setSearchQuery("")
-  }, [choice.category, onConfirm])
+    const category = choice.source === "typed" ? choice.category.trim() : choice.category
+    onConfirm(category)
+  }, [choice, onConfirm])
 
   const handleCancel = useCallback(() => {
-    setChoice({ source: "list", category: "" })
-    setSearchQuery("")
     onOpenChange(false)
   }, [onOpenChange])
 

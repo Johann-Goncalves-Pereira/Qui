@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { api } from "@/lib/api"
+import { APIError, api } from "@/lib/api"
 import { ALL_INSTANCES_ID } from "@/lib/instances"
 import type { TagUpdatePlan } from "@/lib/tag-editor"
 import { getTorrentTargetInstanceId, type TorrentActionTarget } from "@/lib/torrent-action-targets"
-import type { Torrent } from "@/types"
+import type { Category, Torrent } from "@/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -159,6 +159,52 @@ class TagBulkActionError extends Error {
 }
 
 type TagRequest = Omit<Parameters<typeof api.bulkAction>[1], "action" | "tags">
+type CategoryBulkRequest = Omit<Parameters<typeof api.bulkAction>[1], "action" | "category">
+
+async function createCategoryIfMissing(instanceId: number, name: string): Promise<boolean> {
+  try {
+    await api.createCategory(instanceId, name)
+    return true
+  } catch (error) {
+    if (error instanceof APIError && error.status === 409) {
+      return false
+    }
+    const categories = await api.getCategories(instanceId).catch(() => null)
+    if (categories && Object.hasOwn(categories, name)) {
+      return false
+    }
+    throw error instanceof Error ? error : new Error("Failed to create category")
+  }
+}
+
+export async function ensureCategoriesThenSet(
+  scope: number,
+  instanceIds: number[],
+  category: string,
+  knownCategories: Record<string, Category>,
+  request: CategoryBulkRequest,
+  queryClient?: QueryClient
+) {
+  const name = category.trim()
+  if (name === "") {
+    await api.bulkAction(scope, { ...request, action: "setCategory", category: "" })
+    return
+  }
+
+  if (!Object.hasOwn(knownCategories, name)) {
+    let createdAny = false
+    for (const instanceId of instanceIds) {
+      if (await createCategoryIfMissing(instanceId, name)) {
+        createdAny = true
+      }
+    }
+    if (createdAny && queryClient) {
+      await Promise.all(instanceIds.map((id) => invalidateInstanceCaches(queryClient, id)))
+    }
+  }
+
+  await api.bulkAction(scope, { ...request, action: "setCategory", category: name })
+}
 
 // The tag update of a tag editor plan: the removal first, then the addition.
 // A failure of either step throws a TagBulkActionError that names both steps.

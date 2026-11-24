@@ -147,6 +147,14 @@ describe("SetCategoryDialog", () => {
     expect(onConfirm).toHaveBeenCalledWith("anime.x")
   })
 
+  it("trims a typed name on confirm and keeps it in the field after a failed assign", async () => {
+    const { input, onConfirm } = renderCategoryDialog()
+    await userEvent.type(input, "  docs  ")
+    await userEvent.click(screen.getByText("dialogs.setCategory.setCategory"))
+    expect(onConfirm).toHaveBeenCalledWith("docs")
+    expect(input.value).toBe("  docs  ")
+  })
+
   // regression: #2512
   it("selects a clicked row and empties the typed name", async () => {
     const { input, onConfirm } = renderCategoryDialog()
