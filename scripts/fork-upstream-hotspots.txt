@@ -16,6 +16,7 @@ distrib/docker/Dockerfile
 docs/README.md
 docs/backend/licensing.md
 docs/specs/catalog.md
+docs/web/categories.md
 docs/web/electron-desktop.md
 internal/proxy/handler.go
 internal/qbittorrent/client.go
@@ -50,6 +51,11 @@ web/src/components/settings/InstallUpdateButton.tsx
 web/src/components/themes/GlassOpacityControl.test.tsx
 web/src/components/themes/GlassOpacityControl.tsx
 web/src/components/themes/LicenseManager.tsx
+web/src/components/torrents/TorrentDialogs.test.tsx
+web/src/components/torrents/TorrentDialogs.tsx
+web/src/components/torrents/bulk-actions/BulkActionProvider.tsx
+web/src/components/torrents/bulk-actions/__tests__/BulkActionProvider.test.tsx
+web/src/components/torrents/bulk-actions/bulk-action-requests.ts
 web/src/components/ui/AnimatedLogo.test.tsx
 web/src/components/ui/AnimatedLogo.tsx
 web/src/components/ui/LoadingOverlay.tsx
