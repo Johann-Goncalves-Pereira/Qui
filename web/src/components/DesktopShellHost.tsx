@@ -7,7 +7,6 @@ import type { ReactNode } from "react"
 
 import { DesktopUpdateHost } from "@/components/ui/DesktopUpdateHost"
 
-/** Fork shell hosts mounted once at the router root. */
 export function DesktopShellHost({ children }: { children?: ReactNode }) {
   return (
     <>

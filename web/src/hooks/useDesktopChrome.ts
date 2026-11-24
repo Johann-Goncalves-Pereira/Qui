@@ -6,40 +6,36 @@
 import type { CSSProperties } from "react"
 
 import { useIsDesktop } from "@/lib/desktop-environment"
+import { windowDragStyle } from "@/lib/desktop-window-drag"
+import { cn } from "@/lib/utils"
 
 export interface DesktopChrome {
-  isDesktopMac: boolean
-  headerHeightClassName: string
-  headerPaddingClassName: (sidebarHidden: boolean) => string
-  dragAreaStyle: CSSProperties | undefined
-  showTrafficLightsDragRegion: (sidebarHidden: boolean) => boolean
+  headerClassName: string | undefined
+  style: CSSProperties | undefined
+  logoOnly: boolean
+  showTrafficLightsDragRegion: boolean
 }
 
 const browserChrome: DesktopChrome = {
-  isDesktopMac: false,
-  headerHeightClassName: "",
-  headerPaddingClassName: () => "",
-  dragAreaStyle: undefined,
-  showTrafficLightsDragRegion: () => false,
+  headerClassName: undefined,
+  style: undefined,
+  logoOnly: false,
+  showTrafficLightsDragRegion: false,
 }
 
-/** Desktop-only header chrome (traffic lights, drag region, h-12). Browser gets empty overrides. */
-export function useDesktopChrome(): DesktopChrome {
+export function useDesktopChrome({ sidebarHidden }: { sidebarHidden: boolean }): DesktopChrome {
   const isDesktop = useIsDesktop()
   if (!isDesktop) {
     return browserChrome
   }
-  const isMac =
-    typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
-  const isDesktopMac = isMac
+  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
   return {
-    isDesktopMac,
-    headerHeightClassName: "lg:h-12",
-    headerPaddingClassName: (sidebarHidden) =>
-      sidebarHidden ? (isDesktopMac ? "lg:pl-20" : "lg:pl-4") : "lg:pl-2",
-    dragAreaStyle: isDesktopMac
-      ? ({ WebkitAppRegion: "drag" } as CSSProperties)
-      : undefined,
-    showTrafficLightsDragRegion: (sidebarHidden) => isDesktopMac && sidebarHidden,
+    headerClassName: cn(
+      "transition-[padding] duration-300 ease-out lg:h-12",
+      sidebarHidden ? (isMac ? "lg:pl-20" : "lg:pl-4") : "lg:pl-2"
+    ),
+    style: isMac ? windowDragStyle : undefined,
+    logoOnly: sidebarHidden,
+    showTrafficLightsDragRegion: isMac && sidebarHidden,
   }
 }

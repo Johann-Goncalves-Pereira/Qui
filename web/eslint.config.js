@@ -190,6 +190,7 @@ const layers = ['types', 'utils', 'config', 'i18n', 'lib', 'contexts', 'hooks', 
 const effectHooks = {
   'src/hooks/useDebounce.ts': 'Gives a value after it has stayed the same for a delay.',
   'src/hooks/useDelayedVisibility.ts': 'Says when the tab has been hidden for a delay.',
+  'src/hooks/useDesktopUpdateDialogRequest.ts': 'Opens the desktop update dialog when the desktop shell asks for it.',
   'src/hooks/useDesktopSidebarChrome.ts': 'Lines macOS traffic lights with the docked sidebar logo.',
   'src/hooks/useNow.ts': 'Gives the time, and renders again each minute.',
   'src/hooks/usePageTitle.ts': 'Passes the title detail and the speeds of the open page to the tab title.',

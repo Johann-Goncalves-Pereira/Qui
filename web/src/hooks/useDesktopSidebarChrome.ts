@@ -7,7 +7,6 @@ import { useEffect } from "react"
 
 import { isDesktopEnvironment } from "@/lib/desktop-environment"
 
-/** Lines macOS traffic lights up with the docked sidebar logo while that sidebar shows. */
 export function useDesktopSidebarChrome(sidebarVisible: boolean): void {
   useEffect(() => {
     if (!isDesktopEnvironment()) {

@@ -6,7 +6,8 @@
 import type { Theme } from "@/config/themes"
 import { applyGlassOpacity, readGlassOpacity } from "@/lib/glass"
 
-/** Fork theme side-effects after an upstream applyTheme paint. */
+export { migrateLegacyGlassTheme } from "@/lib/glass"
+
 export function onThemeApplied(theme: Theme, effectiveIsDark: boolean): void {
   applyGlassOpacity(readGlassOpacity())
   if (typeof window !== "undefined" && window.quiDesktop?.syncTheme) {

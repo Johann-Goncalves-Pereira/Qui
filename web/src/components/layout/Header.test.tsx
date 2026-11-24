@@ -154,6 +154,15 @@ describe("Header layout height (BR-web-02)", () => {
     expect(banner.className).not.toContain("lg:h-16")
   })
 
+  it("keeps the upstream lg:h-16 header in a standalone browser in standard mode (BR-desktop-59)", () => {
+    mocks.viewMode = "standard"
+    renderHeader()
+
+    const banner = screen.getByRole("banner")
+    expect(banner.className).toContain("lg:h-16")
+    expect(banner.className).not.toContain("lg:h-12")
+  })
+
   it("renders header banner with lg:h-12 in dense mode", () => {
     mocks.viewMode = "dense"
     renderHeader()
@@ -254,6 +263,8 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     expect(banner.className).toContain("lg:pl-2")
     expect(banner.className).not.toContain("lg:pl-20")
     expect(banner.className).not.toContain("lg:pl-4")
+    expect(banner.textContent).toContain("qui")
+    expect(container.querySelector("[data-slot=\"traffic-lights-drag-region\"]")).toBeNull()
     expect(container.querySelector("svg")).not.toBeNull()
   })
 })

@@ -6,11 +6,12 @@
 import { Button } from "@/components/ui/button"
 import { DesktopUpdateDialog } from "@/components/ui/DesktopUpdateDialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useDesktopUpdateDialogRequest } from "@/hooks/useDesktopUpdateDialogRequest"
 import { useUpdateBannerDismissed } from "@/hooks/useUpdateBannerDismissed"
 import { cn, collapseRowClassName } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
 import { Download, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 const bannerButtonClass = "h-6 text-xs border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900"
@@ -19,6 +20,7 @@ export function DesktopUpdateBanner({ iconOnly = false }: { iconOnly?: boolean }
   const { t } = useTranslation(["desktop", "common"])
   const [dismissed, dismiss] = useUpdateBannerDismissed()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const openDialog = useCallback(() => setDialogOpen(true), [])
 
   const { data: desktopUpdate } = useQuery({
     queryKey: ["desktop-latest-update"],
@@ -33,19 +35,7 @@ export function DesktopUpdateBanner({ iconOnly = false }: { iconOnly?: boolean }
     refetchOnWindowFocus: false,
   })
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.quiDesktop?.onShowUpdateDialog) {
-      return
-    }
-    const unsubscribe = window.quiDesktop.onShowUpdateDialog((info) => {
-      if (info?.hasUpdate) {
-        setDialogOpen(true)
-      }
-    })
-    return () => {
-      unsubscribe?.()
-    }
-  }, [])
+  useDesktopUpdateDialogRequest(openDialog)
 
   if (!desktopUpdate?.hasUpdate) {
     return null

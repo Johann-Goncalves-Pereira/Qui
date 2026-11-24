@@ -8,9 +8,10 @@ import "@/i18n"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { isQBitAuthError } from "@/lib/qbit-auth-error"
 import type { InstanceResponse } from "@/types"
 
-import { InstanceErrorDisplay, isQBitAuthError } from "./InstanceErrorDisplay"
+import { InstanceErrorDisplay } from "./InstanceErrorDisplay"
 
 const mockGetQBitConfig = vi.fn().mockResolvedValue({
   username: "admin",
@@ -109,6 +110,25 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
     })
     expect(mockGetQBitConfig).toHaveBeenCalled()
     expect(clipboardWriteMock).toHaveBeenCalledWith("temporaryPassword123")
+  })
+
+  it("keeps the Podman credentials guide out of a standalone browser (BR-desktop-63)", () => {
+    const mockInstance = {
+      id: 2,
+      name: "Browser",
+      host: "http://localhost:8080",
+      connected: false,
+      hasDecryptionError: false,
+      recentErrors: [
+        { id: 1, instanceId: 2, errorType: "Authentication", errorMessage: "qbit re-login", occurredAt: "2026-11-07T17:48:00Z" },
+      ],
+    } as InstanceResponse
+
+    render(<InstanceErrorDisplay instance={mockInstance} onEdit={vi.fn()} />)
+
+    expect(screen.queryByText("qBittorrent Authentication Required")).toBeNull()
+    expect(screen.queryByRole("button", { name: /Copy Container Password/i })).toBeNull()
+    expect(screen.getByRole("button", { name: /Recent errors/i })).not.toBeNull()
   })
 
   it("does not render guidance when instance is connected and healthy", () => {

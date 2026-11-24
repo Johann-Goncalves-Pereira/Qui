@@ -1,6 +1,6 @@
 # Fork isolation from upstream Qui
 
-**Status:** shipped
+**Status:** in progress
 
 This fork (`Johann-Goncalves-Pereira/Qui`) keeps desktop behaviour while staying
 mergeable with `autobrr/qui` `develop`. Isolation means **fork-owned modules**
@@ -24,10 +24,10 @@ high-churn upstream paths.
 | Desktop update banner branch | `DesktopUpdateBanner.tsx` | one `isDesktop` return in `UpdateBanner.tsx` |
 | License env overrides | `license_env_override.go` | one-line helper calls in `license_service.go` |
 | Layout chrome hooks | `web/src/lib/desktop-*.ts`, desktop components | one mount or hook call per layout file |
-| Header and sidebar chrome | `web/src/hooks/useDesktopChrome.ts`, `useDesktopSidebarChrome.ts` | one hook call each in `Header.tsx`, `Sidebar.tsx`, `AppLayout.tsx` |
+| Header and sidebar chrome | `web/src/hooks/useDesktopChrome.ts`, `useDesktopSidebarChrome.ts` | `useDesktopChrome` in `Header.tsx`, `useDesktopSidebarChrome` in `AppLayout.tsx`; `Sidebar.tsx` gates its brand row with `useIsDesktop()` |
 | Root update and shell hosts | `web/src/components/DesktopShellHost.tsx` | `__root.tsx` renders `RootLayout` inside it |
 | Theme side effects (glass, `syncTheme`) | `web/src/lib/desktop-theme.ts` | one `onThemeApplied(...)` call in `utils/theme.ts` |
-| Podman credentials guide | `web/src/components/instances/DesktopPodmanCredentialsPanel.tsx` | one desktop-gated mount in `InstanceErrorDisplay.tsx` |
+| Podman credentials guide | `web/src/components/instances/DesktopAuthRemediationCard.tsx` | one desktop-gated mount in `InstanceErrorDisplay.tsx` |
 
 Do not add new desktop strings to shared `common.json` / `settings.json` /
 `instances.json` / `auth.json`. Prefer `desktop.json`.

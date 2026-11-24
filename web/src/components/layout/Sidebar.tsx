@@ -36,6 +36,7 @@ import { useTransferQueue } from "@/hooks/useTransferQueue"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
 import { useTheme } from "@/hooks/useTheme"
 import { useIsDesktop } from "@/lib/desktop-environment"
+import { windowDragStyle, windowNoDragStyle } from "@/lib/desktop-window-drag"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
 import { api } from "@/lib/api"
 import { useClientSettingsSettled } from "@/lib/client-settings"
@@ -63,7 +64,7 @@ import {
   Rss,
   SearchCode
 } from "lucide-react"
-import { useCallback, useMemo, type CSSProperties, type MouseEvent, type ReactElement, type ReactNode } from "react"
+import { useCallback, useMemo, type MouseEvent, type ReactElement, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
 const rowClassName = "relative flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium short:py-1 short:text-[13px]/5"
@@ -210,12 +211,8 @@ export function Sidebar({ iconOnly, onToggleIconOnly, onHide, flyout = false, on
   ) : (
     <span className="flex items-center gap-2">{logo}qui</span>
   )
-  const brandRowStyle: CSSProperties | undefined = isDesktop
-    ? ({ WebkitAppRegion: "drag" } as CSSProperties)
-    : undefined
-  const brandRowButtonsStyle: CSSProperties | undefined = isDesktop
-    ? ({ WebkitAppRegion: "no-drag" } as CSSProperties)
-    : undefined
+  const brandRowStyle = isDesktop ? windowDragStyle : undefined
+  const brandRowButtonsStyle = isDesktop ? windowNoDragStyle : undefined
   const brandRowClassName = isDesktop
     ? "flex h-12 flex-shrink-0 items-center px-4"
     : cn("flex flex-shrink-0 items-center pl-6 pr-[18px]", viewMode === "dense" ? "h-12" : "h-16")

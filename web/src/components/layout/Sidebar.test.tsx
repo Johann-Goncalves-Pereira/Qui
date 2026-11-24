@@ -75,8 +75,10 @@ afterEach(() => {
   delete (window as { quiDesktop?: unknown }).quiDesktop
 })
 
-function renderSidebar() {
-  ;(window as { quiDesktop?: Record<string, unknown> }).quiDesktop = {}
+function renderSidebar({ desktop = true }: { desktop?: boolean } = {}) {
+  if (desktop) {
+    ;(window as { quiDesktop?: Record<string, unknown> }).quiDesktop = {}
+  }
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -148,5 +150,21 @@ describe("Sidebar brand header layout", () => {
 
     const brandHeader = headerRow?.querySelector("h2")
     expect(brandHeader?.textContent?.trim()).toBe("")
+  })
+})
+
+describe("Sidebar brand header layout in a standalone browser (BR-desktop-59)", () => {
+  it("keeps the upstream brand row with the qui text and no drag styles", () => {
+    const { container } = renderSidebar({ desktop: false })
+
+    const headerRow = container.querySelector("div.flex.flex-shrink-0.items-center.pl-6")
+    expect(headerRow).not.toBeNull()
+    expect(headerRow?.className).toContain("h-16")
+    expect(headerRow?.className).not.toContain("h-12")
+    expect((headerRow as HTMLElement).style.getPropertyValue("-webkit-app-region")).toBe("")
+
+    expect(headerRow?.querySelector("span.ml-auto")).toBeNull()
+    expect(headerRow?.querySelector("h2")?.textContent).toContain("qui")
+    expect(headerRow?.querySelector("h2 svg")).not.toBeNull()
   })
 })

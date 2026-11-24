@@ -13,28 +13,11 @@ import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
 import { formatErrorMessage } from "@/lib/format-error-message"
 import type { InstanceResponse } from "@/types"
 
-/** Whether an error looks like qBittorrent rejected the credentials, as with the generated password of a new container. */
-export function isQBitAuthError(errorMessage?: string, errorType?: string): boolean {
-  if (!errorMessage && !errorType) return false
-  const text = `${errorType ?? ""} ${errorMessage ?? ""}`.toLowerCase()
-  return (
-    text.includes("qbit re-login") ||
-    text.includes("authentication") ||
-    text.includes("401") ||
-    text.includes("403") ||
-    text.includes("could not get webapi version") ||
-    text.includes("password required")
-  )
-}
-
 /** The errors of one instance, under its row: a saved password that qui cannot read, and the last connection errors. */
 export function InstanceErrorDisplay({ instance, onEdit }: { instance: InstanceResponse; onEdit: () => void }) {
   const { t } = useTranslation("instances")
   const { formatTimestamp } = useDateTimeFormatters()
   const recentErrors = instance.connected ? [] : instance.recentErrors ?? []
-  const hasAuthError =
-    !instance.connected &&
-    (instance.hasDecryptionError || recentErrors.some((error) => isQBitAuthError(error.errorMessage, error.errorType)))
 
   return (
     <div className="space-y-2.5">
@@ -76,7 +59,7 @@ export function InstanceErrorDisplay({ instance, onEdit }: { instance: InstanceR
         </Collapsible>
       )}
 
-      {hasAuthError && <DesktopAuthRemediationCard onEdit={onEdit} />}
+      <DesktopAuthRemediationCard instance={instance} onEdit={onEdit} />
     </div>
   )
 }

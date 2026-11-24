@@ -11,17 +11,29 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { usePodmanServices } from "@/hooks/usePodmanServices"
 import { useIsDesktop } from "@/lib/desktop-environment"
+import { isQBitAuthError } from "@/lib/qbit-auth-error"
+import type { InstanceResponse } from "@/types"
 
-export function DesktopAuthRemediationCard({ onEdit }: { onEdit: () => void }) {
+function hasAuthFailure(instance: InstanceResponse): boolean {
+  return (
+    !instance.connected &&
+    (instance.hasDecryptionError || (instance.recentErrors ?? []).some((error) => isQBitAuthError(error.errorMessage, error.errorType)))
+  )
+}
+
+export function DesktopAuthRemediationCard({ instance, onEdit }: { instance: InstanceResponse; onEdit: () => void }) {
   const isDesktop = useIsDesktop()
+  if (!isDesktop || !hasAuthFailure(instance)) {
+    return null
+  }
+  return <AuthRemediationBody onEdit={onEdit} />
+}
+
+function AuthRemediationBody({ onEdit }: { onEdit: () => void }) {
   const { t } = useTranslation("desktop")
   const { getQBitConfig } = usePodmanServices()
   const [copiedContainerPass, setCopiedContainerPass] = useState(false)
   const [isCopyingPass, setIsCopyingPass] = useState(false)
-
-  if (!isDesktop) {
-    return null
-  }
 
   const handleCopyContainerPass = async () => {
     try {

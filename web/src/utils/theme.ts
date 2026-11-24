@@ -4,8 +4,7 @@
  */
 
 import { themes, getThemeById, getDefaultTheme, type Theme } from "@/config/themes";
-import { migrateLegacyGlassTheme } from "@/lib/glass";
-import { onThemeApplied } from "@/lib/desktop-theme";
+import { migrateLegacyGlassTheme, onThemeApplied } from "@/lib/desktop-theme";
 import {
   cacheAppliedTheme,
   endDefaultThemeVisit,
