@@ -50,6 +50,25 @@ if [ "$status" -eq 0 ]; then
   mkdir -p "$CACHE_DIR" 2>/dev/null || true
   touch "${CACHE_DIR}/${HEAD_TIP}_${UPSTREAM_TIP}" 2>/dev/null || true
   echo "upstream-sync-check: clean (no conflicts with autobrr/qui ${UPSTREAM_REF})"
+  # Hotspot allowlist (BR-desktop-58) — fail closed on new upstream path edits.
+  "${ROOT}/scripts/fork-hotspot-check"
+  exit 0
+fi
+
+# Locale-only conflicts are auto-mergeable via scripts/deep-merge-locale-json (BR-desktop-58).
+mapfile -t CONFLICT_PATHS < <(printf '%s\n' "$tree_out" | sed -n 's/^CONFLICT ([^)]*): Merge conflict in //p; s/^CONFLICT (modify/delete): \(.*\) deleted in .*/\1/p' | sed '/^$/d' | sort -u)
+non_locale=()
+for p in "${CONFLICT_PATHS[@]:-}"; do
+  case "$p" in
+    web/src/i18n/locales/*/*.json) ;;
+    *) non_locale+=("$p") ;;
+  esac
+done
+
+if [ "${#CONFLICT_PATHS[@]}" -gt 0 ] && [ "${#non_locale[@]}" -eq 0 ]; then
+  echo "upstream-sync-check: locale-only conflicts (${#CONFLICT_PATHS[@]}) — auto-mergeable with scripts/deep-merge-locale-json"
+  echo "upstream-sync-check: treating as clean for the dry-merge gate (BR-desktop-58)"
+  "${ROOT}/scripts/fork-hotspot-check"
   exit 0
 fi
 
@@ -57,6 +76,7 @@ echo "upstream-sync-check: CONFLICTS merging autobrr/qui ${UPSTREAM_REF} into th
 echo "Resolve on the feature branch (never push develop directly):" >&2
 echo "  git fetch upstream ${UPSTREAM_REF}   # or: git fetch ${UPSTREAM_URL} ${UPSTREAM_REF}" >&2
 echo "  git merge FETCH_HEAD" >&2
+echo "  ./scripts/deep-merge-locale-json   # if locale JSON conflicts remain" >&2
 echo "Conflict details:" >&2
 printf '%s\n' "$tree_out" >&2
 exit 1

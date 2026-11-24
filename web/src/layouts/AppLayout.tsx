@@ -16,7 +16,8 @@ import { ReminderBar } from "@/components/support/SupportReminder"
 import { LayoutRouteProvider, useLayoutRoute } from "@/contexts/LayoutRouteContext"
 import { usePersistedSidebarHidden, usePersistedSidebarIconOnly } from "@/hooks/usePersistedSidebarState"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
-import { Suspense, useEffect, useRef, useState, type MouseEvent } from "react"
+import { Suspense, useRef, useState, type MouseEvent } from "react"
+import { useDesktopSidebarChrome } from "@/hooks/useDesktopSidebarChrome"
 import { useTranslation } from "react-i18next"
 import { useSpreadsheetDisguise } from "@/lib/spreadsheet-disguise"
 import { cn } from "@/lib/utils"
@@ -62,24 +63,7 @@ function AppLayoutContent() {
   const spreadsheetDisguise = useSpreadsheetDisguise()
   const topBarShowsSideways = isInstanceRoute || spreadsheetDisguise
 
-  // The desktop shell lines the traffic lights up with the docked sidebar logo while that sidebar shows.
-  useEffect(() => {
-    const applyChrome = () => {
-      const setSidebarChrome = window.quiDesktop?.setSidebarChrome
-      if (setSidebarChrome) {
-        void setSidebarChrome(!sidebarHidden)
-      }
-    }
-    applyChrome()
-    const timer = setTimeout(applyChrome, 100)
-    return () => {
-      clearTimeout(timer)
-      const setSidebarChrome = window.quiDesktop?.setSidebarChrome
-      if (setSidebarChrome) {
-        void setSidebarChrome(false)
-      }
-    }
-  }, [sidebarHidden])
+  useDesktopSidebarChrome(!sidebarHidden)
 
   return (
     // Where no top bar shows (the classes of Header and SpreadsheetRibbonTabs), the fade gap goes inside main instead, so it scrolls away with the page.

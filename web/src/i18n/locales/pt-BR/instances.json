@@ -7,25 +7,13 @@
       "disconnected": "Desconectado"
     },
     "tooltips": {
-      "disableInstance": "Desativar instância",
-      "enableInstance": "Ativar instância",
       "moveUp": "Mover para cima",
       "moveDown": "Mover para baixo"
     },
     "actions": {
-      "edit": "Editar",
       "testConnection": "Testar Conexão",
       "delete": "Excluir",
       "changeIcon": "Alterar ícone"
-    },
-    "labels": {
-      "username": "Usuário:",
-      "basicAuth": "Basic Auth:",
-      "tlsVerification": "Verificação TLS:",
-      "tlsSkipped": "Ignorada",
-      "tlsStrict": "Rigorosa",
-      "testingConnection": "Testando conexão...",
-      "fileAccess": "Acesso aos arquivos:"
     },
     "deleteDialog": {
       "title": "Excluir Instância",
@@ -35,7 +23,6 @@
     },
     "toast": {
       "instanceDisabledTitle": "Instância Desativada",
-      "testDisabledDescription": "Ative a instância antes de testar a conexão.",
       "testSuccessTitle": "Conexão Bem-Sucedida",
       "testSuccessDescription": "Conectado com sucesso à instância do qBittorrent",
       "testFailedTitle": "Falha na Conexão",
@@ -57,11 +44,6 @@
     "decryptionDescription": "Não foi possível descriptografar a senha salva. Isso geralmente acontece quando o segredo da sessão é alterado.",
     "reenterPassword": "Digite a Senha Novamente",
     "recentErrors": "Erros Recentes ({{count}})",
-    "copyContainerPassword": "Copy Container Password",
-    "copiedPassword": "Password Copied",
-    "copiedContainerPassword": "Container password copied to clipboard",
-    "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password",
     "errorTypes": {
       "connection": "Conexão",
       "authentication": "Autenticação",
@@ -105,20 +87,15 @@
       "apiKeyRequired": "A chave de API é obrigatória"
     },
     "buttons": {
-      "saving": "Salvando...",
       "updateInstance": "Atualizar Instância",
-      "addInstance": "Adicionar Instância",
-      "cancel": "Cancelar"
+      "addInstance": "Adicionar Instância"
     },
     "toast": {
-      "missingCredentialsTitle": "Credenciais Ausentes",
       "instanceUpdatedTitle": "Instância Atualizada",
       "instanceUpdatedDescription": "Instância atualizada com sucesso. Testando conexão em segundo plano...",
-      "updateFailedTitle": "Falha ao Atualizar",
       "updateFailedDescription": "Falha ao atualizar a instância",
       "instanceCreatedTitle": "Instância Criada",
       "instanceCreatedDescription": "Instância criada com sucesso. Testando conexão em segundo plano...",
-      "createFailedTitle": "Falha ao Criar",
       "createFailedDescription": "Falha ao criar a instância"
     },
     "authType": {
@@ -2147,7 +2124,6 @@
     "local": "Local",
     "remote": "Via SSH",
     "none": "Nenhum",
-    "localFull": "O qui lê e grava os arquivos desta instância nesta máquina.",
     "limits": {
       "noIdentity": "Sem identidade dos arquivos: o qui não consegue saber quando dois caminhos são o mesmo arquivo. A varredura de órfãos não pode excluir aqui, e um destino de hardlink existente interrompe uma adição por hardlink.",
       "noReflinks": "Sem reflinks em uma instância remota.",

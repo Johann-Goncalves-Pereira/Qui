@@ -3,8 +3,11 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { isDesktopEnvironment } from "@/lib/desktop-environment"
 import { DEFAULT_REANNOUNCE_SETTINGS } from "@/lib/instance-validation"
 import type { InstanceFormData, InstanceResponse } from "@/types"
+
+export { isDesktopEnvironment }
 
 export const COMPANION_INSTANCE_NAME = "Local qBittorrent"
 export const COMPANION_INSTANCE_HOST = "http://host.docker.internal:8080"
@@ -15,10 +18,6 @@ let provisionAttempted = false
 export function resetProvisioningState(): void {
   isProvisioning = false
   provisionAttempted = false
-}
-
-export function isDesktopEnvironment(): boolean {
-  return typeof window !== "undefined" && window.quiDesktop !== undefined
 }
 
 export function shouldAutoProvisionCompanionInstance(

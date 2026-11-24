@@ -1113,22 +1113,7 @@
     "enableToConfigure": "启用后进行配置",
     "redDescription": "用于 redacted.sh 查询。粘贴以替换，清空以移除。",
     "opsDescription": "用于 orpheus.network 查询。粘贴以替换，清空以移除。",
-    "save": "保存",
-    "companionTitle": "Gazelle Podman 伴侣",
-    "checking": "正在检查…",
-    "running": "运行中（7001 端口）",
-    "stopped": "已停止",
-    "notInstalled": "未安装",
-    "openWebUiTitle": "打开 Gazelle WebUI",
-    "openWebUi": "打开 WebUI",
-    "restartContainerTitle": "重启 Gazelle 容器",
-    "restart": "重启",
-    "stopContainerTitle": "停止 Gazelle 容器",
-    "stop": "停止",
-    "start": "启动 Gazelle",
-    "installAndRun": "安装并运行 Gazelle",
-    "companionDescription": "在桌面数据目录中保留持久状态，并在 7001 端口部署本地 OPSnet/Gazelle 跟踪器栈。",
-    "initialInstallNotice": "正在克隆 OPSnet/Gazelle 仓库并构建 Podman Compose 容器，首次安装可能需要几分钟。"
+    "save": "保存"
   },
   "searchCache": {
     "title": "搜索缓存",
@@ -1175,9 +1160,7 @@
         "upToDate": "已是最新",
         "upToDateDetail": "正在运行最新版本",
         "notCheckedYet": "尚未检查",
-        "lastChecked": "上次检查 {{date}}",
-        "managedByDesktop": "由 Desktop 管理",
-        "managedByDesktopDetail": "更新和容器生命周期由 Qui Desktop 管理"
+        "lastChecked": "上次检查 {{date}}"
       },
       "actions": {
         "checkForUpdates": "检查更新"

@@ -92,7 +92,7 @@ describe("glass frost (BR-desktop-05)", () => {
 
   it("frosts the page surfaces in CSS, including the shell and the sidebar", () => {
     const css = readFileSync(
-      path.join(path.dirname(fileURLToPath(import.meta.url)), "../index.css"),
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../desktop.css"),
       "utf8"
     )
     const rule = css.slice(css.indexOf("html[data-glass=\"on\"]"))
@@ -107,7 +107,7 @@ describe("glass frost (BR-desktop-05)", () => {
 
   it("calibrates sidebar and filter panel translucency to stay lightened over HUD vibrancy (BR-web-02)", () => {
     const css = readFileSync(
-      path.join(path.dirname(fileURLToPath(import.meta.url)), "../index.css"),
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../desktop.css"),
       "utf8"
     )
     const rule = css.slice(css.indexOf("html[data-glass=\"on\"]"))

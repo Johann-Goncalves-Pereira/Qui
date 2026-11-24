@@ -31,9 +31,11 @@ import { SystemNoticeList } from "@/components/ui/SystemNoticeList"
 import { UpdateBanner } from "@/components/ui/UpdateBanner"
 import { useAuth } from "@/hooks/useAuth"
 import { useCrossSeedInstanceState } from "@/hooks/useCrossSeedInstanceState"
+import { usePersistedCompactViewState } from "@/hooks/usePersistedCompactViewState"
 import { useTransferQueue } from "@/hooks/useTransferQueue"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
 import { useTheme } from "@/hooks/useTheme"
+import { useIsDesktop } from "@/lib/desktop-environment"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
 import { api } from "@/lib/api"
 import { useClientSettingsSettled } from "@/lib/client-settings"
@@ -194,27 +196,29 @@ export function Sidebar({ iconOnly, onToggleIconOnly, onHide, flyout = false, on
   const { state: crossSeedInstanceState } = useCrossSeedInstanceState()
 
   const appVersion = getAppVersion()
-
-  const brand = (
-    <span className="ml-auto flex items-center">
-      {theme === "swizzin" ? (
-        <SwizzinLogo className="h-5 w-5" />
-      ) : theme === "napster" ? (
-        <NapsterLogo className="h-5 w-5" />
-      ) : (
-        <Logo className="h-5 w-5" />
-      )}
-    </span>
+  const isDesktop = useIsDesktop()
+  const { viewMode } = usePersistedCompactViewState("desktop")
+  const logo = theme === "swizzin" ? (
+    <SwizzinLogo className="h-5 w-5" />
+  ) : theme === "napster" ? (
+    <NapsterLogo className="h-5 w-5" />
+  ) : (
+    <Logo className="h-5 w-5" />
   )
-  // The brand row drags the desktop window. The buttons in it stay clickable.
-  const brandRowStyle: CSSProperties | undefined =
-    typeof window !== "undefined"
-      ? ({ WebkitAppRegion: "drag" } as CSSProperties)
-      : undefined
-  const brandRowButtonsStyle: CSSProperties | undefined =
-    typeof window !== "undefined"
-      ? ({ WebkitAppRegion: "no-drag" } as CSSProperties)
-      : undefined
+  const brand = isDesktop ? (
+    <span className="ml-auto flex items-center">{logo}</span>
+  ) : (
+    <span className="flex items-center gap-2">{logo}qui</span>
+  )
+  const brandRowStyle: CSSProperties | undefined = isDesktop
+    ? ({ WebkitAppRegion: "drag" } as CSSProperties)
+    : undefined
+  const brandRowButtonsStyle: CSSProperties | undefined = isDesktop
+    ? ({ WebkitAppRegion: "no-drag" } as CSSProperties)
+    : undefined
+  const brandRowClassName = isDesktop
+    ? "flex h-12 flex-shrink-0 items-center px-4"
+    : cn("flex flex-shrink-0 items-center pl-6 pr-[18px]", viewMode === "dense" ? "h-12" : "h-16")
 
   // A label stays in the page for a screen reader, and fades while the sidebar changes width.
   const fadeClassName = "transition-opacity duration-200 motion-reduce:transition-none"
@@ -238,13 +242,13 @@ export function Sidebar({ iconOnly, onToggleIconOnly, onHide, flyout = false, on
   const IconOnlyToggleIcon = iconOnly ? PanelLeftOpen : PanelLeftClose
   return (
     <div {...themeArea("app-sidebar")} className="flex h-full w-full flex-col border-r bg-sidebar border-sidebar-border">
-      <div className="flex h-12 flex-shrink-0 items-center px-4" style={brandRowStyle}>
+      <div className={brandRowClassName} style={brandRowStyle}>
         <h2 inert={iconOnly} className={cn("flex min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap text-lg font-semibold text-sidebar-foreground", labelClassName)}>
           {isDemo ? (
             <a href="/" target="_top" className="flex items-center gap-2 hover:opacity-80">{brand}</a>
           ) : brand}
         </h2>
-        <div className="sticky right-4 -ml-1.5 flex flex-shrink-0 items-center gap-0.5" style={brandRowButtonsStyle}>
+        <div className={cn("sticky flex flex-shrink-0 items-center gap-0.5", isDesktop ? "right-4 -ml-1.5" : "right-[18px] -ml-1.5")} style={brandRowButtonsStyle}>
           {flyout ? (
             <SidebarHeaderButton label={t("sidebar.keepOpen")} tooltipSide="bottom" onClick={onPin} disabled={!settingsSettled}>
               <Pin className="h-4 w-4" />

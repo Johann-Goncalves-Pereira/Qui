@@ -4,9 +4,9 @@
  */
 
 import { createRootRoute, redirect } from "@tanstack/react-router"
+import { DesktopShellHost } from "@/components/DesktopShellHost"
 import { RootLayout } from "@/layouts/RootLayout"
 import { NotFound } from "@/pages/NotFound"
-import { DesktopUpdateHost } from "@/components/ui/DesktopUpdateHost"
 
 export const Route = createRootRoute({
   staticData: { title: null },
@@ -20,10 +20,9 @@ export const Route = createRootRoute({
     }
   },
   component: () => (
-    <>
+    <DesktopShellHost>
       <RootLayout />
-      <DesktopUpdateHost />
-    </>
+    </DesktopShellHost>
   ),
   notFoundComponent: NotFound,
 })

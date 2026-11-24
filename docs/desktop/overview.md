@@ -19,6 +19,7 @@ registration (`/setup`), sessions, and navigation are **only** in that web UI.
 | Day-to-day develop UI with hot reload | [dev-mode.md](dev-mode.md) |
 | Rebuild the local Podman image + clear Electron cache after pulling code | [refresh-script.md](refresh-script.md) |
 | Open a PR on this fork without fighting upstream (local sync gate) | [upstream-sync.md](upstream-sync.md) — run `./scripts/install-local-hooks` once |
+| Keep desktop patches out of high-churn upstream files | [fork-isolation.md](fork-isolation.md) |
 
 ### Quick commands
 
@@ -71,6 +72,7 @@ Packaging (`package:mac`, `package:mac:release`) writes `Qui.app`, `.dmg`, and `
 - [dev-mode.md](dev-mode.md) — hot-reload Electron + Vite
 - [refresh-script.md](refresh-script.md) — one-command local image rebuild
 - [upstream-sync.md](upstream-sync.md) — fork sync with `autobrr/qui` before merge
+- [fork-isolation.md](fork-isolation.md) — keep desktop patches in fork-owned modules
 
 ## Related spec
 

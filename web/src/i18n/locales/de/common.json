@@ -38,99 +38,10 @@
     "keepOpen": "Sidebar geöffnet lassen",
     "menu": "Menü"
   },
-  "statusBar": {
-    "serviceQuiLabel": "qui:{{port}}",
-    "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Qui-Container ({{state}}) auf Port {{port}}. Klicken, um Podman-Einstellungen zu bearbeiten.",
-    "tooltipQbit": "qBittorrent-nox-Container ({{state}}) auf Port {{port}}. Klicken, um Podman-Einstellungen zu bearbeiten.",
-    "copyright": "{{year}} autobrr",
-    "serviceGazelleLabel": "gazelle:{{port}}",
-    "tooltipGazelle": "Gazelle-Companion ({{state}}) auf Port {{port}}. Klicken, um die WebUI zu öffnen."
-  },
-  "podman": {
-    "qui": {
-      "title": "Qui-Container-Konfiguration",
-      "description": "Offizielle Podman-Parameter für autobrr/qui laut Bereitstellungsdokumentation."
-    },
-    "qbit": {
-      "title": "qBittorrent-nox-Container-Konfiguration",
-      "description": "Offizielle Podman-Parameter für linuxserver/qbittorrent laut Bereitstellungsdokumentation."
-    },
-    "state": {
-      "running": "Läuft"
-    },
-    "toast": {
-      "quiSaved": "Qui-Container-Konfiguration gespeichert",
-      "qbitSaved": "qBittorrent-nox-Container-Konfiguration gespeichert",
-      "quiRestartStarted": "Neustart des Qui-Containers gestartet",
-      "qbitRestartStarted": "Neustart des qBittorrent-nox-Containers gestartet",
-      "copyCommandSuccess": "podman-run-Befehl in die Zwischenablage kopiert",
-      "saveFailed": "Speichern der Konfiguration fehlgeschlagen",
-      "restartFailed": "Neustart des Containers fehlgeschlagen",
-      "genericSaveError": "Fehler beim Speichern der Konfiguration",
-      "genericRestartError": "Fehler beim Neustart des Containers",
-      "copyCommandFailed": "Kopieren in die Zwischenablage nicht möglich"
-    },
-    "fields": {
-      "hostWebUiPort": "Host-Web-UI-Port",
-      "podmanImage": "Podman-Image",
-      "volumeBindMounts": "Volume-Bind-Mounts",
-      "hostConfigDirQui": "Host-Konfigurationsverzeichnis (/config)",
-      "hostConfigDirQuiHelp": "Speichert config.toml, qui.db-Datenbank, Icon-Cache und Laufzeitlogs.",
-      "hostDataDir": "Host-Datenverzeichnis (/data)",
-      "hostDataDirHelp": "Erforderlich für Cross-Seed-Hardlink-/Reflink-Operationen und Orphan-Scans.",
-      "hostConfigDirQbit": "Host-Konfigurationsverzeichnis (/config)",
-      "hostConfigDirQbitHelp": "Enthält qBittorrent.conf, Logs, Statusdateien und Torrent-Backups.",
-      "hostDownloadsDir": "Host-Downloads-Verzeichnis (/downloads)",
-      "hostDownloadsHelp": "Standardzielordner für aktive und abgeschlossene Torrents.",
-      "puid": "PUID",
-      "puidHelp": "Benutzer-ID",
-      "pgid": "PGID",
-      "pgidHelp": "Gruppen-ID",
-      "umask": "UMASK",
-      "umaskHelpQui": "z. B. 002 oder 022",
-      "umaskHelpQbit": "z. B. 022 oder 002",
-      "logLevel": "Log-Level (QUI__LOG_LEVEL)",
-      "logLevelPlaceholder": "Log-Level",
-      "restartPolicy": "Neustartrichtlinie",
-      "restartPolicyPlaceholder": "Neustartrichtlinie",
-      "timezone": "Zeitzone (TZ)",
-      "baseUrl": "Basis-URL (QUI__BASE_URL)",
-      "baseUrlHelp": "Optionale öffentliche URL, wenn Qui hinter einem Reverse-Proxy läuft.",
-      "bitTorrentPeerPort": "BitTorrent-Peer-Port",
-      "peerPortHelp": "TCP- und UDP-Eingangsverkehr (Standard: 6881).",
-      "podmanCommandPreview": "Podman-Befehlsvorschau",
-      "copy": "Kopieren",
-      "copied": "Kopiert",
-      "quiImageHelp": "z. B. qui-desktop:local oder ghcr.io/autobrr/qui:latest",
-      "qbitImageHelp": "z. B. lscr.io/linuxserver/qbittorrent:latest",
-      "quiPortMappedHelp": "Gemappt auf Container-Port 7476 (Standard: 7476).",
-      "qbitPortMappedHelp": "Gemappt auf Container-Port 8080 (Standard: 8080).",
-      "dataPathPlaceholder": "/pfad/zu/downloads (optional)",
-      "logLevelOption": {
-        "DEBUG": "DEBUG",
-        "INFO": "INFO",
-        "WARN": "WARN",
-        "ERROR": "ERROR"
-      },
-      "restartPolicyOption": {
-        "unlessStopped": "unless-stopped",
-        "always": "always",
-        "onFailure": "on-failure",
-        "no": "no"
-      }
-    },
-    "actions": {
-      "restartContainer": "Container neu starten",
-      "cancel": "Abbrechen",
-      "saveApply": "Speichern und anwenden"
-    }
-  },
   "header": {
     "currentInstance": "Aktuelle Instanz: {{name}}. Zum Wechseln der Instanz klicken.",
     "connected": "Verbunden",
     "disconnected": "Getrennt",
-    "noActiveInstances": "Keine aktiven Instanzen",
     "showFilters": "Filter anzeigen",
     "hideFilters": "Filter ausblenden",
     "addTorrent": "Torrent hinzufügen",
@@ -155,11 +66,6 @@
     "smartSearchAuto": "Sucht automatisch nach 500 ms Pause",
     "smartSearchShortcut": "{{shortcutKey}} drücken, um zur Suche zu springen",
     "torrentCreationTasksTitle": "Torrent-Erstellungsaufgaben",
-    "updateAvailable": "Update verfügbar",
-    "updateVersion": "Version {{version}}",
-    "rssRunning": "Cross-Seed-RSS läuft",
-    "rssEnabled": "Cross-Seed-RSS aktiviert",
-    "scanRunning": "Scan läuft",
     "allScope": "ALLE",
     "unified": "Vereinheitlicht",
     "smartSearchPalette": "{{shortcutKey}} drücken, um die Befehlspalette zu öffnen"
@@ -180,7 +86,6 @@
     "settings": "Einstellungen",
     "qbittorrentClients": "qBittorrent-Clients",
     "instances": "Instanzen",
-    "noActiveInstances": "Keine aktiven Instanzen",
     "loading": "Wird geladen...",
     "noActiveClients": "Keine aktiven Clients",
     "updateAvailable": "Update verfügbar",
@@ -266,9 +171,7 @@
   "updateBanner": {
     "updateAvailable": "Update verfügbar",
     "versionAvailable": "Version {{version}} ist jetzt verfügbar",
-    "dismiss": "Verwerfen",
-    "desktopUpdateAvailable": "Qui-Desktop-Update verfügbar",
-    "reviewAndUpdate": "Prüfen & aktualisieren"
+    "dismiss": "Verwerfen"
   },
   "systemNotice": {
     "needsAttention": "Erfordert Aufmerksamkeit",
@@ -444,11 +347,6 @@
   "support": {
     "title": "qui unterstützen",
     "description": "Hast du schon Designs und möchtest weiter helfen? Alles in qui gehört dir bereits. Ein Abo schaltet keine Funktionen frei, es finanziert die Zeit, die in ihre Entwicklung fließt.",
-    "perkPrefix": "Patrons erhalten die Rolle",
-    "perkSuffix": "in Discord und unsere ewige Dankbarkeit.",
-    "yearly": "{{price}} / Jahr",
-    "monthly": "{{price}} / Monat",
-    "notLicense": "Die Design-Lizenz ist ein separater einmaliger Kauf.",
     "heading": "Hilf mit, qui zu pflegen",
     "intro": "qui ist kostenlos und funktioniert gleich, ob du zahlst oder nicht. Die Unterstützung bezahlt die Zeit und die Werkzeuge, die in qui stecken.",
     "licensed": "Danke für deine Design-Lizenz.",
@@ -513,22 +411,6 @@
   "labels": {
     "path": "Pfad",
     "beta": "Beta"
-  },
-  "desktopUpdate": {
-    "title": "Qui-Desktop-Update verfügbar",
-    "subtitle": "Version {{version}} ist bereit zum Download und zur Installation. Aktuelle Version ist {{current}}.",
-    "whatsNew": "Neu in {{version}}",
-    "noChangelog": "Leistungsverbesserungen, Fehlerbehebungen und Wartungsupdates.",
-    "dataSafetyTitle": "Datensicherheit & Backups vor dem Update",
-    "backupNotice": "Vor dem Update wird ein Backup-Snapshot archiviert.",
-    "storageNotice": "Datenbankeinstellungen, Torrent-Daten und Vaults bleiben erhalten.",
-    "inProgress": "Update wird heruntergeladen und der Qui-Container aktualisiert... Die Oberfläche wird automatisch neu geladen.",
-    "applied": "Update erfolgreich angewendet! Die Weboberfläche wird aktualisiert...",
-    "failed": "Update konnte nicht angewendet werden.",
-    "later": "Später",
-    "updating": "Aktualisiere...",
-    "done": "Fertig",
-    "downloadAndUpdate": "Herunterladen & aktualisieren"
   },
   "problemReports": {
     "reportProblem": "Problem melden",

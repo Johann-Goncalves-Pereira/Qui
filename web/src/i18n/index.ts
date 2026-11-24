@@ -125,6 +125,7 @@ export const namespaces = [
   "automations",
   "transfers",
   "shares",
+  "desktop",
 ] as const
 
 // Initialize synchronously with English so i18n.t works the moment this module is

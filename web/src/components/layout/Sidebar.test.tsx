@@ -72,9 +72,11 @@ afterEach(() => {
   vi.clearAllMocks()
   mocks.theme = "default"
   mocks.pathname = "/dashboard"
+  delete (window as { quiDesktop?: unknown }).quiDesktop
 })
 
 function renderSidebar() {
+  ;(window as { quiDesktop?: Record<string, unknown> }).quiDesktop = {}
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })

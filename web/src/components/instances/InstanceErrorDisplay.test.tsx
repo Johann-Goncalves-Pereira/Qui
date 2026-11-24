@@ -24,7 +24,10 @@ vi.mock("@/hooks/usePodmanServices", () => ({
   }),
 }))
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  delete (window as { quiDesktop?: unknown }).quiDesktop
+})
 
 describe("InstanceErrorDisplay", () => {
   // regression: #4233
@@ -57,6 +60,7 @@ describe("InstanceErrorDisplay and isQBitAuthError (BR-web-16)", () => {
   })
 
   it("renders actionable remediation guidance when instance has authentication errors in recentErrors", async () => {
+    ;(window as { quiDesktop?: Record<string, unknown> }).quiDesktop = {}
     const onEdit = vi.fn()
     const mockInstance: InstanceResponse = {
       id: 1,

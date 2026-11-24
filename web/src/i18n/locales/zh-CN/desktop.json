@@ -1,0 +1,172 @@
+{
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipQui": "Qui 容器（{{state}}）端口 {{port}}。点击配置 Podman。",
+    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）端口 {{port}}。点击配置 Podman。",
+    "tooltipGazelle": "Gazelle 配套服务（{{state}}）端口 {{port}}。点击打开 WebUI。",
+    "copyright": "{{year}} autobrr"
+  },
+  "podman": {
+    "qui": {
+      "title": "Qui 容器配置",
+      "description": "根据部署文档，autobrr/qui 的官方 Podman 参数。"
+    },
+    "qbit": {
+      "title": "qBittorrent-nox 容器配置",
+      "description": "根据部署文档，linuxserver/qbittorrent 的官方 Podman 参数。"
+    },
+    "state": {
+      "running": "运行中"
+    },
+    "toast": {
+      "quiSaved": "Qui 容器配置已保存",
+      "qbitSaved": "qBittorrent-nox 容器配置已保存",
+      "quiRestartStarted": "Qui 容器重启已开始",
+      "qbitRestartStarted": "qBittorrent-nox 容器重启已开始",
+      "copyCommandSuccess": "已将 podman run 命令复制到剪贴板",
+      "saveFailed": "保存配置失败",
+      "restartFailed": "重启容器失败",
+      "genericSaveError": "保存配置时出错",
+      "genericRestartError": "重启容器时出错",
+      "copyCommandFailed": "无法复制到剪贴板",
+      "copiedUsername": "Copied username to clipboard",
+      "copiedPassword": "Copied password to clipboard"
+    },
+    "fields": {
+      "hostWebUiPort": "主机 Web UI 端口",
+      "podmanImage": "Podman 镜像",
+      "volumeBindMounts": "卷绑定挂载",
+      "hostConfigDirQui": "主机配置目录（/config）",
+      "hostConfigDirQuiHelp": "存放 config.toml、qui.db 数据库、图标缓存和运行日志。",
+      "hostDataDir": "主机数据目录（/data）",
+      "hostDataDirHelp": "用于跨种硬链接/_reflink 与孤儿扫描。",
+      "hostConfigDirQbit": "主机配置目录（/config）",
+      "hostConfigDirQbitHelp": "包含 qBittorrent.conf、日志、状态文件与种子备份数据。",
+      "hostDownloadsDir": "主机下载目录（/downloads）",
+      "hostDownloadsHelp": "活动与已完成种子的默认保存位置。",
+      "puid": "PUID",
+      "puidHelp": "用户 ID",
+      "pgid": "PGID",
+      "pgidHelp": "组 ID",
+      "umask": "UMASK",
+      "umaskHelpQui": "例如 002 或 022",
+      "umaskHelpQbit": "例如 022 或 002",
+      "logLevel": "日志级别（QUI__LOG_LEVEL）",
+      "logLevelPlaceholder": "日志级别",
+      "restartPolicy": "重启策略",
+      "restartPolicyPlaceholder": "重启策略",
+      "timezone": "时区（TZ）",
+      "baseUrl": "基础 URL（QUI__BASE_URL）",
+      "baseUrlHelp": "当 Qui 位于反向代理后的可选公开 URL。",
+      "bitTorrentPeerPort": "BitTorrent 监听端口",
+      "peerPortHelp": "TCP 与 UDP 入站流量（默认：6881）。",
+      "podmanCommandPreview": "Podman 命令预览",
+      "webUiCredentials": "WebUI Administrator Credentials",
+      "webUiUsername": "Username",
+      "webUiPassword": "Password",
+      "temporarySessionPassword": "Temporary Session Password",
+      "noPasswordDetected": "No password detected in logs",
+      "show": "Show",
+      "hide": "Hide",
+      "clickToCopy": "Click to copy",
+      "webUiCredentialsHelp": "Required to authenticate Qui Desktop's companion instance (Settings → Instances). Click the password to toggle blur or use the copy button.",
+      "webUiCredentialsManualHelp": "No temporary session password found in logs. If a custom password was set in WebUI preferences, use that password in Settings → Instances.",
+      "copy": "复制",
+      "copied": "已复制",
+      "quiImageHelp": "例如 qui-desktop:local 或 ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "例如 lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "映射到容器端口 7476（默认：7476）。",
+      "qbitPortMappedHelp": "映射到容器端口 8080（默认：8080）。",
+      "dataPathPlaceholder": "/下载路径（可选）",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "重启容器",
+      "cancel": "取消",
+      "saveApply": "保存并应用"
+    }
+  },
+  "desktopUpdate": {
+    "title": "Qui Desktop 有可用更新",
+    "subtitle": "版本 {{version}} 已准备好下载并安装。当前版本为 {{current}}。",
+    "whatsNew": "{{version}} 的新内容",
+    "noChangelog": "性能改进、错误修复和维护更新。",
+    "dataSafetyTitle": "数据安全与更新前备份",
+    "backupNotice": "更新前会归档更新前备份快照。",
+    "storageNotice": "数据库设置、种子数据和保险库都会被安全保留。",
+    "inProgress": "正在下载更新并更新 Qui 容器…界面将自动重新加载。",
+    "applied": "更新已成功应用！正在刷新 Web 界面…",
+    "failed": "应用更新失败。",
+    "later": "稍后",
+    "updating": "正在更新…",
+    "done": "完成",
+    "downloadAndUpdate": "下载并更新"
+  },
+  "containerUpdate": {
+    "title": "Container Updates Available",
+    "subtitle": "Updates are available for: {{components}}",
+    "componentsTitle": "Components to Update",
+    "reloadRequirementsTitle": "Reload & Restart Requirements",
+    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
+    "backupNotice": "A pre-update backup of your container configurations and databases is created automatically before updating.",
+    "storageNotice": "All application settings, torrent data, and configurations are safely preserved.",
+    "inProgress": "Pulling container images and updating services... Interface will refresh if required.",
+    "applied": "Containers updated successfully!",
+    "failed": "Failed to update containers.",
+    "later": "Later",
+    "updating": "Updating Containers...",
+    "done": "Updated",
+    "updateNow": "Update Now"
+  },
+  "gazelle": {
+    "companionTitle": "Gazelle Podman 伴侣",
+    "checking": "正在检查…",
+    "running": "运行中（7001 端口）",
+    "stopped": "已停止",
+    "notInstalled": "未安装",
+    "openWebUiTitle": "打开 Gazelle WebUI",
+    "openWebUi": "打开 WebUI",
+    "restartContainerTitle": "重启 Gazelle 容器",
+    "restart": "重启",
+    "stopContainerTitle": "停止 Gazelle 容器",
+    "stop": "停止",
+    "start": "启动 Gazelle",
+    "installAndRun": "安装并运行 Gazelle",
+    "companionDescription": "在桌面数据目录中保留持久状态，并在 7001 端口部署本地 OPSnet/Gazelle 跟踪器栈。",
+    "initialInstallNotice": "正在克隆 OPSnet/Gazelle 仓库并构建 Podman Compose 容器，首次安装可能需要几分钟。"
+  },
+  "application": {
+    "build": {
+      "statuses": {
+        "managedByDesktop": "由 Desktop 管理",
+        "managedByDesktopDetail": "更新和容器生命周期由 Qui Desktop 管理"
+      }
+    }
+  },
+  "updateBanner": {
+    "desktopUpdateAvailable": "Qui Desktop 有可用更新",
+    "reviewAndUpdate": "查看并更新"
+  },
+  "instances": {
+    "errorDisplay": {
+      "copyContainerPassword": "Copy Container Password",
+      "copiedPassword": "Password Copied",
+      "copiedContainerPassword": "Container password copied to clipboard",
+      "noContainerPasswordFound": "No temporary password detected in container logs",
+      "failedToCopyPassword": "Failed to copy password"
+    }
+  }
+}

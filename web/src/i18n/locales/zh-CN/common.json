@@ -37,99 +37,10 @@
     "keepOpen": "固定侧边栏",
     "menu": "菜单"
   },
-  "statusBar": {
-    "serviceQuiLabel": "qui:{{port}}",
-    "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Qui 容器（{{state}}）端口 {{port}}。点击配置 Podman。",
-    "tooltipQbit": "qBittorrent-nox 容器（{{state}}）端口 {{port}}。点击配置 Podman。",
-    "copyright": "{{year}} autobrr",
-    "serviceGazelleLabel": "gazelle:{{port}}",
-    "tooltipGazelle": "Gazelle 配套服务（{{state}}）端口 {{port}}。点击打开 WebUI。"
-  },
-  "podman": {
-    "qui": {
-      "title": "Qui 容器配置",
-      "description": "根据部署文档，autobrr/qui 的官方 Podman 参数。"
-    },
-    "qbit": {
-      "title": "qBittorrent-nox 容器配置",
-      "description": "根据部署文档，linuxserver/qbittorrent 的官方 Podman 参数。"
-    },
-    "state": {
-      "running": "运行中"
-    },
-    "toast": {
-      "quiSaved": "Qui 容器配置已保存",
-      "qbitSaved": "qBittorrent-nox 容器配置已保存",
-      "quiRestartStarted": "Qui 容器重启已开始",
-      "qbitRestartStarted": "qBittorrent-nox 容器重启已开始",
-      "copyCommandSuccess": "已将 podman run 命令复制到剪贴板",
-      "saveFailed": "保存配置失败",
-      "restartFailed": "重启容器失败",
-      "genericSaveError": "保存配置时出错",
-      "genericRestartError": "重启容器时出错",
-      "copyCommandFailed": "无法复制到剪贴板"
-    },
-    "fields": {
-      "hostWebUiPort": "主机 Web UI 端口",
-      "podmanImage": "Podman 镜像",
-      "volumeBindMounts": "卷绑定挂载",
-      "hostConfigDirQui": "主机配置目录（/config）",
-      "hostConfigDirQuiHelp": "存放 config.toml、qui.db 数据库、图标缓存和运行日志。",
-      "hostDataDir": "主机数据目录（/data）",
-      "hostDataDirHelp": "用于跨种硬链接/_reflink 与孤儿扫描。",
-      "hostConfigDirQbit": "主机配置目录（/config）",
-      "hostConfigDirQbitHelp": "包含 qBittorrent.conf、日志、状态文件与种子备份数据。",
-      "hostDownloadsDir": "主机下载目录（/downloads）",
-      "hostDownloadsHelp": "活动与已完成种子的默认保存位置。",
-      "puid": "PUID",
-      "puidHelp": "用户 ID",
-      "pgid": "PGID",
-      "pgidHelp": "组 ID",
-      "umask": "UMASK",
-      "umaskHelpQui": "例如 002 或 022",
-      "umaskHelpQbit": "例如 022 或 002",
-      "logLevel": "日志级别（QUI__LOG_LEVEL）",
-      "logLevelPlaceholder": "日志级别",
-      "restartPolicy": "重启策略",
-      "restartPolicyPlaceholder": "重启策略",
-      "timezone": "时区（TZ）",
-      "baseUrl": "基础 URL（QUI__BASE_URL）",
-      "baseUrlHelp": "当 Qui 位于反向代理后的可选公开 URL。",
-      "bitTorrentPeerPort": "BitTorrent 监听端口",
-      "peerPortHelp": "TCP 与 UDP 入站流量（默认：6881）。",
-      "podmanCommandPreview": "Podman 命令预览",
-      "copy": "复制",
-      "copied": "已复制",
-      "quiImageHelp": "例如 qui-desktop:local 或 ghcr.io/autobrr/qui:latest",
-      "qbitImageHelp": "例如 lscr.io/linuxserver/qbittorrent:latest",
-      "quiPortMappedHelp": "映射到容器端口 7476（默认：7476）。",
-      "qbitPortMappedHelp": "映射到容器端口 8080（默认：8080）。",
-      "dataPathPlaceholder": "/下载路径（可选）",
-      "logLevelOption": {
-        "DEBUG": "DEBUG",
-        "INFO": "INFO",
-        "WARN": "WARN",
-        "ERROR": "ERROR"
-      },
-      "restartPolicyOption": {
-        "unlessStopped": "unless-stopped",
-        "always": "always",
-        "onFailure": "on-failure",
-        "no": "no"
-      }
-    },
-    "actions": {
-      "restartContainer": "重启容器",
-      "cancel": "取消",
-      "saveApply": "保存并应用"
-    }
-  },
   "header": {
     "currentInstance": "当前实例：{{name}}。点击切换实例。",
     "connected": "已连接",
     "disconnected": "已断开",
-    "noActiveInstances": "没有活动的实例",
     "showFilters": "显示筛选器",
     "hideFilters": "隐藏筛选器",
     "addTorrent": "添加种子",
@@ -154,11 +65,6 @@
     "smartSearchAuto": "暂停输入 500 毫秒后自动搜索",
     "smartSearchShortcut": "按 {{shortcutKey}} 跳转到搜索框",
     "torrentCreationTasksTitle": "种子创建任务",
-    "updateAvailable": "有可用更新",
-    "updateVersion": "版本 {{version}}",
-    "rssRunning": "辅种 RSS 运行中",
-    "rssEnabled": "辅种 RSS 已启用",
-    "scanRunning": "扫描运行中",
     "allScope": "全部",
     "unified": "统一视图",
     "smartSearchPalette": "按 {{shortcutKey}} 打开命令面板"
@@ -179,7 +85,6 @@
     "settings": "设置",
     "qbittorrentClients": "qBittorrent 客户端",
     "instances": "实例",
-    "noActiveInstances": "没有活动的实例",
     "loading": "加载中...",
     "noActiveClients": "没有活动的客户端",
     "updateAvailable": "有可用更新",
@@ -265,9 +170,7 @@
   "updateBanner": {
     "updateAvailable": "有可用更新",
     "versionAvailable": "版本 {{version}} 现已可用",
-    "dismiss": "关闭",
-    "desktopUpdateAvailable": "Qui Desktop 有可用更新",
-    "reviewAndUpdate": "查看并更新"
+    "dismiss": "关闭"
   },
   "systemNotice": {
     "needsAttention": "需要处理",
@@ -436,11 +339,6 @@
   "support": {
     "title": "支持 qui",
     "description": "已经有主题了，还想再出一份力？qui 的一切已经属于你。订阅不会解锁功能，它资助的是开发这些功能所投入的时间。",
-    "perkPrefix": "赞助者可在 Discord 获得",
-    "perkSuffix": "身份组，以及我们永远的感谢。",
-    "yearly": "{{price}} / 年",
-    "monthly": "{{price}} / 月",
-    "notLicense": "主题许可证是单独的一次性购买。",
     "heading": "帮助 qui 持续维护",
     "intro": "qui 是免费的，无论您是否付费，功能都完全相同。支持款项用于支付投入 qui 的时间和工具。",
     "licensed": "感谢您购买主题许可证。",
@@ -502,22 +400,6 @@
   "labels": {
     "path": "路径",
     "beta": "测试版"
-  },
-  "desktopUpdate": {
-    "title": "Qui Desktop 有可用更新",
-    "subtitle": "版本 {{version}} 已准备好下载并安装。当前版本为 {{current}}。",
-    "whatsNew": "{{version}} 的新内容",
-    "noChangelog": "性能改进、错误修复和维护更新。",
-    "dataSafetyTitle": "数据安全与更新前备份",
-    "backupNotice": "更新前会归档更新前备份快照。",
-    "storageNotice": "数据库设置、种子数据和保险库都会被安全保留。",
-    "inProgress": "正在下载更新并更新 Qui 容器…界面将自动重新加载。",
-    "applied": "更新已成功应用！正在刷新 Web 界面…",
-    "failed": "应用更新失败。",
-    "later": "稍后",
-    "updating": "正在更新…",
-    "done": "完成",
-    "downloadAndUpdate": "下载并更新"
   },
   "problemReports": {
     "reportProblem": "报告问题",

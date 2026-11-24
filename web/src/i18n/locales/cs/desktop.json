@@ -1,0 +1,172 @@
+{
+  "statusBar": {
+    "serviceQuiLabel": "qui:{{port}}",
+    "serviceQbitLabel": "qbittorrent:{{port}}",
+    "serviceGazelleLabel": "gazelle:{{port}}",
+    "tooltipQui": "Kontejner Qui ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Podman.",
+    "tooltipQbit": "Kontejner qBittorrent-nox ({{state}}) na portu {{port}}. Kliknutím nakonfigurujte Podman.",
+    "tooltipGazelle": "Gazelle companion ({{state}}) na portu {{port}}. Kliknutím otevřete WebUI.",
+    "copyright": "{{year}} autobrr"
+  },
+  "podman": {
+    "qui": {
+      "title": "Konfigurace kontejneru Qui",
+      "description": "Oficiální parametry Podmanu pro autobrr/qui podle dokumentace nasazení."
+    },
+    "qbit": {
+      "title": "Konfigurace kontejneru qBittorrent-nox",
+      "description": "Oficiální parametry Podmanu pro linuxserver/qbittorrent podle dokumentace nasazení."
+    },
+    "state": {
+      "running": "Běží"
+    },
+    "toast": {
+      "quiSaved": "Konfigurace kontejneru Qui uložena",
+      "qbitSaved": "Konfigurace kontejneru qBittorrent-nox uložena",
+      "quiRestartStarted": "Restart kontejneru Qui zahájen",
+      "qbitRestartStarted": "Restart kontejneru qBittorrent-nox zahájen",
+      "copyCommandSuccess": "Příkaz podman run zkopírován do schránky",
+      "saveFailed": "Uložení konfigurace selhalo",
+      "restartFailed": "Restart kontejneru selhal",
+      "genericSaveError": "Chyba při ukládání konfigurace",
+      "genericRestartError": "Chyba při restartu kontejneru",
+      "copyCommandFailed": "Nepodařilo se zkopírovat do schránky",
+      "copiedUsername": "Copied username to clipboard",
+      "copiedPassword": "Copied password to clipboard"
+    },
+    "fields": {
+      "hostWebUiPort": "Port webového rozhraní na hostiteli",
+      "podmanImage": "Podman image",
+      "volumeBindMounts": "Bind mounty svazků",
+      "hostConfigDirQui": "Konfigurační adresář hostitele (/config)",
+      "hostConfigDirQuiHelp": "Ukládá config.toml, databázi qui.db, cache ikon a běhové logy.",
+      "hostDataDir": "Datový adresář hostitele (/data)",
+      "hostDataDirHelp": "Vyžadováno pro cross-seed hardlinky/reflinky a skeny osiřelých souborů.",
+      "hostConfigDirQbit": "Konfigurační adresář hostitele (/config)",
+      "hostConfigDirQbitHelp": "Obsahuje qBittorrent.conf, logy, stavové soubory a zálohy torrentů.",
+      "hostDownloadsDir": "Adresář stahování hostitele (/downloads)",
+      "hostDownloadsHelp": "Výchozí cílová složka pro aktivní a dokončené torrenty.",
+      "puid": "PUID",
+      "puidHelp": "ID uživatele",
+      "pgid": "PGID",
+      "pgidHelp": "ID skupiny",
+      "umask": "UMASK",
+      "umaskHelpQui": "např. 002 nebo 022",
+      "umaskHelpQbit": "např. 022 nebo 002",
+      "logLevel": "Úroveň logování (QUI__LOG_LEVEL)",
+      "logLevelPlaceholder": "Úroveň logování",
+      "restartPolicy": "Zásady restartu",
+      "restartPolicyPlaceholder": "Zásady restartu",
+      "timezone": "Časové pásmo (TZ)",
+      "baseUrl": "Základní URL (QUI__BASE_URL)",
+      "baseUrlHelp": "Volitelná veřejná URL, když Qui běží za reverzním proxy.",
+      "bitTorrentPeerPort": "Port peerů BitTorrent",
+      "peerPortHelp": "Příchozí provoz TCP a UDP (výchozí: 6881).",
+      "podmanCommandPreview": "Náhled příkazu Podman",
+      "webUiCredentials": "WebUI Administrator Credentials",
+      "webUiUsername": "Username",
+      "webUiPassword": "Password",
+      "temporarySessionPassword": "Temporary Session Password",
+      "noPasswordDetected": "No password detected in logs",
+      "show": "Show",
+      "hide": "Hide",
+      "clickToCopy": "Click to copy",
+      "webUiCredentialsHelp": "Required to authenticate Qui Desktop's companion instance (Settings → Instances). Click the password to toggle blur or use the copy button.",
+      "webUiCredentialsManualHelp": "No temporary session password found in logs. If a custom password was set in WebUI preferences, use that password in Settings → Instances.",
+      "copy": "Kopírovat",
+      "copied": "Zkopírováno",
+      "quiImageHelp": "např. qui-desktop:local nebo ghcr.io/autobrr/qui:latest",
+      "qbitImageHelp": "např. lscr.io/linuxserver/qbittorrent:latest",
+      "quiPortMappedHelp": "Mapováno na port kontejneru 7476 (výchozí: 7476).",
+      "qbitPortMappedHelp": "Mapováno na port kontejneru 8080 (výchozí: 8080).",
+      "dataPathPlaceholder": "/cesta/ke/stahování (volitelné)",
+      "logLevelOption": {
+        "DEBUG": "DEBUG",
+        "INFO": "INFO",
+        "WARN": "WARN",
+        "ERROR": "ERROR"
+      },
+      "restartPolicyOption": {
+        "unlessStopped": "unless-stopped",
+        "always": "always",
+        "onFailure": "on-failure",
+        "no": "no"
+      }
+    },
+    "actions": {
+      "restartContainer": "Restartovat kontejner",
+      "cancel": "Zrušit",
+      "saveApply": "Uložit a použít"
+    }
+  },
+  "desktopUpdate": {
+    "title": "Aktualizace Qui Desktop je k dispozici",
+    "subtitle": "Verze {{version}} je připravena ke stažení a instalaci. Aktuální verze je {{current}}.",
+    "whatsNew": "Novinky ve {{version}}",
+    "noChangelog": "Vylepšení výkonu, opravy chyb a údržba.",
+    "dataSafetyTitle": "Bezpečnost dat a zálohy před aktualizací",
+    "backupNotice": "Před aktualizací se archivuje snímek zálohy.",
+    "storageNotice": "Nastavení databáze, data torrentů a trezory zůstávají zachovány.",
+    "inProgress": "Stahuje se aktualizace a aktualizuje se kontejner Qui... Rozhraní se automaticky znovu načte.",
+    "applied": "Aktualizace byla úspěšně použita! Webové rozhraní se obnovuje...",
+    "failed": "Aktualizaci se nepodařilo použít.",
+    "later": "Později",
+    "updating": "Aktualizace...",
+    "done": "Hotovo",
+    "downloadAndUpdate": "Stáhnout a aktualizovat"
+  },
+  "containerUpdate": {
+    "title": "Container Updates Available",
+    "subtitle": "Updates are available for: {{components}}",
+    "componentsTitle": "Components to Update",
+    "reloadRequirementsTitle": "Reload & Restart Requirements",
+    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
+    "backupNotice": "A pre-update backup of your container configurations and databases is created automatically before updating.",
+    "storageNotice": "All application settings, torrent data, and configurations are safely preserved.",
+    "inProgress": "Pulling container images and updating services... Interface will refresh if required.",
+    "applied": "Containers updated successfully!",
+    "failed": "Failed to update containers.",
+    "later": "Later",
+    "updating": "Updating Containers...",
+    "done": "Updated",
+    "updateNow": "Update Now"
+  },
+  "gazelle": {
+    "companionTitle": "Doprovodný Podman Gazelle",
+    "checking": "Kontrola...",
+    "running": "Běží (:7001)",
+    "stopped": "Zastaveno",
+    "notInstalled": "Nenainstalováno",
+    "openWebUiTitle": "Otevřít WebUI Gazelle (http://localhost:7001)",
+    "openWebUi": "Otevřít WebUI",
+    "restartContainerTitle": "Restartovat kontejner Gazelle",
+    "restart": "Restartovat",
+    "stopContainerTitle": "Zastavit kontejner Gazelle",
+    "stop": "Zastavit",
+    "start": "Spustit Gazelle",
+    "installAndRun": "Nainstalovat a spustit Gazelle",
+    "companionDescription": "Nasadit místní stack trackeru OPSnet/Gazelle namapovaný na port 7001 s trvalým stavem v datovém adresáři desktopu.",
+    "initialInstallNotice": "Klonování repozitáře OPSnet/Gazelle a sestavování kontejnerů Podman Compose... při počáteční instalaci to může trvat několik minut."
+  },
+  "application": {
+    "build": {
+      "statuses": {
+        "managedByDesktop": "Spravováno Desktopem",
+        "managedByDesktopDetail": "Aktualizace a životní cykly kontejnerů spravuje Qui Desktop"
+      }
+    }
+  },
+  "updateBanner": {
+    "desktopUpdateAvailable": "Aktualizace Qui Desktop je k dispozici",
+    "reviewAndUpdate": "Zkontrolovat a aktualizovat"
+  },
+  "instances": {
+    "errorDisplay": {
+      "copyContainerPassword": "Copy Container Password",
+      "copiedPassword": "Password Copied",
+      "copiedContainerPassword": "Container password copied to clipboard",
+      "noContainerPasswordFound": "No temporary password detected in container logs",
+      "failedToCopyPassword": "Failed to copy password"
+    }
+  }
+}

@@ -28,7 +28,7 @@ export function GazellePodmanControl() {
 }
 
 function GazellePodmanControlInner() {
-  const { t } = useTranslation("settings")
+  const { t } = useTranslation("desktop")
   const [status, setStatus] = useState<PodmanContainerStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionPending, setActionPending] = useState(false)

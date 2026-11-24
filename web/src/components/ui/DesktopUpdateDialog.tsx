@@ -40,7 +40,7 @@ export function DesktopUpdateDialog({
   onOpenChange,
   updateInfo,
 }: DesktopUpdateDialogProps) {
-  const { t } = useTranslation("common")
+  const { t } = useTranslation("desktop")
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)

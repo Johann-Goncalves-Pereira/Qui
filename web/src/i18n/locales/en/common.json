@@ -38,111 +38,10 @@
     "keepOpen": "Keep sidebar open",
     "menu": "Menu"
   },
-  "statusBar": {
-    "serviceQuiLabel": "qui:{{port}}",
-    "serviceQbitLabel": "qbittorrent:{{port}}",
-    "serviceGazelleLabel": "gazelle:{{port}}",
-    "tooltipQui": "Qui container ({{state}}) on port {{port}}. Click to configure Podman settings.",
-    "tooltipQbit": "qBittorrent-nox container ({{state}}) on port {{port}}. Click to configure Podman settings.",
-    "tooltipGazelle": "Gazelle companion ({{state}}) on port {{port}}. Click to open WebUI.",
-    "copyright": "{{year}} autobrr"
-  },
-  "podman": {
-    "qui": {
-      "title": "Qui Container Configuration",
-      "description": "Official Podman parameters for autobrr/qui based on the deployment documentation."
-    },
-    "qbit": {
-      "title": "qBittorrent-nox Container Configuration",
-      "description": "Official Podman parameters for linuxserver/qbittorrent based on the deployment documentation."
-    },
-    "state": {
-      "running": "Running"
-    },
-    "toast": {
-      "quiSaved": "Qui container configuration saved",
-      "qbitSaved": "qBittorrent-nox container configuration saved",
-      "quiRestartStarted": "Qui container restart initiated",
-      "qbitRestartStarted": "qBittorrent-nox container restart initiated",
-      "copyCommandSuccess": "Copied podman run command to clipboard",
-      "saveFailed": "Failed to save configuration",
-      "restartFailed": "Failed to restart container",
-      "genericSaveError": "Error saving configuration",
-      "genericRestartError": "Error restarting container",
-      "copyCommandFailed": "Could not copy to clipboard",
-      "copiedUsername": "Copied username to clipboard",
-      "copiedPassword": "Copied password to clipboard"
-    },
-    "fields": {
-      "hostWebUiPort": "Host Web UI Port",
-      "podmanImage": "Podman Image",
-      "volumeBindMounts": "Volume Bind Mounts",
-      "hostConfigDirQui": "Host Config Directory (/config)",
-      "hostConfigDirQuiHelp": "Stores config.toml, qui.db database, icon cache, and runtime logs.",
-      "hostDataDir": "Host Data Directory (/data)",
-      "hostDataDirHelp": "Required for cross-seed hardlink/reflink operations and orphan scans.",
-      "hostConfigDirQbit": "Host Config Directory (/config)",
-      "hostConfigDirQbitHelp": "Contains qBittorrent.conf, logs, state files, and torrent backup data.",
-      "hostDownloadsDir": "Host Downloads Directory (/downloads)",
-      "hostDownloadsHelp": "Default target folder where active and completed torrents are saved.",
-      "puid": "PUID",
-      "puidHelp": "User ID",
-      "pgid": "PGID",
-      "pgidHelp": "Group ID",
-      "umask": "UMASK",
-      "umaskHelpQui": "e.g. 002 or 022",
-      "umaskHelpQbit": "e.g. 022 or 002",
-      "logLevel": "Log Level (QUI__LOG_LEVEL)",
-      "logLevelPlaceholder": "Log level",
-      "restartPolicy": "Restart Policy",
-      "restartPolicyPlaceholder": "Restart policy",
-      "timezone": "Timezone (TZ)",
-      "baseUrl": "Base URL (QUI__BASE_URL)",
-      "baseUrlHelp": "Optional public URL when Qui sits behind a reverse proxy.",
-      "bitTorrentPeerPort": "BitTorrent Peer Port",
-      "peerPortHelp": "TCP & UDP incoming traffic (default: 6881).",
-      "podmanCommandPreview": "Podman Command Preview",
-      "webUiCredentials": "WebUI Administrator Credentials",
-      "webUiUsername": "Username",
-      "webUiPassword": "Password",
-      "temporarySessionPassword": "Temporary Session Password",
-      "noPasswordDetected": "No password detected in logs",
-      "show": "Show",
-      "hide": "Hide",
-      "clickToCopy": "Click to copy",
-      "webUiCredentialsHelp": "Required to authenticate Qui Desktop's companion instance (Settings → Instances). Click the password to toggle blur or use the copy button.",
-      "webUiCredentialsManualHelp": "No temporary session password found in logs. If a custom password was set in WebUI preferences, use that password in Settings → Instances.",
-      "copy": "Copy",
-      "copied": "Copied",
-      "quiImageHelp": "e.g. qui-desktop:local or ghcr.io/autobrr/qui:latest",
-      "qbitImageHelp": "e.g. lscr.io/linuxserver/qbittorrent:latest",
-      "quiPortMappedHelp": "Mapped to container port 7476 (default: 7476).",
-      "qbitPortMappedHelp": "Mapped to container port 8080 (default: 8080).",
-      "dataPathPlaceholder": "/path/to/downloads (optional)",
-      "logLevelOption": {
-        "DEBUG": "DEBUG",
-        "INFO": "INFO",
-        "WARN": "WARN",
-        "ERROR": "ERROR"
-      },
-      "restartPolicyOption": {
-        "unlessStopped": "unless-stopped",
-        "always": "always",
-        "onFailure": "on-failure",
-        "no": "no"
-      }
-    },
-    "actions": {
-      "restartContainer": "Restart Container",
-      "cancel": "Cancel",
-      "saveApply": "Save & Apply"
-    }
-  },
   "header": {
     "currentInstance": "Current instance: {{name}}. Click to switch instances.",
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "noActiveInstances": "No active instances",
     "showFilters": "Show filters",
     "hideFilters": "Hide filters",
     "addTorrent": "Add torrent",
@@ -167,11 +66,6 @@
     "smartSearchAuto": "Auto-searches after 500ms pause",
     "smartSearchShortcut": "Press {{shortcutKey}} to focus search",
     "torrentCreationTasksTitle": "Torrent Creation Tasks",
-    "updateAvailable": "Update Available",
-    "updateVersion": "Version {{version}}",
-    "rssRunning": "Cross-seed RSS running",
-    "rssEnabled": "Cross-seed RSS enabled",
-    "scanRunning": "Scan running",
     "allScope": "ALL",
     "unified": "Unified",
     "smartSearchPalette": "Press {{shortcutKey}} to open the command palette"
@@ -192,7 +86,6 @@
     "settings": "Settings",
     "qbittorrentClients": "qBittorrent Clients",
     "instances": "Instances",
-    "noActiveInstances": "No active instances",
     "loading": "Loading...",
     "noActiveClients": "No active clients",
     "updateAvailable": "Update Available",
@@ -278,9 +171,7 @@
   "updateBanner": {
     "updateAvailable": "Update Available",
     "versionAvailable": "Version {{version}} is now available",
-    "dismiss": "Dismiss",
-    "desktopUpdateAvailable": "Qui Desktop Update Available",
-    "reviewAndUpdate": "Review & Update"
+    "dismiss": "Dismiss"
   },
   "systemNotice": {
     "needsAttention": "Needs attention",
@@ -456,11 +347,6 @@
   "support": {
     "title": "Support qui",
     "description": "Already got themes and want to help further? Everything in qui is already yours. A subscription doesn't unlock features, it funds the time that goes into building them.",
-    "perkPrefix": "Patrons get the",
-    "perkSuffix": "role in Discord and our eternal gratitude.",
-    "yearly": "{{price}} / year",
-    "monthly": "{{price}} / month",
-    "notLicense": "The theme license is a separate one-time purchase.",
     "heading": "Help keep qui maintained",
     "intro": "qui is free, and it works the same whether you pay or not. Support pays for the time and the tools that go into it.",
     "licensed": "Thank you for your theme license.",
@@ -525,38 +411,6 @@
   "labels": {
     "path": "Path",
     "beta": "Beta"
-  },
-  "desktopUpdate": {
-    "title": "Qui Desktop Update Available",
-    "subtitle": "Version {{version}} is ready to download and install. Current version is {{current}}.",
-    "whatsNew": "What's New in {{version}}",
-    "noChangelog": "Performance improvements, bug fixes, and maintenance updates.",
-    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
-    "backupNotice": "Pre-update backup snapshot is archived before updating.",
-    "storageNotice": "All database settings, torrent data, and vaults are safely preserved.",
-    "inProgress": "Downloading update and updating Qui container... Interface will automatically reload momentarily.",
-    "applied": "Update applied successfully! Web interface is refreshing...",
-    "failed": "Failed to apply update.",
-    "later": "Later",
-    "updating": "Updating...",
-    "done": "Done",
-    "downloadAndUpdate": "Download & Update"
-  },
-  "containerUpdate": {
-    "title": "Container Updates Available",
-    "subtitle": "Updates are available for: {{components}}",
-    "componentsTitle": "Components to Update",
-    "reloadRequirementsTitle": "Reload & Restart Requirements",
-    "dataSafetyTitle": "Data Safety & Pre-Update Backups",
-    "backupNotice": "A pre-update backup of your container configurations and databases is created automatically before updating.",
-    "storageNotice": "All application settings, torrent data, and configurations are safely preserved.",
-    "inProgress": "Pulling container images and updating services... Interface will refresh if required.",
-    "applied": "Containers updated successfully!",
-    "failed": "Failed to update containers.",
-    "later": "Later",
-    "updating": "Updating Containers...",
-    "done": "Updated",
-    "updateNow": "Update Now"
   },
   "problemReports": {
     "reportProblem": "Report a problem",

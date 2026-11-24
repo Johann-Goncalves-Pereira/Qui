@@ -40,99 +40,10 @@
     "keepOpen": "Залишати бічну панель відкритою",
     "menu": "Меню"
   },
-  "statusBar": {
-    "serviceQuiLabel": "qui:{{port}}",
-    "serviceQbitLabel": "qbittorrent:{{port}}",
-    "tooltipQui": "Контейнер Qui ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Podman.",
-    "tooltipQbit": "Контейнер qBittorrent-nox ({{state}}) на порту {{port}}. Клацніть, щоб налаштувати Podman.",
-    "copyright": "{{year}} autobrr",
-    "serviceGazelleLabel": "gazelle:{{port}}",
-    "tooltipGazelle": "Companion Gazelle ({{state}}) на порту {{port}}. Натисніть, щоб відкрити WebUI."
-  },
-  "podman": {
-    "qui": {
-      "title": "Конфігурація контейнера Qui",
-      "description": "Офіційні параметри Podman для autobrr/qui згідно з документацією розгортання."
-    },
-    "qbit": {
-      "title": "Конфігурація контейнера qBittorrent-nox",
-      "description": "Офіційні параметри Podman для linuxserver/qbittorrent згідно з документацією розгортання."
-    },
-    "state": {
-      "running": "Працює"
-    },
-    "toast": {
-      "quiSaved": "Конфігурацію контейнера Qui збережено",
-      "qbitSaved": "Конфігурацію контейнера qBittorrent-nox збережено",
-      "quiRestartStarted": "Перезапуск контейнера Qui розпочато",
-      "qbitRestartStarted": "Перезапуск контейнера qBittorrent-nox розпочато",
-      "copyCommandSuccess": "Команду podman run скопійовано в буфер обміну",
-      "saveFailed": "Не вдалося зберегти конфігурацію",
-      "restartFailed": "Не вдалося перезапустити контейнер",
-      "genericSaveError": "Помилка збереження конфігурації",
-      "genericRestartError": "Помилка перезапуску контейнера",
-      "copyCommandFailed": "Не вдалося скопіювати в буфер обміну"
-    },
-    "fields": {
-      "hostWebUiPort": "Порт веб-інтерфейсу на хості",
-      "podmanImage": "Podman-образ",
-      "volumeBindMounts": "Прив’язки томів (bind)",
-      "hostConfigDirQui": "Каталог конфігурації хоста (/config)",
-      "hostConfigDirQuiHelp": "Зберігає config.toml, базу qui.db, кеш іконок і журнали під час роботи.",
-      "hostDataDir": "Каталог даних хоста (/data)",
-      "hostDataDirHelp": "Потрібен для hardlink/reflink cross-seed і сканування «сиріт».",
-      "hostConfigDirQbit": "Каталог конфігурації хоста (/config)",
-      "hostConfigDirQbitHelp": "Містить qBittorrent.conf, журнали, файли стану та резервні копії торрентів.",
-      "hostDownloadsDir": "Каталог завантажень хоста (/downloads)",
-      "hostDownloadsHelp": "Типова цільова папка для активних і завершених торрентів.",
-      "puid": "PUID",
-      "puidHelp": "ID користувача",
-      "pgid": "PGID",
-      "pgidHelp": "ID групи",
-      "umask": "UMASK",
-      "umaskHelpQui": "наприклад 002 або 022",
-      "umaskHelpQbit": "наприклад 022 або 002",
-      "logLevel": "Рівень журналу (QUI__LOG_LEVEL)",
-      "logLevelPlaceholder": "Рівень журналу",
-      "restartPolicy": "Політика перезапуску",
-      "restartPolicyPlaceholder": "Політика перезапуску",
-      "timezone": "Часовий пояс (TZ)",
-      "baseUrl": "Базова URL-адреса (QUI__BASE_URL)",
-      "baseUrlHelp": "Необов’язкова публічна URL-адреса, коли Qui за зворотним проксі.",
-      "bitTorrentPeerPort": "Пір-порт BitTorrent",
-      "peerPortHelp": "Вхідний трафік TCP і UDP (типово: 6881).",
-      "podmanCommandPreview": "Попередній перегляд команди Podman",
-      "copy": "Копіювати",
-      "copied": "Скопійовано",
-      "quiImageHelp": "наприклад qui-desktop:local або ghcr.io/autobrr/qui:latest",
-      "qbitImageHelp": "наприклад lscr.io/linuxserver/qbittorrent:latest",
-      "quiPortMappedHelp": "Проброшено на порт контейнера 7476 (типово: 7476).",
-      "qbitPortMappedHelp": "Проброшено на порт контейнера 8080 (типово: 8080).",
-      "dataPathPlaceholder": "/шлях/до/завантажень (необов’язково)",
-      "logLevelOption": {
-        "DEBUG": "DEBUG",
-        "INFO": "INFO",
-        "WARN": "WARN",
-        "ERROR": "ERROR"
-      },
-      "restartPolicyOption": {
-        "unlessStopped": "unless-stopped",
-        "always": "always",
-        "onFailure": "on-failure",
-        "no": "no"
-      }
-    },
-    "actions": {
-      "restartContainer": "Перезапустити контейнер",
-      "cancel": "Скасувати",
-      "saveApply": "Зберегти та застосувати"
-    }
-  },
   "header": {
     "currentInstance": "Поточний екземпляр: {{name}}. Натисніть, щоб перемкнути.",
     "connected": "Підключено",
     "disconnected": "Від'єднано",
-    "noActiveInstances": "Немає активних екземплярів",
     "showFilters": "Показати фільтри",
     "hideFilters": "Приховати фільтри",
     "addTorrent": "Додати торент",
@@ -157,11 +68,6 @@
     "smartSearchAuto": "Автопошук після паузи 500 мс",
     "smartSearchShortcut": "Натисніть {{shortcutKey}}, щоб перейти до пошуку",
     "torrentCreationTasksTitle": "Завдання створення торента",
-    "updateAvailable": "Доступне оновлення",
-    "updateVersion": "Версія {{version}}",
-    "rssRunning": "RSS cross-seed активний",
-    "rssEnabled": "RSS cross-seed увімкнено",
-    "scanRunning": "Сканування активне",
     "allScope": "ВСІ",
     "unified": "Об'єднано",
     "smartSearchPalette": "Натисніть {{shortcutKey}}, щоб відкрити палітру команд"
@@ -182,7 +88,6 @@
     "settings": "Налаштування",
     "qbittorrentClients": "Клієнти qBittorrent",
     "instances": "Екземпляри",
-    "noActiveInstances": "Немає активних екземплярів",
     "loading": "Завантаження...",
     "noActiveClients": "Немає активних клієнтів",
     "updateAvailable": "Доступне оновлення",
@@ -268,9 +173,7 @@
   "updateBanner": {
     "updateAvailable": "Доступне оновлення",
     "versionAvailable": "Версія {{version}} тепер доступна",
-    "dismiss": "Закрити",
-    "desktopUpdateAvailable": "Доступне оновлення Qui Desktop",
-    "reviewAndUpdate": "Переглянути й оновити"
+    "dismiss": "Закрити"
   },
   "systemNotice": {
     "needsAttention": "Потребує уваги",
@@ -460,11 +363,6 @@
   "support": {
     "title": "Підтримати qui",
     "description": "Уже маєте теми й хочете допомогти ще більше? Усе в qui вже ваше. Підписка не відкриває функції, вона фінансує час, витрачений на їх розробку.",
-    "perkPrefix": "Патрони отримують роль",
-    "perkSuffix": "у Discord і нашу вічну вдячність.",
-    "yearly": "{{price}} / рік",
-    "monthly": "{{price}} / місяць",
-    "notLicense": "Ліцензія на теми є окремою одноразовою покупкою.",
     "heading": "Допоможіть супроводжувати qui",
     "intro": "qui безкоштовний і працює однаково, платите ви чи ні. Підтримка оплачує час та інструменти, які йдуть на qui.",
     "licensed": "Дякуємо за вашу ліцензію на теми.",
@@ -535,22 +433,6 @@
   "labels": {
     "path": "Шлях",
     "beta": "Бета"
-  },
-  "desktopUpdate": {
-    "title": "Доступне оновлення Qui Desktop",
-    "subtitle": "Версія {{version}} готова до завантаження та встановлення. Поточна версія: {{current}}.",
-    "whatsNew": "Що нового в {{version}}",
-    "noChangelog": "Покращення продуктивності, виправлення помилок і обслуговування.",
-    "dataSafetyTitle": "Безпека даних і резервні копії перед оновленням",
-    "backupNotice": "Перед оновленням архівується знімок резервної копії.",
-    "storageNotice": "Налаштування бази даних, дані торентів і сховища зберігаються.",
-    "inProgress": "Завантаження оновлення та оновлення контейнера Qui... Інтерфейс автоматично перезавантажиться.",
-    "applied": "Оновлення успішно застосовано! Вебінтерфейс оновлюється...",
-    "failed": "Не вдалося застосувати оновлення.",
-    "later": "Пізніше",
-    "updating": "Оновлення...",
-    "done": "Готово",
-    "downloadAndUpdate": "Завантажити й оновити"
   },
   "problemReports": {
     "reportProblem": "Повідомити про проблему",
