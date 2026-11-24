@@ -8,7 +8,7 @@ import "@/i18n"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { isQBitAuthError } from "@/lib/qbit-auth-error"
+import { isQBitAuthError } from "@/lib/desktop-qbit-auth-error"
 import type { InstanceResponse } from "@/types"
 
 import { InstanceErrorDisplay } from "./InstanceErrorDisplay"

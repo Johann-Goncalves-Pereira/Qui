@@ -11,7 +11,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { usePodmanServices } from "@/hooks/usePodmanServices"
 import { useIsDesktop } from "@/lib/desktop-environment"
-import { isQBitAuthError } from "@/lib/qbit-auth-error"
+import { isQBitAuthError } from "@/lib/desktop-qbit-auth-error"
 import type { InstanceResponse } from "@/types"
 
 function hasAuthFailure(instance: InstanceResponse): boolean {
