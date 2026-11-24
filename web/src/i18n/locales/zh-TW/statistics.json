@@ -14,6 +14,7 @@
   "customRange": {
     "from": "第一天",
     "to": "最後一天",
+    "pick": "選擇日期",
     "apply": "套用",
     "range": "{{from}} 至 {{to}}"
   },
@@ -139,6 +140,13 @@
     },
     "seededValue": "{{value}}x",
     "total": "合計",
+    "shown": "{{shown}} / {{total}}",
+    "range": "{{from}}–{{to}} / {{total}}",
+    "previousPage": "上一頁",
+    "nextPage": "下一頁",
+    "showMore": "顯示更多",
+    "showAll": "顯示全部",
+    "showFewer": "顯示較少",
     "noCategory": "無分類",
     "none": "無",
     "liveError": "無法載入 qBittorrent 中目前的種子：{{message}}",
@@ -173,6 +181,7 @@
     "deleted": "已刪除",
     "crossSeed": "輔種",
     "note": "已刪除的種子保留其位置和名稱。種子計入其目前的 Tracker。前 24 小時是新增後 24 小時內的上傳量。如果 qui 在此之後才首次看到該種子，則為空。",
+    "seededNote": "做種量是該時段的上傳量除以種子大小。1.00x 表示一份完整副本。",
     "utcNote": "每個長條代表一個 UTC 日。",
     "yearNote": "每個長條代表一個 UTC 日，年份長條除外：超過詳細資料保留期後，qui 為每個種子每年只保留一個數值。"
   },

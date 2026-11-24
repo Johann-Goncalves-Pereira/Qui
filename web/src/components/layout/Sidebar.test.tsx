@@ -81,7 +81,7 @@ function renderSidebar() {
   return render(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Sidebar />
+        <Sidebar iconOnly={false} />
       </TooltipProvider>
     </QueryClientProvider>
   )

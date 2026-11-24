@@ -15,7 +15,8 @@
     "actions": {
       "edit": "Modifica",
       "testConnection": "Prova connessione",
-      "delete": "Elimina"
+      "delete": "Elimina",
+      "changeIcon": "Cambia icona"
     },
     "labels": {
       "username": "Nome utente:",
@@ -60,7 +61,13 @@
     "copiedPassword": "Password Copied",
     "copiedContainerPassword": "Container password copied to clipboard",
     "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password"
+    "failedToCopyPassword": "Failed to copy password",
+    "errorTypes": {
+      "connection": "Connessione",
+      "authentication": "Autenticazione",
+      "ban": "Ban",
+      "api": "API"
+    }
   },
   "form": {
     "labels": {
@@ -92,7 +99,10 @@
     },
     "validation": {
       "nameRequired": "Il nome dell'istanza è obbligatorio",
-      "basicAuthPasswordRequired": "La password basic auth è obbligatoria quando la basic auth è abilitata"
+      "basicAuthPasswordRequired": "La password basic auth è obbligatoria quando la basic auth è abilitata",
+      "usernameRequired": "Il nome utente è obbligatorio",
+      "passwordRequired": "La password è obbligatoria",
+      "apiKeyRequired": "La chiave API è obbligatoria"
     },
     "buttons": {
       "saving": "Salvataggio...",
@@ -116,7 +126,10 @@
       "usernamePassword": "Nome utente e password",
       "apiKey": "Chiave API"
     },
-    "sshAfterSave": "L'accesso SSH ai file dell'istanza si configura nelle impostazioni dell'istanza dopo il salvataggio."
+    "sshAfterSave": "L'accesso SSH ai file dell'istanza si configura nelle impostazioni dell'istanza dopo il salvataggio.",
+    "addTitle": "Aggiungi istanza",
+    "addDescription": "Configura una nuova istanza qBittorrent",
+    "editTitle": "Modifica istanza"
   },
   "settingsButton": {
     "tooltip": "Impostazioni istanza"
@@ -566,7 +579,8 @@
         "externalProgram": "Programma esterno",
         "dryRun": "Dry run",
         "exportToInstance": "Esporta nell'istanza",
-        "ruleSkipped": "Regola non eseguita"
+        "ruleSkipped": "Regola non eseguita",
+        "transferToInstance": "Trasferisci a un'istanza"
       },
       "shareLimit": {
         "global": "Globale",
@@ -619,7 +633,9 @@
         "exportedDryRun_one": "{{count}} torrent verrebbe esportato",
         "exportedDryRun_other": "{{count}} torrent verrebbero esportati",
         "exportFailed_one": "Esportazione di {{count}} torrent non riuscita",
-        "exportFailed_other": "Esportazione di {{count}} torrent non riuscita"
+        "exportFailed_other": "Esportazione di {{count}} torrent non riuscita",
+        "transferredDryRun_one": "{{count}} torrent verrebbe trasferito",
+        "transferredDryRun_other": "{{count}} torrent verrebbero trasferiti"
       },
       "deleteDialog": {
         "title": "Elimina regola",
@@ -679,7 +695,8 @@
         "deleteActivityFailed": "Eliminazione dell'attività non riuscita"
       },
       "exported": "Esportato",
-      "skipped": "Saltata"
+      "skipped": "Saltata",
+      "transferStarted": "Avviato"
     },
     "runWorkflowNow": {
       "action": "Esegui ora",
@@ -978,7 +995,8 @@
         "auto_managed": "Gestito automaticamente",
         "dry_run_no_match": "Simulazione (nessuna corrispondenza)",
         "exported_to_instance": "Esporta verso l'istanza",
-        "rule_skipped": "Regola non eseguita"
+        "rule_skipped": "Regola non eseguita",
+        "transferred_to_instance": "Trasferisci a un'istanza"
       }
     },
     "reannounceOverview": {
@@ -1196,7 +1214,8 @@
         "category": "Categoria",
         "move": "Sposta",
         "externalProgram": "Esegui programma esterno",
-        "exportToInstance": "Esporta nell'istanza"
+        "exportToInstance": "Esporta nell'istanza",
+        "transferToInstance": "Trasferisci a un'istanza"
       },
       "option": {
         "noChange": "Nessuna modifica",
@@ -1305,9 +1324,24 @@
           "unsupportedWindows": "L'origine dello spazio libero basata sul percorso non è supportata su Windows.",
           "qbitPathUnsupported": "Questa istanza è precedente a qBittorrent 5.3 e non può riportare lo spazio libero di un percorso.",
           "pathRequired": "Il percorso è obbligatorio quando si usa \"Percorso sul server\".",
-          "filesystemAccessRequired": "L'origine dello spazio libero basata sul percorso richiede l'accesso al filesystem locale o via SSH."
+          "filesystemAccessRequired": "L'origine dello spazio libero basata sul percorso richiede l'accesso al filesystem locale o via SSH.",
+          "allowanceRequired": "Inserisci uno spazio consentito maggiore di 0.",
+          "allowanceAccessRequired": "L'origine dello spazio consentito richiede l'accesso al filesystem locale, o l'accesso SSH con shell."
         },
-        "pathSourceFilesystemAccessRequired": "Percorso sul server (richiede accesso locale o SSH)"
+        "pathSourceFilesystemAccessRequired": "Percorso sul server (richiede accesso locale o SSH)",
+        "allowanceSource": "Spazio consentito su un percorso",
+        "allowanceSourceWindowsUnsupported": "Spazio consentito su un percorso (non supportato su Windows)",
+        "allowanceSourceAccessRequired": "Spazio consentito su un percorso (richiede accesso locale, o accesso SSH con shell)",
+        "allowanceLabel": "Spazio consentito",
+        "allowancePathLabel": "Cartella da misurare",
+        "allowanceUnitAria": "Unità dello spazio consentito",
+        "allowanceHelp": "Inserisci lo spazio consentito dal tuo piano, nell'unità usata dal tuo provider. qui sottrae la dimensione dei file sotto il percorso. La maggior parte dei provider conta a passi di 1000 ({{decimalUnit}}), non di 1024 ({{binaryUnit}}): la differenza è di circa il 9%.",
+        "allowanceUnits": {
+          "MB": "MB",
+          "GB": "GB",
+          "TB": "TB"
+        },
+        "allowancePathHelp": "Ad esempio, la tua directory home"
       },
       "grouping": {
         "title": "Gruppi di condizioni raggruppate",
@@ -1452,7 +1486,8 @@
           "externalProgram": "Programma esterno",
           "noMatches": "Nessuna corrispondenza",
           "exportedToInstance": "Esporta verso istanza",
-          "ruleSkipped": "Regola non eseguita"
+          "ruleSkipped": "Regola non eseguita",
+          "transferredToInstance": "Trasferisci a un'istanza"
         },
         "actionFallback": "Azione sconosciuta ({{action}})",
         "summary": {
@@ -1519,7 +1554,13 @@
         "setUpFilesystemAccessOrDefault": "Configura l'accesso al filesystem locale o via SSH nelle impostazioni dell'istanza, oppure usa Predefinito (qBittorrent)"
       },
       "trackerMatchInclude": "Includi",
-      "trackerMatchExclude": "Escludi"
+      "trackerMatchExclude": "Escludi",
+      "transfer": {
+        "title": "Trasferisci a un'istanza",
+        "description": "Sposta ogni torrent corrispondente con i suoi file nell'istanza di destinazione e verifica la copia prima di rimuovere qualcosa. La pagina Trasferimenti mostra ogni trasferimento.",
+        "remove": "Rimuovi «Trasferisci a un'istanza»"
+      },
+      "mixedActionConditions": "Ogni azione di questo workflow ha la propria condizione. Ora qui usa una sola condizione per workflow. Se salvi, ogni azione riceve la condizione qui sopra. Per conservare le altre, crea prima un workflow per ogni condizione."
     },
     "sections": {
       "whenAdding": "All'aggiunta di un torrent",
@@ -2117,5 +2158,110 @@
     "label": "Elimina anche la cronologia dei trasferimenti",
     "description": "Senza questa opzione, qui mantiene la cronologia con il nome dell'istanza.",
     "failed": "L'istanza è stata eliminata, ma qui non è riuscito a eliminare tutta la sua cronologia. Controlla in Impostazioni > Statistiche ed elimina il resto da lì."
+  },
+  "list": {
+    "label": "Istanze",
+    "emptyTitle": "Nessuna istanza ancora configurata",
+    "emptyDescription": "Aggiungi un client qBittorrent perché qui ne gestisca i torrent.",
+    "tlsSkipped": "Verifica TLS disattivata",
+    "reorderFailed": "Impossibile riordinare le istanze"
+  },
+  "publicPeerAddress": {
+    "label": "Indirizzo peer pubblico",
+    "noResolvedAddress": "qui non riesce ancora a determinare un indirizzo",
+    "description": "L'indirizzo e la porta con cui gli altri client BitTorrent raggiungono questo qBittorrent, per Trasferimenti e Condivisioni. Lascia vuoto per usare l'indirizzo che qui ricava da qBittorrent a ogni utilizzo. Impostalo quando qBittorrent gira in Docker o dietro NAT."
+  },
+  "mark": {
+    "picker": {
+      "title": "Icona di {{name}}",
+      "previewCollapsed": "Barra laterale compressa",
+      "previewElsewhere": "Ovunque altrove",
+      "automatic": "Automatico",
+      "letters": "Lettere",
+      "color": "Colore",
+      "colorCurrent": "Colore · {{color}}",
+      "reset": "Ripristina predefinito",
+      "description": "Scegline uno: Automatico, lettere (solo barra compressa) o icona.",
+      "iconHeading": "Icona",
+      "arrowHint": "Usa i tasti freccia per spostarti tra le icone."
+    },
+    "colors": {
+      "none": "Nessun colore",
+      "sky": "Cielo",
+      "violet": "Viola",
+      "pink": "Rosa acceso",
+      "orange": "Arancione",
+      "amber": "Ambra",
+      "lime": "Lime",
+      "emerald": "Smeraldo",
+      "teal": "Verde acqua"
+    },
+    "iconGroups": {
+      "servers": "Server",
+      "hardware": "Hardware",
+      "places": "Luoghi",
+      "media": "Media",
+      "nature": "Natura",
+      "symbols": "Simboli",
+      "objects": "Oggetti"
+    },
+    "icons": {
+      "server": "Server",
+      "nas": "NAS",
+      "tower": "PC tower",
+      "homeServer": "Server domestico",
+      "seedbox": "Seedbox",
+      "container": "Container",
+      "cloud": "Nuvola",
+      "cloudDownload": "Download dal cloud",
+      "hardDrive": "Disco rigido",
+      "driveDownload": "Disco dei download",
+      "database": "Database",
+      "cpu": "Processore",
+      "memory": "Memoria",
+      "router": "Router",
+      "monitor": "Monitor",
+      "laptop": "Portatile",
+      "house": "Casa",
+      "building": "Edificio",
+      "warehouse": "Magazzino",
+      "globe": "Globo",
+      "mapPin": "Segnaposto",
+      "flag": "Bandiera",
+      "mountain": "Montagna",
+      "tent": "Tenda",
+      "film": "Pellicola",
+      "tv": "TV",
+      "music": "Musica",
+      "podcast": "Podcast",
+      "book": "Libro",
+      "audiobook": "Audiolibro",
+      "gamepad": "Gamepad",
+      "image": "Immagine",
+      "cat": "Gatto",
+      "dog": "Cane",
+      "bird": "Uccello",
+      "fish": "Pesce",
+      "rabbit": "Coniglio",
+      "turtle": "Tartaruga",
+      "bug": "Insetto",
+      "leaf": "Foglia",
+      "star": "Stella",
+      "heart": "Cuore",
+      "flame": "Fiamma",
+      "zap": "Fulmine",
+      "rocket": "Razzo",
+      "crown": "Corona",
+      "shield": "Scudo",
+      "ghost": "Fantasma",
+      "box": "Scatola",
+      "archive": "Archivio",
+      "software": "Software",
+      "disc": "Disco",
+      "layers": "Livelli",
+      "anchor": "Ancora",
+      "magnet": "Calamita",
+      "satellite": "Satellite"
+    }
   }
 }

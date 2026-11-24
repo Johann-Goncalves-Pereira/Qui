@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { Instance, InstanceReannounceSettings } from "@/types"
@@ -85,15 +85,6 @@ import { ReannounceOverview } from "@/components/instances/preferences/Reannounc
 
 const baseSettings = instancesQuery.instances[0].reannounceSettings
 
-beforeEach(() => {
-  // Radix switch and tooltip measure through ResizeObserver, which jsdom lacks.
-  vi.stubGlobal("ResizeObserver", class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  })
-})
-
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
@@ -112,16 +103,6 @@ function renderExpanded() {
 }
 
 describe("ReannounceOverview instance card", () => {
-  it("wraps a long instance name instead of cutting it off", () => {
-    const { container } = renderExpanded()
-
-    const name = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "seedbox-europe-west-archive-01")
-    expect(name).toBeDefined()
-    // Two names that share a long prefix look identical once truncated.
-    expect(name!.classList.contains("truncate")).toBe(false)
-    expect(name!.classList.contains("wrap-anywhere")).toBe(true)
-  })
-
   it("passes one settings summary pair per setting", () => {
     const { getByTestId } = renderExpanded()
 

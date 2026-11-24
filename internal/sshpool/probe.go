@@ -18,25 +18,14 @@ import (
 	"github.com/autobrr/qui/internal/models"
 )
 
-// gnuProbeCommand asks the tools the remote file operations lean on for their
-// version. It is a fixed string with nothing interpolated into it.
 const gnuProbeCommand = "LC_ALL=C find --version && LC_ALL=C stat --version"
 
-// posixProbeWord, quoted by shellQuote, comes back from printf unchanged only
-// under a shell that reads that quoting the POSIX way. fish fails on the
-// backslash before a closing quote, nushell on the quote shellQuote escapes,
-// and tcsh on the newline in quotes, whatever its history settings. The "!"
-// catches tcsh a second time while history expansion is on. A zsh told to
-// quote like csh fails too, and it already fails on a path that holds a
-// newline.
 const posixProbeWord = "a\\'!\nb"
 
 // outputLimit caps what a probe keeps from a remote command. The server is the
 // thing being probed, so its output is not trusted to be short.
 const outputLimit = 8 << 10
 
-// HardlinkExtension is the sftp extension a server advertises when it can
-// make hard links.
 const HardlinkExtension = "hardlink@openssh.com"
 
 // probe reports what the server lets us do. A sub-probe the server refuses
@@ -94,7 +83,7 @@ func noAnswer(ctx context.Context, err error) bool {
 	return err != nil && (ctx.Err() != nil || errors.Is(err, context.DeadlineExceeded))
 }
 
-// shellAndTools asks the login shell whether it quotes like POSIX and, only
+// shellAndTools asks the sh on the host whether it quotes like POSIX and, only
 // then, whether it has the GNU tools. Both probe sites call it, so the Test
 // route and the pool cannot disagree on what earns the exec tier. A command
 // that did not answer is an error; the caller decides whether the connection
@@ -105,7 +94,7 @@ func shellAndTools(ctx context.Context, conn *Conn, timeout time.Duration) (posi
 		return false, false, err
 	}
 	out, err = conn.output(ctx, gnuProbeCommand, timeout, outputLimit)
-	return true, err == nil && isGNU(out), err
+	return true, err == nil && hasSupportedTools(out), err
 }
 
 // Tier is the tier these capabilities give: exec needs sftp and a POSIX shell
@@ -118,12 +107,13 @@ func (c *Capabilities) Tier() models.SSHTier {
 	return models.SSHTierSFTP
 }
 
-// isGNU reads the probe output. GNU tools print "<tool> (GNU <package>)
-// <version>" as their first line, and the BSD and busybox ones print neither
-// banner. Both packages are required, because the flags the remote backend
-// passes belong to both.
-func isGNU(out []byte) bool {
-	return bytes.Contains(out, []byte("GNU findutils")) && bytes.Contains(out, []byte("GNU coreutils"))
+// hasSupportedTools reads the probe output: find must be GNU findutils, for
+// -printf, and stat GNU or uutils coreutils (Ubuntu 25.10 and later), which
+// read the formats the remote backend passes alike. The BSD and busybox tools
+// print neither banner.
+func hasSupportedTools(out []byte) bool {
+	return bytes.Contains(out, []byte("(GNU findutils)")) &&
+		(bytes.Contains(out, []byte("(GNU coreutils)")) || bytes.Contains(out, []byte("(uutils coreutils)")))
 }
 
 // probeTier asks a new pooled connection for the exec tier, and writes the
@@ -199,7 +189,6 @@ func checkAlive(client *ssh.Client) error {
 	return nil
 }
 
-// oneShot is a Conn for a probe, with a session slot of its own.
 func oneShot(client *ssh.Client) *Conn {
 	return &Conn{client: client, slots: make(chan struct{}, 1), parked: new(atomic.Int32), used: func() {}}
 }

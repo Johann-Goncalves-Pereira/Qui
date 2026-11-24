@@ -97,7 +97,7 @@ func newTorznabGazelleFixture(t *testing.T, dbName, trackerURL string) (*Service
 
 	prevFindMatch := findGazelleMatch
 	findGazelleMatch = func(_ context.Context, _ *gazellemusic.Client, _ []byte, _ map[string]int64, _ int64) (*gazellemusic.Match, error) {
-		return &gazellemusic.Match{TorrentID: 4242, Title: "During - LMK (2024 WF)", Size: 123, Reason: "hash"}, nil
+		return &gazellemusic.Match{TorrentID: 4242, Title: "During - LMK (2024 WF)", Size: 123, Kind: gazellemusic.MatchHash, Host: "orpheus.network", TargetHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", QueriedHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, nil
 	}
 	t.Cleanup(func() {
 		findGazelleMatch = prevFindMatch
@@ -133,6 +133,7 @@ func newTorznabGazelleFixture(t *testing.T, dbName, trackerURL string) (*Service
 // example the only filtered indexer is a downed tracker), matches already
 // found via Gazelle (RED/OPS) must be returned as a partial response instead
 // of being discarded by a whole-search error.
+// regression: #4181
 func TestSearchTorrentMatches_TorznabFailureKeepsGazelleMatches(t *testing.T) {
 	downedTracker := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -148,6 +149,9 @@ func TestSearchTorrentMatches_TorznabFailureKeepsGazelleMatches(t *testing.T) {
 	require.True(t, resp.Partial, "response should be marked partial when the torznab leg failed")
 	require.True(t, resp.TorznabFailed, "the dialog must show that Torznab failed")
 	require.Len(t, resp.Results, 1)
+	require.True(t, resp.Results[0].SearchDecision.admitted())
+	require.Equal(t, instanceID, resp.Results[0].SearchDecision.SourceInstanceID)
+	require.Equal(t, torznabGazelleSourceHash, resp.Results[0].SearchDecision.SourceHash)
 	require.Equal(t, "gazelle:hash", resp.Results[0].MatchReason)
 	require.Contains(t, resp.Results[0].DownloadURL, "4242", "download URL should reference the gazelle torrent")
 }
@@ -204,8 +208,8 @@ func slowGazelleClients(t *testing.T) (clients *gazelleClientSet, started <-chan
 	t.Helper()
 	// Not parallel: the test replaces package-level vars.
 	prevTimeout := gazelleSearchTimeout
-	// The OPS queue lets one request through every 2 s, and other tests share
-	// it. A limit above 2 s makes the request reach the fake.
+	// Torznab must reach its fake before this ends, also on a runner that
+	// stalls a local request for a second.
 	gazelleSearchTimeout = 3 * time.Second
 	t.Cleanup(func() { gazelleSearchTimeout = prevTimeout })
 	prevFindMatch := findGazelleMatch
@@ -257,7 +261,7 @@ func TestSearchTorrentMatches_SlowGazelleKeepsTorznabResults(t *testing.T) {
 	require.Equal(t, GazelleReasonTimedOut, gazelleLookupOf(t, resp.GazelleLookups, "orpheus.network").Reason)
 	require.Len(t, resp.Results, 1)
 	require.Equal(t, "torznab-guid", resp.Results[0].GUID)
-	require.False(t, gazelleCooldownDue(resp.GazelleLookups), "a RED/OPS timeout must start no cooldown")
+	require.False(t, gazelleCooldownDue(resp.GazelleLookups, false), "a RED/OPS timeout must start no cooldown")
 }
 
 // A RED/OPS-only dialog search that runs out of time returns an empty result
@@ -271,7 +275,7 @@ func TestSearchTorrentMatches_SlowGazelleOnlyReturnsEmptyResultWithNote(t *testi
 	require.NoError(t, err)
 	require.Equal(t, GazelleReasonTimedOut, gazelleLookupOf(t, resp.GazelleLookups, "orpheus.network").Reason)
 	require.Empty(t, resp.Results)
-	require.False(t, gazelleCooldownDue(resp.GazelleLookups))
+	require.False(t, gazelleCooldownDue(resp.GazelleLookups, false))
 }
 
 // A caller that cancels while RED/OPS still waits gets the cancellation, not a

@@ -27,6 +27,7 @@ export interface TransferHistoryRow extends TransferHistoryBytes {
 export interface TransferHistoryTorrent {
   name: string
   trackerGroup: string
+  size: number
   deleted: boolean
   statisticsCrossSeed: boolean
   /** Null when qui first saw the torrent after its first 24 hours. */
@@ -35,7 +36,6 @@ export interface TransferHistoryTorrent {
 
 export type TransferHistoryGrouping = "tracker" | "category" | "torrent" | "releaseGroup" | "resolution" | "source" | "contentType"
 
-/** A grouping of the table of the Statistics page. */
 export type TableGrouping = Exclude<TransferHistoryGrouping, "torrent">
 
 export interface TransferHistoryQuery {
@@ -57,6 +57,12 @@ export interface TransferHistoryInstance {
   instanceId: number
   name: string
   firstRecordedAt: string
+}
+
+/** The Live samples of the last 3 minutes that the server keeps. Speeds are in bytes per second, and the samples of each instance are oldest first. */
+export interface LiveSamples {
+  now: string
+  instances: { instanceId: number; samples: { time: string; up: number; down: number }[] }[]
 }
 
 /** The library of one instance on one UTC day. The sizes and the count are absent when qui stored no value for the day. */

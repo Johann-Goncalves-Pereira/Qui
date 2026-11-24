@@ -15,7 +15,8 @@
     "actions": {
       "edit": "Edita",
       "testConnection": "Prova la connexió",
-      "delete": "Elimina"
+      "delete": "Elimina",
+      "changeIcon": "Canvia la icona"
     },
     "labels": {
       "username": "Nom d'usuari:",
@@ -60,7 +61,13 @@
     "copiedPassword": "Password Copied",
     "copiedContainerPassword": "Container password copied to clipboard",
     "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password"
+    "failedToCopyPassword": "Failed to copy password",
+    "errorTypes": {
+      "connection": "Connexió",
+      "authentication": "Autenticació",
+      "ban": "Bloqueig",
+      "api": "API"
+    }
   },
   "form": {
     "labels": {
@@ -92,7 +99,10 @@
     },
     "validation": {
       "nameRequired": "El nom de la instància és obligatori",
-      "basicAuthPasswordRequired": "La contrasenya de l'autenticació bàsica és obligatòria quan aquesta autenticació està activada"
+      "basicAuthPasswordRequired": "La contrasenya de l'autenticació bàsica és obligatòria quan aquesta autenticació està activada",
+      "usernameRequired": "Cal un nom d'usuari",
+      "passwordRequired": "Cal una contrasenya",
+      "apiKeyRequired": "Cal una clau d'API"
     },
     "buttons": {
       "saving": "S'està desant...",
@@ -116,7 +126,10 @@
       "usernamePassword": "Nom d'usuari i contrasenya",
       "apiKey": "Clau API"
     },
-    "sshAfterSave": "L'accés SSH als fitxers de la instància es configura a la configuració de la instància després de desar."
+    "sshAfterSave": "L'accés SSH als fitxers de la instància es configura a la configuració de la instància després de desar.",
+    "addTitle": "Afegeix una instància",
+    "addDescription": "Configura una instància nova de qBittorrent",
+    "editTitle": "Edita la instància"
   },
   "settingsButton": {
     "tooltip": "Configuració de la instància"
@@ -601,7 +614,8 @@
         "externalProgram": "Programa extern",
         "dryRun": "Execució de prova",
         "exportToInstance": "Exporta a una instància",
-        "ruleSkipped": "Regla no executada"
+        "ruleSkipped": "Regla no executada",
+        "transferToInstance": "Transfereix a una instància"
       },
       "shareLimit": {
         "global": "Global",
@@ -654,7 +668,9 @@
         "exportedDryRun_one": "{{count}} torrent s'exportaria",
         "exportedDryRun_other": "{{count}} torrents s'exportarien",
         "exportFailed_one": "No s'ha pogut exportar {{count}} torrent",
-        "exportFailed_other": "No s'han pogut exportar {{count}} torrents"
+        "exportFailed_other": "No s'han pogut exportar {{count}} torrents",
+        "transferredDryRun_one": "{{count}} torrent es transferiria",
+        "transferredDryRun_other": "{{count}} torrents es transferirien"
       },
       "deleteDialog": {
         "title": "Elimina la regla",
@@ -716,7 +732,8 @@
       "exported": "Exportat",
       "tagActions_one": "{{count}} acció d'etiqueta",
       "tagActions_other": "{{count}} accions d'etiqueta",
-      "skipped": "Omesa"
+      "skipped": "Omesa",
+      "transferStarted": "Iniciat"
     },
     "runWorkflowNow": {
       "action": "Executa ara",
@@ -848,7 +865,8 @@
         "category": "Categoria",
         "move": "Mou",
         "externalProgram": "Executa un programa extern",
-        "exportToInstance": "Exporta a una instància"
+        "exportToInstance": "Exporta a una instància",
+        "transferToInstance": "Transfereix a una instància"
       },
       "option": {
         "noChange": "Sense canvis",
@@ -968,9 +986,24 @@
           "unsupportedWindows": "L'origen d'espai lliure basat en un camí no és compatible amb Windows.",
           "qbitPathUnsupported": "Aquesta instància és anterior a qBittorrent 5.3 i no pot informar de l'espai lliure d'un camí.",
           "pathRequired": "El camí és obligatori quan es fa servir «Camí al servidor».",
-          "filesystemAccessRequired": "L'origen d'espai lliure basat en un camí necessita accés al sistema de fitxers local o per SSH."
+          "filesystemAccessRequired": "L'origen d'espai lliure basat en un camí necessita accés al sistema de fitxers local o per SSH.",
+          "allowanceRequired": "Introdueix un espai permès superior a 0.",
+          "allowanceAccessRequired": "L'origen d'espai permès necessita accés al sistema de fitxers local, o accés SSH amb intèrpret d'ordres."
         },
-        "pathSourceFilesystemAccessRequired": "Camí al servidor (necessita accés local o SSH)"
+        "pathSourceFilesystemAccessRequired": "Camí al servidor (necessita accés local o SSH)",
+        "allowanceSource": "Espai permès en un camí",
+        "allowanceSourceWindowsUnsupported": "Espai permès en un camí (no compatible amb Windows)",
+        "allowanceSourceAccessRequired": "Espai permès en un camí (necessita accés local, o accés SSH amb intèrpret d'ordres)",
+        "allowanceLabel": "Espai permès",
+        "allowancePathLabel": "Carpeta que cal mesurar",
+        "allowanceUnitAria": "Unitat de l'espai permès",
+        "allowanceHelp": "Introdueix l'espai que permet el teu pla, en la unitat que fa servir el teu proveïdor. qui en resta la mida dels fitxers que hi ha sota el camí. La majoria de proveïdors compten en passos de 1000 ({{decimalUnit}}), no de 1024 ({{binaryUnit}}): la diferència és d'un 9%.",
+        "allowanceUnits": {
+          "MB": "MB",
+          "GB": "GB",
+          "TB": "TB"
+        },
+        "allowancePathHelp": "Per exemple, el teu directori d'inici"
       },
       "grouping": {
         "title": "Grups de condicions agrupades",
@@ -1104,7 +1137,8 @@
           "externalProgram": "Programa extern",
           "noMatches": "Cap coincidència",
           "exportedToInstance": "Exporta a una instància",
-          "ruleSkipped": "Regla no executada"
+          "ruleSkipped": "Regla no executada",
+          "transferredToInstance": "Transfereix a una instància"
         },
         "actionFallback": "Acció desconeguda ({{action}})",
         "summary": {
@@ -1171,7 +1205,13 @@
         "setUpFilesystemAccessOrDefault": "Configura l'accés al sistema de fitxers local o per SSH a la configuració de la instància, o fes servir Predeterminat (qBittorrent)"
       },
       "trackerMatchInclude": "Inclou",
-      "trackerMatchExclude": "Exclou"
+      "trackerMatchExclude": "Exclou",
+      "transfer": {
+        "title": "Transfereix a una instància",
+        "description": "Mou cada torrent coincident amb els seus fitxers a la instància de destinació i en comprova la còpia abans d'eliminar res. La pàgina Transferències mostra cada transferència.",
+        "remove": "Elimina «Transfereix a una instància»"
+      },
+      "mixedActionConditions": "Cada acció d'aquest workflow té la seva pròpia condició. Ara qui fa servir una sola condició per workflow. Si deses, totes les accions rebran la condició de dalt. Per conservar les altres, crea abans un workflow per a cada condició."
     },
     "reannounceOverview": {
       "title": "Reanuncia",
@@ -1364,7 +1404,8 @@
         "auto_managed": "Gestionat automàticament",
         "dry_run_no_match": "Execució de prova (cap coincidència)",
         "exported_to_instance": "Exporta a una instància",
-        "rule_skipped": "Regla no executada"
+        "rule_skipped": "Regla no executada",
+        "transferred_to_instance": "Transfereix a una instància"
       }
     },
     "orphanScanOverview": {
@@ -2117,5 +2158,110 @@
     "label": "Elimina també l'historial de transferències",
     "description": "Sense aquesta opció, qui conserva l'historial amb el nom de la instància.",
     "failed": "La instància s'ha eliminat, però qui no ha pogut eliminar tot el seu historial. Mira a Configuració > Estadístiques i elimina-hi la resta."
+  },
+  "list": {
+    "label": "Instàncies",
+    "emptyTitle": "Encara no hi ha cap instància configurada",
+    "emptyDescription": "Afegeix un client qBittorrent perquè qui en gestioni els torrents.",
+    "tlsSkipped": "Sense comprovació TLS",
+    "reorderFailed": "No s'han pogut reordenar les instàncies"
+  },
+  "publicPeerAddress": {
+    "label": "Adreça pública del parell",
+    "noResolvedAddress": "qui encara no pot determinar cap adreça",
+    "description": "L'adreça i el port amb què altres clients BitTorrent arriben a aquest qBittorrent, per a Transferències i Comparticions. Deixa-ho buit per fer servir l'adreça que qui obté de qBittorrent a cada ús. Defineix-la quan qBittorrent s'executa a Docker o darrere de NAT."
+  },
+  "mark": {
+    "picker": {
+      "title": "Icona de {{name}}",
+      "previewCollapsed": "Barra lateral plegada",
+      "previewElsewhere": "A la resta de llocs",
+      "automatic": "Automàtic",
+      "letters": "Lletres",
+      "color": "Color",
+      "colorCurrent": "Color · {{color}}",
+      "reset": "Restableix el valor per defecte",
+      "description": "Tria'n un: Automàtic, lletres (només barra lateral plegada) o icona.",
+      "iconHeading": "Icona",
+      "arrowHint": "Fes servir les tecles de fletxa per moure't entre les icones."
+    },
+    "colors": {
+      "none": "Sense color",
+      "sky": "Cel",
+      "violet": "Violeta",
+      "pink": "Rosa intens",
+      "orange": "Taronja",
+      "amber": "Ambre",
+      "lime": "Llima",
+      "emerald": "Maragda",
+      "teal": "Verd blavós"
+    },
+    "iconGroups": {
+      "servers": "Servidors",
+      "hardware": "Maquinari",
+      "places": "Llocs",
+      "media": "Multimèdia",
+      "nature": "Natura",
+      "symbols": "Símbols",
+      "objects": "Objectes"
+    },
+    "icons": {
+      "server": "Servidor",
+      "nas": "NAS",
+      "tower": "PC de torre",
+      "homeServer": "Servidor domèstic",
+      "seedbox": "Seedbox",
+      "container": "Contenidor",
+      "cloud": "Núvol",
+      "cloudDownload": "Baixada al núvol",
+      "hardDrive": "Disc dur",
+      "driveDownload": "Disc de baixades",
+      "database": "Base de dades",
+      "cpu": "Processador",
+      "memory": "Memòria",
+      "router": "Encaminador",
+      "monitor": "Monitor",
+      "laptop": "Portàtil",
+      "house": "Casa",
+      "building": "Edifici",
+      "warehouse": "Magatzem",
+      "globe": "Globus",
+      "mapPin": "Xinxeta",
+      "flag": "Bandera",
+      "mountain": "Muntanya",
+      "tent": "Tenda",
+      "film": "Pel·lícula",
+      "tv": "TV",
+      "music": "Música",
+      "podcast": "Pòdcast",
+      "book": "Llibre",
+      "audiobook": "Audiollibre",
+      "gamepad": "Comandament",
+      "image": "Imatge",
+      "cat": "Gat",
+      "dog": "Gos",
+      "bird": "Ocell",
+      "fish": "Peix",
+      "rabbit": "Conill",
+      "turtle": "Tortuga",
+      "bug": "Insecte",
+      "leaf": "Fulla",
+      "star": "Estrella",
+      "heart": "Cor",
+      "flame": "Flama",
+      "zap": "Llamp",
+      "rocket": "Coet",
+      "crown": "Corona",
+      "shield": "Escut",
+      "ghost": "Fantasma",
+      "box": "Capsa",
+      "archive": "Arxiu",
+      "software": "Programari",
+      "disc": "Disc",
+      "layers": "Capes",
+      "anchor": "Àncora",
+      "magnet": "Imant",
+      "satellite": "Satèl·lit"
+    }
   }
 }

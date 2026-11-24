@@ -1,9 +1,10 @@
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
-const scriptPath = fileURLToPath(import.meta.url)
-const webRoot = path.resolve(import.meta.dirname, "..")
+// With --preserve-symlinks-main, import.meta.filename can be a symlink outside the repository, so the root comes from
+// the real path.
+const scriptPath = fs.realpathSync(import.meta.filename)
+const webRoot = path.resolve(path.dirname(scriptPath), "..")
 const defaultLocalesRoot = path.join(webRoot, "src", "i18n", "locales")
 
 function flattenKeys(obj, prefix = "") {
@@ -49,18 +50,9 @@ export function findLegacyPluralKeys(localesRoot = defaultLocalesRoot) {
   return found
 }
 
-/** ESM main check; realpath avoids `/var` vs `/private/var` mismatch on macOS. */
-let runAsMain
-try {
-	runAsMain =
-		process.argv[1] != null &&
-		fs.realpathSync.native(scriptPath) ===
-			fs.realpathSync.native(process.argv[1])
-} catch {
-	runAsMain = false
-}
-
-if (runAsMain) {
+// A path through a symlink, such as /var on macOS, resolves before the compare. The test runner can pass a glob that
+// names no file.
+if (fs.existsSync(process.argv[1] ?? "") && fs.realpathSync(process.argv[1]) === scriptPath) {
   const found = findLegacyPluralKeys()
 
   if (found.length === 0) {

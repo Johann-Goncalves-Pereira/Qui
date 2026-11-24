@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { TruncatedText } from "@/components/ui/truncated-text"
 import { api } from "@/lib/api"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
 import type { TorrentCreationStatus } from "@/types"
@@ -38,6 +40,17 @@ const STATUS_ICONS: Record<TorrentCreationStatus, React.ReactNode> = {
   Running: <Loader2 className="h-4 w-4 animate-spin" />,
   Finished: <CheckCircle2 className="h-4 w-4" />,
   Failed: <XCircle className="h-4 w-4" />,
+}
+
+const STATUS_LABEL_KEYS: Record<TorrentCreationStatus, string> = {
+  Queued: "creationTasks.statusLabels.Queued",
+  Running: "creationTasks.statusLabels.Running",
+  Finished: "creationTasks.statusLabels.Finished",
+  Failed: "creationTasks.statusLabels.Failed",
+}
+
+function statusLabelKey(status: TorrentCreationStatus): string {
+  return Object.hasOwn(STATUS_LABEL_KEYS, status) ? STATUS_LABEL_KEYS[status] : "common:status.unknown"
 }
 
 export function TorrentCreationTasks({ instanceId }: TorrentCreationTasksProps) {
@@ -104,14 +117,19 @@ export function TorrentCreationTasks({ instanceId }: TorrentCreationTasksProps) 
             {/* Header with source and status */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0 space-y-1">
-                <div className="font-medium text-sm break-words" title={task.sourcePath}>
-                  {task.sourcePath.split("/").pop() || task.sourcePath}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-sm break-words">
+                      {task.sourcePath.split("/").pop() || task.sourcePath}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>{task.sourcePath}</TooltipContent>
+                </Tooltip>
                 <div className="flex flex-wrap gap-2items-center">
                   <Badge variant="outline" className={STATUS_COLORS[task.status]}>
                     <span className="flex items-center gap-1">
                       {STATUS_ICONS[task.status]}
-                      {t(`creationTasks.statusLabels.${task.status}`, task.status)}
+                      {t(statusLabelKey(task.status))}
                     </span>
                   </Badge>
                   {task.private && (
@@ -187,9 +205,9 @@ export function TorrentCreationTasks({ instanceId }: TorrentCreationTasksProps) 
               <TableRow key={task.taskID}>
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="font-medium truncate max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-lg" title={task.sourcePath}>
+                    <TruncatedText className="block font-medium max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-lg" tooltipContent={task.sourcePath}>
                       {task.sourcePath.split("/").pop() || task.sourcePath}
-                    </div>
+                    </TruncatedText>
                     {task.private && (
                       <Badge variant="outline" className="text-xs">
                         {t("creationTasks.private")}
@@ -204,7 +222,7 @@ export function TorrentCreationTasks({ instanceId }: TorrentCreationTasksProps) 
                   <Badge variant="outline" className={STATUS_COLORS[task.status]}>
                     <span className="flex items-center gap-1">
                       {STATUS_ICONS[task.status]}
-                      {t(`creationTasks.statusLabels.${task.status}`, task.status)}
+                      {t(statusLabelKey(task.status))}
                     </span>
                   </Badge>
                 </TableCell>

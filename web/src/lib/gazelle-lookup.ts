@@ -14,8 +14,6 @@ const statusKeys: Partial<Record<CrossSeedGazelleLookup["status"], string>> = {
 }
 
 const notAskedKeys: Partial<Record<CrossSeedGazelleLookupReason, string>> = {
-  disabled: "crossSeedDialog.gazelle.notAsked.disabled",
-  no_api_key: "crossSeedDialog.gazelle.notAsked.noApiKey",
   cooldown: "crossSeedDialog.gazelle.notAsked.cooldown",
   not_selected: "crossSeedDialog.gazelle.notAsked.notSelected",
   source_site: "crossSeedDialog.gazelle.notAsked.sourceSite",
@@ -27,9 +25,6 @@ const failedKeys: Partial<Record<CrossSeedGazelleLookupReason, string>> = {
   key_rejected: "crossSeedDialog.gazelle.failed.keyRejected",
   timed_out: "crossSeedDialog.gazelle.failed.timedOut",
 }
-
-// The reasons that the user fixes in the RED/OPS card of the settings.
-export const gazelleSettingsReasons = new Set<CrossSeedGazelleLookupReason | undefined>(["disabled", "no_api_key"])
 
 /** gazelleLookupTextKey returns the key of the text that describes one RED/OPS entry. */
 export function gazelleLookupTextKey(lookup: CrossSeedGazelleLookup): string {
@@ -65,14 +60,4 @@ export function gazelleStatusClass(status: CrossSeedGazelleLookup["status"]): st
   if (status === "failed") return "text-destructive"
   if (status === "match") return "text-primary"
   return "text-muted-foreground"
-}
-
-const notSelected: CrossSeedGazelleLookupReason = "not_selected"
-
-/** gazelleEntryForPick shows a planned RED/OPS entry that the user did not pick as not selected. */
-export function gazelleEntryForPick(entry: CrossSeedGazelleLookup, picked: boolean): CrossSeedGazelleLookup {
-  if (picked || entry.status !== "will_ask") {
-    return entry
-  }
-  return { ...entry, status: "not_asked", reason: notSelected }
 }

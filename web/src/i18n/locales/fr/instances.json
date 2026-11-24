@@ -15,7 +15,8 @@
     "actions": {
       "edit": "Edit",
       "testConnection": "Tester la connexion",
-      "delete": "Supprimer"
+      "delete": "Supprimer",
+      "changeIcon": "Modifier l'icône"
     },
     "labels": {
       "username": "Nom d'utilisateur :",
@@ -60,7 +61,13 @@
     "copiedPassword": "Password Copied",
     "copiedContainerPassword": "Container password copied to clipboard",
     "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password"
+    "failedToCopyPassword": "Failed to copy password",
+    "errorTypes": {
+      "connection": "Connexion",
+      "authentication": "Authentification",
+      "ban": "Bannissement",
+      "api": "API"
+    }
   },
   "form": {
     "labels": {
@@ -92,7 +99,10 @@
     },
     "validation": {
       "nameRequired": "Le nom de l'instance est requis",
-      "basicAuthPasswordRequired": "Le mot de passe basic auth est requis lorsque l'authentification basic est activée"
+      "basicAuthPasswordRequired": "Le mot de passe basic auth est requis lorsque l'authentification basic est activée",
+      "usernameRequired": "Le nom d'utilisateur est requis",
+      "passwordRequired": "Le mot de passe est requis",
+      "apiKeyRequired": "La clé API est requise"
     },
     "buttons": {
       "saving": "Enregistrement...",
@@ -116,7 +126,10 @@
       "usernamePassword": "Nom d'utilisateur et mot de passe",
       "apiKey": "Clé API"
     },
-    "sshAfterSave": "L'accès SSH aux fichiers de l'instance se configure dans les paramètres de l'instance après l'enregistrement."
+    "sshAfterSave": "L'accès SSH aux fichiers de l'instance se configure dans les paramètres de l'instance après l'enregistrement.",
+    "addTitle": "Ajouter une instance",
+    "addDescription": "Configurer une nouvelle instance qBittorrent",
+    "editTitle": "Modifier l'instance"
   },
   "settingsButton": {
     "tooltip": "Paramètres de l'instance"
@@ -560,7 +573,8 @@
         "externalProgram": "Programme externe",
         "dryRun": "Simulation",
         "exportToInstance": "Exporter vers l'instance",
-        "ruleSkipped": "Règle non exécutée"
+        "ruleSkipped": "Règle non exécutée",
+        "transferToInstance": "Transférer vers une instance"
       },
       "shareLimit": {
         "global": "Global",
@@ -613,7 +627,9 @@
         "exportedDryRun_one": "{{count}} torrent serait exporté",
         "exportedDryRun_other": "{{count}} torrents seraient exportés",
         "exportFailed_one": "Échec d'exportation de {{count}} torrent",
-        "exportFailed_other": "Échec d'exportation de {{count}} torrents"
+        "exportFailed_other": "Échec d'exportation de {{count}} torrents",
+        "transferredDryRun_one": "{{count}} torrent serait transféré",
+        "transferredDryRun_other": "{{count}} torrents seraient transférés"
       },
       "deleteDialog": {
         "title": "Supprimer la règle",
@@ -673,7 +689,8 @@
         "deleteActivityFailed": "Échec de la suppression de l'activité"
       },
       "exported": "Exporté",
-      "skipped": "Ignorée"
+      "skipped": "Ignorée",
+      "transferStarted": "Démarré"
     },
     "runWorkflowNow": {
       "action": "Exécuter maintenant",
@@ -972,7 +989,8 @@
         "auto_managed": "Géré automatiquement",
         "dry_run_no_match": "Simulation (aucune correspondance)",
         "exported_to_instance": "Exporter vers l'instance",
-        "rule_skipped": "Règle non exécutée"
+        "rule_skipped": "Règle non exécutée",
+        "transferred_to_instance": "Transférer vers une instance"
       }
     },
     "reannounceOverview": {
@@ -1190,7 +1208,8 @@
         "category": "Catégorie",
         "move": "Move",
         "externalProgram": "Exécuter un programme externe",
-        "exportToInstance": "Exporter vers l'instance"
+        "exportToInstance": "Exporter vers l'instance",
+        "transferToInstance": "Transférer vers une instance"
       },
       "option": {
         "noChange": "Aucun changement",
@@ -1299,9 +1318,24 @@
           "unsupportedWindows": "Source d'espace basée sur un chemin non supportée sur Windows.",
           "qbitPathUnsupported": "Cette instance est antérieure à qBittorrent 5.3 et ne peut pas indiquer l'espace libre d'un chemin.",
           "pathRequired": "Le chemin est requis avec 'Chemin sur le serveur'.",
-          "filesystemAccessRequired": "La source d'espace libre basée sur un chemin nécessite un accès au système de fichiers local ou via SSH."
+          "filesystemAccessRequired": "La source d'espace libre basée sur un chemin nécessite un accès au système de fichiers local ou via SSH.",
+          "allowanceRequired": "Entrez un espace alloué supérieur à 0.",
+          "allowanceAccessRequired": "La source d'espace alloué nécessite un accès au système de fichiers local, ou un accès SSH avec shell."
         },
-        "pathSourceFilesystemAccessRequired": "Chemin sur le serveur (nécessite un accès local ou SSH)"
+        "pathSourceFilesystemAccessRequired": "Chemin sur le serveur (nécessite un accès local ou SSH)",
+        "allowanceSource": "Espace alloué sur un chemin",
+        "allowanceSourceWindowsUnsupported": "Espace alloué sur un chemin (non supporté sur Windows)",
+        "allowanceSourceAccessRequired": "Espace alloué sur un chemin (nécessite un accès local, ou un accès SSH avec shell)",
+        "allowanceLabel": "Espace alloué",
+        "allowancePathLabel": "Dossier à mesurer",
+        "allowanceUnitAria": "Unité de l'espace alloué",
+        "allowanceHelp": "Entrez l'espace que votre offre autorise, dans l'unité qu'utilise votre fournisseur. qui en soustrait la taille des fichiers sous le chemin. La plupart des fournisseurs comptent par paliers de 1000 ({{decimalUnit}}), et non de 1024 ({{binaryUnit}}) : l'écart est d'environ 9 %.",
+        "allowanceUnits": {
+          "MB": "Mo",
+          "GB": "Go",
+          "TB": "To"
+        },
+        "allowancePathHelp": "Par exemple, votre répertoire personnel"
       },
       "grouping": {
         "title": "Groupes de conditions",
@@ -1446,7 +1480,8 @@
           "externalProgram": "Programme externe",
           "noMatches": "Aucune correspondance",
           "exportedToInstance": "Exporter vers l'instance",
-          "ruleSkipped": "Règle non exécutée"
+          "ruleSkipped": "Règle non exécutée",
+          "transferredToInstance": "Transférer vers une instance"
         },
         "actionFallback": "Action inconnue ({{action}})",
         "summary": {
@@ -1513,7 +1548,13 @@
         "setUpFilesystemAccessOrDefault": "Configurez un accès au système de fichiers local ou via SSH dans les paramètres de l'instance, ou utilisez Par défaut (qBittorrent)"
       },
       "trackerMatchInclude": "Inclure",
-      "trackerMatchExclude": "Exclure"
+      "trackerMatchExclude": "Exclure",
+      "transfer": {
+        "title": "Transférer vers une instance",
+        "description": "Déplace chaque torrent correspondant avec ses fichiers vers l'instance cible, et vérifie la copie avant de supprimer quoi que ce soit. La page Transferts affiche chaque transfert.",
+        "remove": "Retirer « Transférer vers une instance »"
+      },
+      "mixedActionConditions": "Chaque action de ce workflow a sa propre condition. qui utilise désormais une seule condition par workflow. Si vous enregistrez, chaque action reçoit la condition ci-dessus. Pour conserver les autres, créez d'abord un workflow pour chaque condition."
     },
     "orphanScan": {
       "configureTitle": "Configurer",
@@ -2117,5 +2158,110 @@
     "label": "Supprimer aussi son historique de transfert",
     "description": "Sans cette option, qui garde l'historique sous le nom de l'instance.",
     "failed": "L'instance est supprimée, mais qui n'a pas pu supprimer tout son historique. Consultez Paramètres > Statistiques et supprimez le reste."
+  },
+  "list": {
+    "label": "Gérer les instances",
+    "emptyTitle": "Aucune instance configurée pour le moment",
+    "emptyDescription": "Ajoutez un client qBittorrent pour que qui gère ses torrents.",
+    "tlsSkipped": "Vérification TLS désactivée",
+    "reorderFailed": "Impossible de réorganiser les instances"
+  },
+  "publicPeerAddress": {
+    "label": "Adresse publique du pair",
+    "noResolvedAddress": "qui ne peut pas encore déterminer d'adresse",
+    "description": "L'adresse et le port par lesquels les autres clients BitTorrent atteignent ce qBittorrent, pour les Transferts et les Partages. Laissez vide pour utiliser l'adresse que qui déduit de qBittorrent à chaque utilisation. Définissez-la quand qBittorrent tourne dans Docker ou derrière un NAT."
+  },
+  "mark": {
+    "picker": {
+      "title": "Icône de {{name}}",
+      "previewCollapsed": "Barre latérale réduite",
+      "previewElsewhere": "Partout ailleurs",
+      "automatic": "Automatique",
+      "letters": "Lettres",
+      "color": "Couleur",
+      "colorCurrent": "Couleur · {{color}}",
+      "reset": "Rétablir par défaut",
+      "description": "Un seul choix : Automatique, lettres (barre réduite uniquement) ou icône.",
+      "iconHeading": "Icône",
+      "arrowHint": "Utilisez les flèches du clavier pour passer d'une icône à l'autre."
+    },
+    "colors": {
+      "none": "Aucune couleur",
+      "sky": "Ciel",
+      "violet": "Violet",
+      "pink": "Rose vif",
+      "orange": "Orange",
+      "amber": "Ambre",
+      "lime": "Citron vert",
+      "emerald": "Émeraude",
+      "teal": "Sarcelle"
+    },
+    "iconGroups": {
+      "servers": "Serveurs",
+      "hardware": "Matériel",
+      "places": "Lieux",
+      "media": "Médias",
+      "nature": "Nature",
+      "symbols": "Symboles",
+      "objects": "Objets"
+    },
+    "icons": {
+      "server": "Serveur",
+      "nas": "NAS",
+      "tower": "PC tour",
+      "homeServer": "Serveur domestique",
+      "seedbox": "Seedbox",
+      "container": "Conteneur",
+      "cloud": "Nuage",
+      "cloudDownload": "Téléchargement cloud",
+      "hardDrive": "Disque dur",
+      "driveDownload": "Disque de téléchargement",
+      "database": "Base de données",
+      "cpu": "Processeur",
+      "memory": "Mémoire",
+      "router": "Routeur",
+      "monitor": "Écran",
+      "laptop": "Ordinateur portable",
+      "house": "Maison",
+      "building": "Immeuble",
+      "warehouse": "Entrepôt",
+      "globe": "Globe",
+      "mapPin": "Repère",
+      "flag": "Drapeau",
+      "mountain": "Montagne",
+      "tent": "Tente",
+      "film": "Film",
+      "tv": "TV",
+      "music": "Musique",
+      "podcast": "Podcast",
+      "book": "Livre",
+      "audiobook": "Livre audio",
+      "gamepad": "Manette",
+      "image": "Image",
+      "cat": "Chat",
+      "dog": "Chien",
+      "bird": "Oiseau",
+      "fish": "Poisson",
+      "rabbit": "Lapin",
+      "turtle": "Tortue",
+      "bug": "Insecte",
+      "leaf": "Feuille",
+      "star": "Étoile",
+      "heart": "Cœur",
+      "flame": "Flamme",
+      "zap": "Éclair",
+      "rocket": "Fusée",
+      "crown": "Couronne",
+      "shield": "Bouclier",
+      "ghost": "Fantôme",
+      "box": "Boîte",
+      "archive": "Archive",
+      "software": "Logiciel",
+      "disc": "Disque",
+      "layers": "Calques",
+      "anchor": "Ancre",
+      "magnet": "Aimant",
+      "satellite": "Satellite"
+    }
   }
 }

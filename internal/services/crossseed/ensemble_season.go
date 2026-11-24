@@ -97,10 +97,13 @@ func parseEnsembleSeasonPseudoHash(hash string) (ensembleGroupKey, bool) {
 // content dedup, so groups inherit the run scoping. packSource is the
 // instance's full torrent list: a seeded pack outside the run scope must still
 // suppress its group, or the search re-downloads a pack the user already has.
-func (s *Service) buildEnsembleSeasonCandidates(torrents, packSource []*qbt.Torrent) []*qbt.Torrent {
+// copyAddedOn gives the added time of the newest copy of a deduplicated
+// episode, which dates the group for a scheduled run.
+func (s *Service) buildEnsembleSeasonCandidates(torrents, packSource []*qbt.Torrent, copyAddedOn map[string]int64) []*qbt.Torrent {
 	type groupInfo struct {
 		displayTitle string
 		episodes     map[int]struct{}
+		addedOn      int64
 	}
 	groups := make(map[ensembleGroupKey]*groupInfo)
 	packs := make(map[ensembleGroupKey]struct{})
@@ -150,6 +153,7 @@ func (s *Service) buildEnsembleSeasonCandidates(torrents, packSource []*qbt.Torr
 		if group.displayTitle == "" {
 			group.displayTitle = release.Title
 		}
+		group.addedOn = max(group.addedOn, torrent.AddedOn, copyAddedOn[torrent.Hash])
 		if isRange {
 			// A range counts each episode it names toward the group.
 			for _, se := range release.SeriesEpisodes() {
@@ -178,6 +182,8 @@ func (s *Service) buildEnsembleSeasonCandidates(torrents, packSource []*qbt.Torr
 			Hash:     ensembleSeasonPseudoHash(key),
 			Name:     name,
 			Progress: 1.0,
+			// The newest episode dates the group for a scheduled run.
+			AddedOn: group.addedOn,
 		})
 	}
 
@@ -207,28 +213,38 @@ func (s *Service) processEnsembleSeasonCandidate(ctx context.Context, state *sea
 	}
 
 	source := s.matcher().readName(torrent.Name)
-	searchReq := s.matcher().buildTorznabRequest(torznabRequestInput{
+	gatherIn := s.matcher().buildTorznabRequest(torznabRequestInput{
 		torrentName: torrent.Name,
 		source:      source,
 		contentInfo: DetermineContentType(source.release),
 		indexerIDs:  state.resolvedTorznabIndexerIDs,
-	}).req
+	})
+	gatherIn.AltTitle = ""
+	gatherIn.AltTitleSeason = nil
+	gatherIn.LogPrefix = "[CROSSSEED-ENSEMBLE]"
+	searchReq := gatherIn.Req
+	if len(searchReq.Categories) > 0 {
+		searchReq.Categories = s.jackettService.GetOptimalCategoriesForIndexers(ctx, searchReq.Categories, searchReq.IndexerIDs)
+	}
 
 	searchCtx := jackett.WithSearchPriority(ctx, jackett.RateLimitPriorityBackground)
 
-	resp, err := s.searchOnce(searchCtx, searchReq)
+	usable := func(res jackett.SearchResult) bool { return s.ensemblePackAdmissible(res.Title, key) }
+	resp, _, answered, err := s.newSearchGatherer(usable).Gather(ctx, searchCtx, gatherIn)
 	if err != nil {
 		if ctx.Err() != nil {
 			return false, ctx.Err()
 		}
-		if errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, errSearchTimedOut) {
 			s.recordEnsembleOutcome(state, torrent, processedAt, models.CrossSeedSearchResultStatusSkipped, "search timed out")
 			return true, nil
 		}
 		s.recordEnsembleOutcome(state, torrent, processedAt, models.CrossSeedSearchResultStatusFailed, fmt.Sprintf("search failed: %v", err))
-		return false, err
+		// As for a torrent, a sent search counts also when it failed: the run
+		// waits the interval, and a scheduled run counts it toward its cap.
+		return true, err
 	}
-	if len(resp.CoveredIndexerIDs) > 0 {
+	if answered {
 		state.torznabSearched = true
 	}
 
@@ -254,19 +270,7 @@ func (s *Service) applyEnsembleSearchResults(ctx context.Context, state *searchR
 	attemptedNames := make(map[string]struct{})
 
 	for _, res := range resp.Results {
-		candidate := s.releaseCache.Parse(res.Title)
-		if !isTVSeasonPack(candidate) {
-			continue
-		}
-		// A multi-season range pack can never assemble from one season's
-		// episodes; admitting one is a guaranteed wasted download.
-		if isSeasonRangePack(res.Title) {
-			continue
-		}
-		if s.stringNormalizer.Normalize(candidate.Title) != key.normalizedTitle {
-			continue
-		}
-		if key.season > 0 && candidate.Series != key.season {
+		if !s.ensemblePackAdmissible(res.Title, key) {
 			continue
 		}
 		// The same pack circulates under one name with a distinct GUID per
@@ -335,6 +339,16 @@ func (s *Service) applyEnsembleSearchResults(ctx context.Context, state *searchR
 		return
 	}
 	s.finishSearchCandidate(state, successCount, failedAttempt)
+}
+
+func (s *Service) ensemblePackAdmissible(title string, key ensembleGroupKey) bool {
+	candidate := s.releaseCache.Parse(title)
+	// A multi-season range pack can never assemble from one season's
+	// episodes; admitting one is a guaranteed wasted download.
+	return isTVSeasonPack(candidate) &&
+		!isSeasonRangePack(title) &&
+		s.stringNormalizer.Normalize(candidate.Title) == key.normalizedTitle &&
+		(key.season == 0 || candidate.Series == key.season)
 }
 
 // recordEnsembleOutcome appends a summary result row for an ensemble candidate

@@ -23,14 +23,12 @@ import (
 
 var testClientKey = sshtest.PrivateKey("")
 
-// fakeCreds stands in for the instance store: the row Get answers with, plus
-// the decrypted key and pin, so the tests need no database.
 type fakeCreds struct {
 	key    string
 	keyErr error
 	pin    []byte
 	pinErr error
-	inst   *models.Instance // the row Get answers with, for the pool tests
+	inst   *models.Instance
 	getErr error
 }
 
@@ -61,7 +59,6 @@ func (f fakeCreds) GetHostKeyPin(*models.Instance) ([]byte, error) {
 	return f.pin, nil
 }
 
-// SetSSHProbe writes the row Get answers with, as the store writes the columns.
 func (f fakeCreds) SetSSHProbe(ctx context.Context, probed *models.Instance, tier models.SSHTier, hardlink bool) error {
 	if err := ctx.Err(); err != nil {
 		return err // as the store's ExecContext would
@@ -87,8 +84,6 @@ func instanceAt(t *testing.T, addr string) *models.Instance {
 	return &models.Instance{ID: 1, SSHHost: host, SSHPort: port, SSHUsername: "qui"}
 }
 
-// dialerFor returns a dialer holding the test client key and the given pin
-// (nil pin means the instance has never been pinned).
 func dialerFor(pin []byte) *Dialer {
 	return NewDialer(fakeCreds{key: testClientKey, pin: pin})
 }
@@ -257,11 +252,17 @@ func TestExecCapabilities(t *testing.T) {
 		{name: "sftp only key", mode: sshtest.ExecSFTPOnly},
 		{name: "gnu userland", mode: sshtest.ExecGNU, exec: true, posixShell: true, gnuUserland: true},
 		{name: "bsd userland", mode: sshtest.ExecBSD, exec: true, posixShell: true},
-		// The GNU tools are there, but the login shell quotes like fish,
-		// nushell or tcsh, so a quoted path could break out: no exec tier.
-		{name: "non-posix login shell", mode: sshtest.ExecNonPOSIX, exec: true},
-		{name: "split-quote login shell", mode: sshtest.ExecSplitQuote, exec: true},
-		{name: "csh login shell", mode: sshtest.ExecCsh, exec: true},
+		// regression: #4341
+		{name: "uutils stat", mode: sshtest.ExecUutils, exec: true, posixShell: true, gnuUserland: true},
+		// regression: #4345
+		{name: "fish login shell", mode: sshtest.ExecNonPOSIX, exec: true, posixShell: true, gnuUserland: true},
+		// regression: #4345
+		{name: "nushell login shell", mode: sshtest.ExecSplitQuote, exec: true, posixShell: true, gnuUserland: true},
+		// regression: #4345
+		{name: "csh login shell", mode: sshtest.ExecCsh, exec: true, posixShell: true, gnuUserland: true},
+		{name: "restricted bash login shell", mode: sshtest.ExecRestrictedBash, exec: true, posixShell: true, gnuUserland: true},
+		{name: "login shell that prints a banner", mode: sshtest.ExecLoginBanner, exec: true},
+		{name: "login shell with no sh", mode: sshtest.ExecNoSh},
 		// A pooled connection keeps sftp open, so a host with MaxSessions 1
 		// has no channel left for a command.
 		{name: "one session at a time", mode: sshtest.ExecOneSession},
@@ -291,8 +292,6 @@ func TestExecCapabilities(t *testing.T) {
 	}
 }
 
-// A host that runs the GNU tools but refuses sftp serves no pooled connection,
-// so it must not read as the exec tier.
 func TestExecTierNeedsSFTP(t *testing.T) {
 	t.Parallel()
 
@@ -402,8 +401,6 @@ func TestPinnedRSAHostKeyMatches(t *testing.T) {
 	}
 }
 
-// rsaSignerFor returns an RSA host key the server may sign with only under the
-// given algorithms, nil meaning all of them.
 func rsaSignerFor(t *testing.T, algorithms []string) ssh.Signer {
 	t.Helper()
 
@@ -417,8 +414,6 @@ func rsaSignerFor(t *testing.T, algorithms []string) ssh.Signer {
 	return restricted
 }
 
-// A request cancelled while a probe command is blocked must return then, not
-// at the connection deadline: the dialer here would wait ten seconds.
 func TestCancellationUnblocksProbe(t *testing.T) {
 	t.Parallel()
 
@@ -486,17 +481,12 @@ func testWithin(t *testing.T, dialer *Dialer, inst *models.Instance, limit time.
 	}
 }
 
-// dialerWithTimeout is the dialer the timeout tests use: the same one, wound
-// down from 15s so a stalled host is waited out in test time.
 func dialerWithTimeout(timeout time.Duration) *Dialer {
 	dialer := dialerFor(nil)
 	dialer.timeout = timeout
 	return dialer
 }
 
-// A host that completes the TCP connect and then says nothing must not hold the
-// request open: ssh.ClientConfig.Timeout does not bound the handshake, only the
-// connection's deadline does.
 func TestTimeoutBoundsHandshake(t *testing.T) {
 	t.Parallel()
 
@@ -508,8 +498,6 @@ func TestTimeoutBoundsHandshake(t *testing.T) {
 	assert.Less(t, time.Since(start), 5*time.Second)
 }
 
-// Same for the probe: the session channel opens, and then the host never
-// answers the command.
 func TestTimeoutBoundsProbe(t *testing.T) {
 	t.Parallel()
 
@@ -520,9 +508,6 @@ func TestTimeoutBoundsProbe(t *testing.T) {
 	assert.Nil(t, report, "a command the host never answered must not read as a host that cannot run it")
 }
 
-// A stored key that will not parse is qui's fault, not the host's, so it is
-// reported as itself: only a host that cannot be reached cedes to the
-// unreadable pin.
 func TestUnparseableKeyOutranksUnreadablePin(t *testing.T) {
 	t.Parallel()
 
@@ -541,9 +526,6 @@ func TestUnreachableHostIsErrConnect(t *testing.T) {
 	require.ErrorIs(t, err, ErrConnect)
 }
 
-// A host whose session channels never answer still has a verifiable host
-// key: the pin succeeds and no tier is reported, and a test of the same host
-// reports no answer rather than a tier the probe did not learn.
 func TestProbeWithoutAnAnswerPinsButReportsNothing(t *testing.T) {
 	t.Parallel()
 

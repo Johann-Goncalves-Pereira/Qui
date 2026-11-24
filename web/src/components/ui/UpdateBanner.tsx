@@ -7,19 +7,23 @@ import { InstallUpdateButton } from "@/components/settings/InstallUpdateButton"
 import { RestartOverlay } from "@/components/settings/RestartOverlay"
 import { Button } from "@/components/ui/button"
 import { DesktopUpdateDialog } from "@/components/ui/DesktopUpdateDialog"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useSelfUpdate } from "@/hooks/useSelfUpdate"
 import { api } from "@/lib/api"
-import { cn } from "@/lib/utils"
+import { setUpdateBannerMounted } from "@/lib/desktop-update-state"
+import { cn, collapseRowClassName } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
 import { Download, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { setUpdateBannerMounted } from "@/lib/desktop-update-state"
+import { useUpdateBannerDismissed } from "@/hooks/useUpdateBannerDismissed"
 
-export function UpdateBanner() {
+/** The update notice of the sidebar. With iconOnly, it is one icon that opens the Install dialog in Settings. */
+export function UpdateBanner({ iconOnly = false, installInSettings = false }: { iconOnly?: boolean; installInSettings?: boolean }) {
   const isDesktop = typeof window !== "undefined" && window.quiDesktop !== undefined
   const { t } = useTranslation("common")
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, dismiss] = useUpdateBannerDismissed()
   const [dialogOpen, setDialogOpen] = useState(false)
   const selfUpdate = useSelfUpdate()
 
@@ -69,6 +73,7 @@ export function UpdateBanner() {
     enabled: !isDesktop,
     // Check for updates every 2 minutes
     refetchInterval: 2 * 60 * 1000,
+    // Don't show loading state on mount, run in background
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   })
@@ -78,49 +83,76 @@ export function UpdateBanner() {
       return null
     }
 
+    const desktopVersion = desktopUpdate.tagName || `v${desktopUpdate.latestVersion}`
+
     return (
       <>
         {!dismissed && (
-          <div className={cn(
-            "mb-3 rounded-md border border-green-200 bg-green-50 p-3",
-            "dark:border-green-800 dark:bg-green-950/50"
-          )}>
-          <div className="flex items-start gap-2">
-            <Download className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                {t("updateBanner.desktopUpdateAvailable")}
-              </p>
-              <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                {t("updateBanner.versionAvailable", {
-                  version: desktopUpdate.tagName || `v${desktopUpdate.latestVersion}`,
-                })}
-              </p>
-              <div className="mt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className={bannerButtonClass}
-                  onClick={() => {
-                    setDialogOpen(true)
-                  }}
-                >
-                  <Download className="mr-1.5 h-3 w-3" />
-                  {t("updateBanner.reviewAndUpdate")}
-                </Button>
+          <div>
+            <div inert={iconOnly} className={collapseRowClassName(iconOnly)}>
+              <div className="min-h-0 overflow-hidden">
+                <div className={cn(
+                  "mb-3 rounded-md border border-green-200 bg-green-50 p-3",
+                  "dark:border-green-800 dark:bg-green-950/50",
+                  iconOnly && "w-58"
+                )}>
+                  <div className="flex items-start gap-2">
+                    <Download className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        {t("updateBanner.desktopUpdateAvailable")}
+                      </p>
+                      <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                        {t("updateBanner.versionAvailable", { version: desktopVersion })}
+                      </p>
+                      <div className="mt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={bannerButtonClass}
+                          onClick={() => {
+                            setDialogOpen(true)
+                          }}
+                        >
+                          <Download className="mr-1.5 h-3 w-3" />
+                          {t("updateBanner.reviewAndUpdate")}
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-4 w-4 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+                      onClick={dismiss}
+                    >
+                      <X className="h-3 w-3" />
+                      <span className="sr-only">{t("updateBanner.dismiss")}</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-4 w-4 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
-              onClick={() => setDismissed(true)}
-            >
-              <X className="h-3 w-3" />
-              <span className="sr-only">{t("updateBanner.dismiss")}</span>
-            </Button>
+            <div inert={!iconOnly} className={collapseRowClassName(!iconOnly)}>
+              <div className="min-h-0 overflow-hidden">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={t("updateBanner.desktopUpdateAvailable")}
+                      onClick={() => setDialogOpen(true)}
+                      className="mb-3 flex h-8 w-full items-center rounded-md px-3 text-green-600 -outline-offset-2 hover:bg-sidebar-accent dark:text-green-400 short:h-7"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">
+                    {t("updateBanner.desktopUpdateAvailable")}
+                    <span className="block opacity-70">{t("updateBanner.versionAvailable", { version: desktopVersion })}</span>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
           </div>
-        </div>
         )}
         <DesktopUpdateDialog
           open={dialogOpen}
@@ -134,35 +166,75 @@ export function UpdateBanner() {
   return (
     <>
       {!dismissed && updateInfo && (
-        <div className={cn(
-          "mb-3 rounded-md border border-green-200 bg-green-50 p-3",
-          "dark:border-green-800 dark:bg-green-950/50"
-        )}>
-          <div className="flex items-start gap-2">
-            <Download className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                {t("updateBanner.updateAvailable")}
-              </p>
-              <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-                {t("updateBanner.versionAvailable", { version: updateInfo.tag_name })}
-              </p>
-              <div className="mt-2">
-                <InstallUpdateButton selfUpdate={selfUpdate} release={updateInfo} className={bannerButtonClass} />
+        <div>
+          <div inert={iconOnly} className={collapseRowClassName(iconOnly)}>
+            <div className="min-h-0 overflow-hidden">
+              {/* The card keeps its full width while the sidebar gets narrow, so its text does not wrap again. */}
+              <div className={cn(
+                "mb-3 rounded-md border border-green-200 bg-green-50 p-3",
+                "dark:border-green-800 dark:bg-green-950/50",
+                iconOnly && "w-58"
+              )}>
+                <div className="flex items-start gap-2">
+                  <Download className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                      {t("updateBanner.updateAvailable")}
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                      {t("updateBanner.versionAvailable", { version: updateInfo.tag_name })}
+                    </p>
+                    {/* The Install dialog links the release notes, so one button is enough. */}
+                    <div className="mt-2">
+                      {installInSettings ? (
+                        <Button asChild variant="outline" size="sm" className={bannerButtonClass}>
+                          <Link to="/settings" search={{ tab: "application", modal: "install-update" }}>
+                            <Download className="mr-2 h-4 w-4" />
+                            {t("settings:application.update.button")}
+                          </Link>
+                        </Button>
+                      ) : (
+                        <InstallUpdateButton selfUpdate={selfUpdate} release={updateInfo} className={bannerButtonClass} />
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-4 w-4 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+                    onClick={dismiss}
+                  >
+                    <X className="h-3 w-3" />
+                    <span className="sr-only">{t("updateBanner.dismiss")}</span>
+                  </Button>
+                </div>
               </div>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-4 w-4 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
-              onClick={() => setDismissed(true)}
-            >
-              <X className="h-3 w-3" />
-              <span className="sr-only">{t("updateBanner.dismiss")}</span>
-            </Button>
+          </div>
+          <div inert={!iconOnly} className={collapseRowClassName(!iconOnly)}>
+            <div className="min-h-0 overflow-hidden">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/settings"
+                    search={{ tab: "application", modal: "install-update" }}
+                    aria-label={t("updateBanner.updateAvailable")}
+                    className="mb-3 flex h-8 items-center rounded-md px-3 text-green-600 -outline-offset-2 hover:bg-sidebar-accent dark:text-green-400 short:h-7"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  {t("updateBanner.updateAvailable")}
+                  <span className="block opacity-70">{t("updateBanner.versionAvailable", { version: updateInfo.tag_name })}</span>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </div>
       )}
+      {/* Outside the banner: while qui is down, the update check fails and
+          updateInfo turns null. */}
       <RestartOverlay state={selfUpdate.overlay} update={selfUpdate.update} />
     </>
   )

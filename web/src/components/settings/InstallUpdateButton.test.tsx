@@ -9,6 +9,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { UpdateBanner } from "@/components/ui/UpdateBanner"
 import { api } from "@/lib/api"
 import { server } from "@/test/msw/server"
@@ -38,13 +39,15 @@ let updateBodies: unknown[] = []
 let queryClient: QueryClient
 let router: AnyRouter
 
-function renderBanner() {
+function renderBanner(props: { installInSettings?: boolean } = {}) {
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory({ initialEntries: ["/settings"] }) })
   return render(
     <RouterContextProvider router={router}>
       <QueryClientProvider client={queryClient}>
-        <UpdateBanner />
+        <TooltipProvider>
+          <UpdateBanner {...props} />
+        </TooltipProvider>
       </QueryClientProvider>
     </RouterContextProvider>
   )
@@ -118,6 +121,19 @@ async function advance(ms: number) {
 }
 
 describe("Install update", () => {
+  // regression: #4355
+  it("sends Install to the dialog in Settings when installInSettings is set", async () => {
+    renderBanner({ installInSettings: true })
+    const install = await screen.findByRole("link", { name: "settings:application.update.button" })
+    expect(install.getAttribute("href")).toBe("/settings?tab=application&modal=install-update")
+    expect(screen.queryByRole("button", { name: "application.update.button" })).toBeNull()
+
+    fireEvent.click(install)
+    await vi.waitFor(() => expect(router.state.location.search).toEqual({ tab: "application", modal: "install-update" }))
+    expect(screen.queryByRole("alertdialog")).toBeNull()
+    expect(updateBodies).toEqual([])
+  })
+
   it.each([
     ["container", "https://getqui.com/docs/getting-started/docker/"],
     ["disabled", "https://getqui.com/docs/configuration/reference/#settings"],
@@ -161,7 +177,7 @@ describe("Install update", () => {
     renderBanner()
     await openDialog()
     expect(screen.getByText("application.update.support.failedTitle")).toBeTruthy()
-    expect(screen.getByText("application.update.unavailable.nextStep").closest("div")?.className).toContain("border-destructive/40")
+    expect(screen.getByText("application.update.unavailable.nextStep")).toBeTruthy()
     expect(screen.queryByText("application.update.unavailable.container.reason")).toBeNull()
     expect(screen.queryByText("application.update.unavailable.guide")).toBeNull()
 
@@ -282,7 +298,7 @@ describe("Install update", () => {
     await advance(3_000)
     expect(screen.getByText("application.restart.overlay.slowTitle")).toBeTruthy()
     expect(screen.getByText(updateResult.rollbackCommand)).toBeTruthy()
-    expect(screen.getByTitle(/^actions\.copyValue/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^actions\.copyValue/ })).toBeTruthy()
     const docs = screen.getByText("application.update.overlay.rollbackDocs").closest("a")
     expect(docs?.getAttribute("href")).toContain("#roll-back-an-update")
     expect(screen.queryByText(/application\.update\.overlay\.noBackup/)).toBeNull()

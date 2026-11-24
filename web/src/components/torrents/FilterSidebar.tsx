@@ -1860,7 +1860,7 @@ const FilterSidebarComponent = ({
             <div className="flex items-center gap-2 min-w-0">
               <h3 className="font-semibold">{t("filterSidebar.title")}</h3>
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild openOnTap>
                   <button
                     type="button"
                     className="text-muted-foreground hover:text-foreground"
@@ -2064,21 +2064,27 @@ const FilterSidebarComponent = ({
                 <div className="flex flex-col gap-0">
                   {/* Add new category button and show/hide empty toggle */}
                   <div className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", filterItemClass)}>
-                    <button
-                      className={cn("flex items-center gap-1.5 transition-colors", isReadOnly ? "cursor-not-allowed opacity-60" : "hover:text-foreground")}
-                      disabled={isReadOnly}
-                      title={isReadOnly ? t("filterSidebar.unavailableUnifiedView") : undefined}
-                      onClick={() => {
-                        if (isReadOnly) {
-                          return
-                        }
-                        setParentCategoryForNew(undefined)
-                        setShowCreateCategoryDialog(true)
-                      }}
-                    >
-                      <Plus className="h-3 w-3" />
-                      <span>{t("filterSidebar.createCategory")}</span>
-                    </button>
+                    <Tooltip disabled={!isReadOnly}>
+                      <TooltipTrigger asChild>
+                        <span className={cn("inline-flex", isReadOnly && "cursor-not-allowed")} tabIndex={isReadOnly ? 0 : undefined}>
+                          <button
+                            className={cn("flex items-center gap-1.5 transition-colors", isReadOnly ? "pointer-events-none opacity-60" : "hover:text-foreground")}
+                            disabled={isReadOnly}
+                            onClick={() => {
+                              if (isReadOnly) {
+                                return
+                              }
+                              setParentCategoryForNew(undefined)
+                              setShowCreateCategoryDialog(true)
+                            }}
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>{t("filterSidebar.createCategory")}</span>
+                          </button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{t("filterSidebar.unavailableUnifiedView")}</TooltipContent>
+                    </Tooltip>
                     {hiddenCategoryCount > 0 && (
                       <>
                         <span className="text-muted-foreground/40">•</span>
@@ -2140,7 +2146,7 @@ const FilterSidebarComponent = ({
                         {t("filterSidebar.uncategorized")}
                       </span>
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger asChild openOnTap>
                           <span
                             className={cn(
                               "text-xs tabular-nums shrink-0",
@@ -2270,7 +2276,7 @@ const FilterSidebarComponent = ({
                                       {displayName}
                                     </TruncatedText>
                                     <Tooltip>
-                                      <TooltipTrigger asChild>
+                                      <TooltipTrigger asChild openOnTap>
                                         <span
                                           className={cn(
                                             "text-xs tabular-nums shrink-0",
@@ -2382,7 +2388,7 @@ const FilterSidebarComponent = ({
                                 {displayName}
                               </TruncatedText>
                               <Tooltip>
-                                <TooltipTrigger asChild>
+                                <TooltipTrigger asChild openOnTap>
                                   <span
                                     className={cn(
                                       "text-xs tabular-nums shrink-0",
@@ -2475,20 +2481,26 @@ const FilterSidebarComponent = ({
                 <div className="flex flex-col gap-0">
                   {/* Add new tag button and show/hide empty toggle */}
                   <div className={cn("flex items-center gap-1.5 text-xs text-muted-foreground", filterItemClass)}>
-                    <button
-                      className={cn("flex items-center gap-1.5 transition-colors", isReadOnly ? "cursor-not-allowed opacity-60" : "hover:text-foreground")}
-                      disabled={isReadOnly}
-                      title={isReadOnly ? t("filterSidebar.unavailableUnifiedView") : undefined}
-                      onClick={() => {
-                        if (isReadOnly) {
-                          return
-                        }
-                        setShowCreateTagDialog(true)
-                      }}
-                    >
-                      <Plus className="h-3 w-3" />
-                      <span>{t("filterSidebar.createTag")}</span>
-                    </button>
+                    <Tooltip disabled={!isReadOnly}>
+                      <TooltipTrigger asChild>
+                        <span className={cn("inline-flex", isReadOnly && "cursor-not-allowed")} tabIndex={isReadOnly ? 0 : undefined}>
+                          <button
+                            className={cn("flex items-center gap-1.5 transition-colors", isReadOnly ? "pointer-events-none opacity-60" : "hover:text-foreground")}
+                            disabled={isReadOnly}
+                            onClick={() => {
+                              if (isReadOnly) {
+                                return
+                              }
+                              setShowCreateTagDialog(true)
+                            }}
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>{t("filterSidebar.createTag")}</span>
+                          </button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{t("filterSidebar.unavailableUnifiedView")}</TooltipContent>
+                    </Tooltip>
                     {hiddenTagCount > 0 && (
                       <>
                         <span className="text-muted-foreground/40">•</span>
@@ -2550,7 +2562,7 @@ const FilterSidebarComponent = ({
                         {t("filterSidebar.untagged")}
                       </span>
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger asChild openOnTap>
                           <span
                             className={cn(
                               "text-xs tabular-nums shrink-0",
@@ -2647,7 +2659,7 @@ const FilterSidebarComponent = ({
                                       {tag}
                                     </TruncatedText>
                                     <Tooltip>
-                                      <TooltipTrigger asChild>
+                                      <TooltipTrigger asChild openOnTap>
                                         <span
                                           className={cn(
                                             "text-xs tabular-nums shrink-0",
@@ -2730,7 +2742,7 @@ const FilterSidebarComponent = ({
                                 {tag}
                               </TruncatedText>
                               <Tooltip>
-                                <TooltipTrigger asChild>
+                                <TooltipTrigger asChild openOnTap>
                                   <span
                                     className={cn(
                                       "text-xs tabular-nums shrink-0",

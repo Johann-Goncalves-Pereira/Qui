@@ -27,7 +27,7 @@ INTERNAL_WEB_DIR = internal/web
 # Go build flags
 LDFLAGS = -ldflags "-X github.com/autobrr/qui/internal/buildinfo.Version=$(VERSION) -X github.com/autobrr/qui/internal/buildinfo.Commit=$(GIT_COMMIT) -X github.com/autobrr/qui/internal/buildinfo.Date=$(BUILD_DATE)"
 
-.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh desktop-version-bump desktop-publish-release desktop-publish-qui-image upstream-sync upstream-sync-fork install-hooks clean test test-postgres test-frontend help themes-fetch themes-clean lint lint-full lint-ratchet typecheck-frontend lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
+.PHONY: all build frontend backend dev dev-backend dev-frontend dev-expose desktop-dev desktop-refresh desktop-version-bump desktop-publish-release desktop-publish-qui-image upstream-sync upstream-sync-fork install-hooks clean test test-postgres test-frontend test-frontend-changed help themes-fetch themes-clean lint lint-full lint-ratchet lint-version typecheck-frontend check-i18n check-feature-map check-regression-marker lint-json lint-fix fmt gofix-changed gofix-check-changed check-mojibake generate precommit deps docs-dev docs-build mutation mutation-go mutation-web
 
 # Default target
 all: build
@@ -42,26 +42,6 @@ build/docker:
 build/dockerx:
 	docker buildx build -t ghcr.io/autobrr/qui:dev -f distrib/docker/Dockerfile . --build-arg GIT_TAG=$(GIT_TAG) --build-arg GIT_COMMIT=$(GIT_COMMIT) --build-arg BUILD_DATE=$(BUILD_DATE) --build-arg VERSION=$(VERSION) --platform=linux/amd64,linux/arm64 --pull --load
 
-# Fetch the community themes into the licensed folder. The repo is public, so no token.
-# Without network, warn and build with the free themes only.
-themes-fetch:
-	@echo "Fetching community themes..."
-	@rm -rf .themes-temp internal/themes/assets/premium/*.css internal/themes/assets/premium/LICENSE
-	@if git clone --quiet --depth=1 --branch main --filter=blob:none --sparse \
-			https://github.com/autobrr/qui-community-themes.git .themes-temp && \
-		git -C .themes-temp sparse-checkout set --cone themes; then \
-		cp .themes-temp/themes/[!_]*.css .themes-temp/LICENSE internal/themes/assets/premium/ && \
-		echo "Community themes fetched"; \
-	else \
-		echo "WARNING: could not fetch the community themes, building with the free themes only"; \
-	fi
-	@rm -rf .themes-temp
-
-# Clean community themes
-themes-clean:
-	@echo "Cleaning community themes..."
-	rm -f internal/themes/assets/premium/*.css internal/themes/assets/premium/LICENSE
-
 # Build frontend
 frontend:
 	@echo "Building frontend..."
@@ -71,7 +51,7 @@ frontend:
 	cp -r $(WEB_DIR)/dist $(INTERNAL_WEB_DIR)/
 
 # Build backend
-backend: themes-fetch
+backend:
 	@echo "Building backend..."
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/qui
 
@@ -134,7 +114,7 @@ dev-frontend-expose:
 	cd $(WEB_DIR) && pnpm dev --host
 
 # Clean build artifacts
-clean: themes-clean
+clean:
 	@echo "Cleaning..."
 	rm -rf $(WEB_DIR)/dist $(INTERNAL_WEB_DIR)/dist $(BINARY_NAME) $(BUILD_DIR)
 
@@ -152,6 +132,20 @@ test-frontend:
 	@echo "Running frontend tests..."
 	cd $(WEB_DIR) && pnpm test
 
+# Run the frontend tests when the branch changes a file under web/, or a file outside web/ that a file under web/src names by a relative path.
+test-frontend-changed:
+	@base=$$(git merge-base origin/develop HEAD 2>/dev/null || true); \
+		if [ -n "$$base" ]; then \
+			roots=$$(git ls-tree --name-only HEAD | grep -vx '$(WEB_DIR)' | paste -sd'|' -); \
+			read_by_web=$$(grep -rhoE "(\.\./)+($$roots)(/[A-Za-z0-9_./-]*)?" $(WEB_DIR)/src | sed -E 's#^(\.\./)+##' | sort -u | paste -sd'|' -); \
+			changed=$$({ git diff --name-only "$$base"; git ls-files --others --exclude-standard; } | grep -E "^($(WEB_DIR)/|$$read_by_web)" || true); \
+			if [ -z "$$changed" ]; then \
+				echo "No changed file under $(WEB_DIR)/ and none that $(WEB_DIR)/src reads, skipping the frontend tests."; \
+				exit 0; \
+			fi; \
+		fi; \
+		$(MAKE) test-frontend
+
 # Validate OpenAPI specification
 test-openapi:
 	@echo "Validating OpenAPI specification..."
@@ -161,6 +155,7 @@ test-openapi:
 # A report, not a gate: some surviving mutants change no behaviour.
 MUTATION_BASE ?= origin/develop
 MUTATION_DIR ?= $(or $(XDG_CACHE_HOME),$(HOME)/.cache)/qui-mutation
+MUTATION_REPORT ?=
 
 mutation: mutation-go mutation-web
 
@@ -185,7 +180,8 @@ mutation-go:
 		cd "$$run/wt" && GOFLAGS=-count=1 TMPDIR="$$run/tmp" \
 			GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.context GIT_CONFIG_VALUE_0=0 \
 			go run github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0 unleash \
-			--diff $(MUTATION_BASE) --timeout-coefficient 3 --output-statuses lctk .
+			--diff $(MUTATION_BASE) --timeout-coefficient 3 --output-statuses lctk \
+			$(if $(MUTATION_REPORT),--output "$(abspath $(MUTATION_REPORT))") .
 
 # Stryker changes the files in place, because a test imports a Go file from
 # outside web/. The worktree keeps those changes out of the main checkout.
@@ -289,14 +285,22 @@ check-mojibake:
 generate:
 	go run ./internal/automationsgen
 
-# Local pre-commit gate: mojibake check, generated files, fmt and gofix on changed files, then lint
-precommit: check-mojibake generate fmt gofix-changed lint lint-ratchet typecheck-frontend
+# Local pre-commit gate: mojibake check, generated files, fmt and gofix on changed files, lint, the frontend type and i18n checks, then the frontend tests when the branch changes web/ or internal/
+precommit: check-mojibake generate fmt gofix-changed lint lint-ratchet typecheck-frontend check-i18n check-feature-map test-frontend-changed
 	@echo "Pre-commit checks passed."
 
-# Lint new Go issues since the develop merge-base, then all frontend files
-lint:
+# Warn when the local golangci-lint is not the version that CI pins, because lint and lint-ratchet can then find problems that CI does not
+lint-version:
+	@pin=$$(sed -n 's/^ *version: \(v[0-9.]*\)$$/\1/p' .github/workflows/lint.yml | head -1); \
+	have=v$$(golangci-lint version --short 2>/dev/null); \
+	if [ -n "$$pin" ] && [ "$$have" != "$$pin" ]; then \
+		echo "warning: golangci-lint is $$have, but CI pins $$pin. lint and lint-ratchet can find problems that CI does not."; \
+	fi
+
+# Lint new Go issues since the origin/develop merge-base, then all frontend files
+lint: lint-version
 	@echo "Linting changed Go code..."
-	golangci-lint run --new-from-merge-base=develop --timeout=5m
+	golangci-lint run --new-from-merge-base=origin/develop --timeout=5m
 	@echo "Finding unused Go code in the whole repo..."
 	golangci-lint run --enable-only=unused --timeout=5m ./...
 	@echo "Linting frontend..."
@@ -314,14 +318,29 @@ typecheck-frontend:
 	@echo "Type-checking frontend..."
 	cd $(WEB_DIR) && pnpm exec tsc -b
 
+# The i18n checks that lint.yml runs in CI
+check-i18n:
+	@echo "Checking i18n..."
+	cd $(WEB_DIR) && pnpm check:i18n
+
+check-feature-map:
+	@echo "Checking the feature map..."
+	cd $(WEB_DIR) && pnpm check:feature-map --base "$$(git merge-base origin/develop HEAD || echo origin/develop)"
+
+# The Regression marker check that CI runs on a pull request: a fix adds no test case to a file without // regression: #N. TITLE defaults to the subject of the first commit of the branch
+check-regression-marker:
+	@base=$$(git merge-base origin/develop HEAD || echo origin/develop); \
+	title=$${TITLE:-$$(git log --reverse --format=%s "$$base..HEAD" | head -1)}; \
+	python3 -B .github/scripts/check_regression_marker.py --title "$$title" --number "$${NUMBER:-N}" "$$base" HEAD
+
 # Hold the linters in scripts/ratchet/golangci.yml to their shrink-only allowlist
-lint-ratchet:
-	go run ./scripts/ratchet -base $$(git merge-base HEAD develop)
+lint-ratchet: lint-version
+	go run ./scripts/ratchet -lower -base "$$(git merge-base origin/develop HEAD || echo origin/develop)"
 
 # Lint with JSON output (for AI agent consumption)
 lint-json:
 	@echo "Generating lint report..."
-	golangci-lint run --new-from-merge-base=develop --output.json.path=./lint-report.json --timeout=5m || true
+	golangci-lint run --new-from-merge-base=origin/develop --output.json.path=./lint-report.json --timeout=5m || true
 	@echo "Lint report saved to lint-report.json"
 
 # Lint with auto-fix where possible
@@ -379,13 +398,15 @@ help:
 	@echo "  make test           - Run all Go tests with race detection"
 	@echo "  make test-postgres  - Run Postgres integration tests with a temporary server"
 	@echo "  make test-frontend  - Run frontend vitest suite"
+	@echo "  make test-frontend-changed - Run frontend vitest suite when the branch changes web/ or a file that web/src reads"
 	@echo "  make test-openapi   - Validate OpenAPI specification"
 	@echo "  make mutation       - Mutation test changed Go lines and TypeScript files (MUTATION_BASE=origin/develop)"
 	@echo ""
 	@echo "Linting:"
 	@echo "  make lint           - Lint changed files only (fast, for iteration)"
 	@echo "  make lint-full      - Lint entire codebase"
-	@echo "  make lint-ratchet   - Check that the lint ratchet allowlist only shrinks"
+	@echo "  make lint-ratchet   - Lower the lint ratchet allowlist, and check that it only shrinks"
+	@echo "  make check-regression-marker - Fail a fix whose new tests lack // regression: #N (TITLE, NUMBER)"
 	@echo "  make lint-json      - Generate JSON lint report for AI agents"
 	@echo "  make lint-fix       - Auto-fix linting issues where possible"
 	@echo ""
@@ -394,15 +415,13 @@ help:
 	@echo "  make gofix-changed  - Apply go fix to changed Go files only"
 	@echo "  make gofix-check-changed - Check go fix drift on changed Go files only"
 	@echo "  make generate       - Write generated files (automation rule JSON reference, query builder fields, API key areas)"
-	@echo "  make precommit      - Run local pre-commit gate (generate + fmt + gofix + lint + lint-ratchet + frontend type check)"
+	@echo "  make precommit      - Run local pre-commit gate (generate + fmt + gofix + lint + lint-ratchet + frontend type and i18n checks + frontend tests when web/ or internal/ changed)"
 	@echo ""
 	@echo "Documentation:"
 	@echo "  make docs-dev       - Run documentation development server"
 	@echo "  make docs-build     - Build documentation for production"
 	@echo ""
 	@echo "Other:"
-	@echo "  make themes-fetch   - Fetch the community themes"
-	@echo "  make themes-clean   - Clean the community themes"
 	@echo "  make clean          - Clean build artifacts"
 	@echo "  make deps           - Install dependencies"
 	@echo "  make help           - Show this help message"

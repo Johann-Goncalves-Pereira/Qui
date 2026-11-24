@@ -15,7 +15,8 @@
     "actions": {
       "edit": "Bearbeiten",
       "testConnection": "Verbindung testen",
-      "delete": "Löschen"
+      "delete": "Löschen",
+      "changeIcon": "Symbol ändern"
     },
     "labels": {
       "username": "Benutzername:",
@@ -60,7 +61,13 @@
     "copiedPassword": "Password Copied",
     "copiedContainerPassword": "Container password copied to clipboard",
     "noContainerPasswordFound": "No temporary password detected in container logs",
-    "failedToCopyPassword": "Failed to copy password"
+    "failedToCopyPassword": "Failed to copy password",
+    "errorTypes": {
+      "connection": "Verbindung",
+      "authentication": "Authentifizierung",
+      "ban": "Sperre",
+      "api": "API"
+    }
   },
   "form": {
     "labels": {
@@ -92,7 +99,10 @@
     },
     "validation": {
       "nameRequired": "Instanzname ist erforderlich",
-      "basicAuthPasswordRequired": "Basic-Auth-Passwort ist erforderlich, wenn Basic Auth aktiviert ist"
+      "basicAuthPasswordRequired": "Basic-Auth-Passwort ist erforderlich, wenn Basic Auth aktiviert ist",
+      "usernameRequired": "Benutzername ist erforderlich",
+      "passwordRequired": "Passwort ist erforderlich",
+      "apiKeyRequired": "API-Schlüssel ist erforderlich"
     },
     "buttons": {
       "saving": "Wird gespeichert...",
@@ -116,7 +126,10 @@
       "usernamePassword": "Benutzername und Passwort",
       "apiKey": "API-Key"
     },
-    "sshAfterSave": "Der SSH-Zugriff auf die Dateien der Instanz wird nach dem Speichern in den Instanz-Einstellungen eingerichtet."
+    "sshAfterSave": "Der SSH-Zugriff auf die Dateien der Instanz wird nach dem Speichern in den Instanz-Einstellungen eingerichtet.",
+    "addTitle": "Instanz hinzufügen",
+    "addDescription": "Eine neue qBittorrent-Instanz konfigurieren",
+    "editTitle": "Instanz bearbeiten"
   },
   "settingsButton": {
     "tooltip": "Instanz-Einstellungen"
@@ -566,7 +579,8 @@
         "externalProgram": "Externes Programm",
         "dryRun": "Probelauf",
         "exportToInstance": "In Instanz exportieren",
-        "ruleSkipped": "Regel nicht ausgeführt"
+        "ruleSkipped": "Regel nicht ausgeführt",
+        "transferToInstance": "An Instanz übertragen"
       },
       "shareLimit": {
         "global": "Global",
@@ -619,7 +633,9 @@
         "exportedDryRun_one": "{{count}} Torrent würde exportiert",
         "exportedDryRun_other": "{{count}} Torrents würden exportiert",
         "exportFailed_one": "{{count}} Torrent konnte nicht exportiert werden",
-        "exportFailed_other": "{{count}} Torrents konnten nicht exportiert werden"
+        "exportFailed_other": "{{count}} Torrents konnten nicht exportiert werden",
+        "transferredDryRun_one": "{{count}} Torrent würde übertragen",
+        "transferredDryRun_other": "{{count}} Torrents würden übertragen"
       },
       "deleteDialog": {
         "title": "Regel löschen",
@@ -679,7 +695,8 @@
         "deleteActivityFailed": "Aktivität konnte nicht gelöscht werden"
       },
       "exported": "Exportiert",
-      "skipped": "Übersprungen"
+      "skipped": "Übersprungen",
+      "transferStarted": "Gestartet"
     },
     "runWorkflowNow": {
       "action": "Jetzt ausführen",
@@ -978,7 +995,8 @@
         "auto_managed": "Automatisch verwaltet",
         "dry_run_no_match": "Probelauf (keine Übereinstimmung)",
         "exported_to_instance": "Export zur Instanz",
-        "rule_skipped": "Regel nicht ausgeführt"
+        "rule_skipped": "Regel nicht ausgeführt",
+        "transferred_to_instance": "An Instanz übertragen"
       }
     },
     "reannounceOverview": {
@@ -1196,7 +1214,8 @@
         "category": "Kategorie",
         "move": "Verschieben",
         "externalProgram": "Externes Programm ausführen",
-        "exportToInstance": "In Instanz exportieren"
+        "exportToInstance": "In Instanz exportieren",
+        "transferToInstance": "An Instanz übertragen"
       },
       "option": {
         "noChange": "Keine Änderung",
@@ -1305,9 +1324,24 @@
           "unsupportedWindows": "Die pfadbasierte Quelle für freien Speicher wird unter Windows nicht unterstützt.",
           "qbitPathUnsupported": "Diese Instanz ist älter als qBittorrent 5.3 und kann keinen freien Speicher für einen Pfad melden.",
           "pathRequired": "Bei Verwendung von \"Pfad auf dem Server\" ist ein Pfad erforderlich.",
-          "filesystemAccessRequired": "Die pfadbasierte Quelle für freien Speicher erfordert lokalen oder SSH-Dateisystemzugriff."
+          "filesystemAccessRequired": "Die pfadbasierte Quelle für freien Speicher erfordert lokalen oder SSH-Dateisystemzugriff.",
+          "allowanceRequired": "Gib ein Kontingent größer als 0 ein.",
+          "allowanceAccessRequired": "Die Kontingent-Quelle erfordert lokalen Dateisystemzugriff oder SSH-Zugriff mit Shell."
         },
-        "pathSourceFilesystemAccessRequired": "Pfad auf dem Server (erfordert lokalen oder SSH-Zugriff)"
+        "pathSourceFilesystemAccessRequired": "Pfad auf dem Server (erfordert lokalen oder SSH-Zugriff)",
+        "allowanceSource": "Kontingent auf einem Pfad",
+        "allowanceSourceWindowsUnsupported": "Kontingent auf einem Pfad (unter Windows nicht unterstützt)",
+        "allowanceSourceAccessRequired": "Kontingent auf einem Pfad (erfordert lokalen Zugriff oder SSH-Zugriff mit Shell)",
+        "allowanceLabel": "Kontingent",
+        "allowancePathLabel": "Zu messender Ordner",
+        "allowanceUnitAria": "Einheit des Kontingents",
+        "allowanceHelp": "Gib den Speicher ein, den dein Tarif erlaubt, in der Einheit, die dein Anbieter verwendet. qui zieht die Größe der Dateien unter dem Pfad ab. Die meisten Anbieter rechnen in Schritten von 1000 ({{decimalUnit}}), nicht 1024 ({{binaryUnit}}): Der Unterschied beträgt etwa 9 %.",
+        "allowanceUnits": {
+          "MB": "MB",
+          "GB": "GB",
+          "TB": "TB"
+        },
+        "allowancePathHelp": "Zum Beispiel dein Home-Verzeichnis"
       },
       "grouping": {
         "title": "Gruppierte Bedingungsgruppen",
@@ -1452,7 +1486,8 @@
           "externalProgram": "Externes Programm",
           "noMatches": "Keine Treffer",
           "exportedToInstance": "In Instanz exportieren",
-          "ruleSkipped": "Regel nicht ausgeführt"
+          "ruleSkipped": "Regel nicht ausgeführt",
+          "transferredToInstance": "An Instanz übertragen"
         },
         "actionFallback": "Unbekannte Aktion ({{action}})",
         "summary": {
@@ -1519,7 +1554,13 @@
         "setUpFilesystemAccessOrDefault": "Richte in den Instanzeinstellungen lokalen oder SSH-Dateisystemzugriff ein oder verwende Standard (qBittorrent)"
       },
       "trackerMatchInclude": "Einschließen",
-      "trackerMatchExclude": "Ausschließen"
+      "trackerMatchExclude": "Ausschließen",
+      "transfer": {
+        "title": "An Instanz übertragen",
+        "description": "Verschiebt jeden passenden Torrent mit seinen Dateien in die Zielinstanz und prüft die Kopie, bevor etwas entfernt wird. Die Seite Transfers zeigt jeden Transfer.",
+        "remove": "„An Instanz übertragen“ entfernen"
+      },
+      "mixedActionConditions": "Jede Aktion in diesem Workflow hat ihre eigene Bedingung. qui verwendet jetzt eine Bedingung pro Workflow. Wenn du speicherst, erhält jede Aktion die Bedingung oben. Um die anderen zu behalten, erstelle zuerst einen Workflow für jede Bedingung."
     },
     "sections": {
       "whenAdding": "Beim Hinzufügen eines Torrents",
@@ -2117,5 +2158,110 @@
     "label": "Auch den Übertragungsverlauf löschen",
     "description": "Ohne diese Option behält qui den Verlauf unter dem Namen der Instanz.",
     "failed": "Die Instanz ist gelöscht, aber qui konnte nicht ihren ganzen Verlauf löschen. Sieh unter Einstellungen > Statistik nach und lösche den Rest dort."
+  },
+  "list": {
+    "label": "Instanzen",
+    "emptyTitle": "Noch keine Instanzen konfiguriert",
+    "emptyDescription": "Füge einen qBittorrent-Client hinzu, damit qui seine Torrents verwalten kann.",
+    "tlsSkipped": "TLS-Prüfung aus",
+    "reorderFailed": "Instanzen konnten nicht neu sortiert werden"
+  },
+  "publicPeerAddress": {
+    "label": "Öffentliche Peer-Adresse",
+    "noResolvedAddress": "qui kann noch keine Adresse ermitteln",
+    "description": "Die Adresse und der Port, unter denen andere BitTorrent-Clients dieses qBittorrent erreichen, für Transfers und Freigaben. Lass das Feld leer, damit qui die Adresse bei jeder Verwendung aus qBittorrent ermittelt. Setze sie, wenn qBittorrent in Docker oder hinter NAT läuft."
+  },
+  "mark": {
+    "picker": {
+      "title": "Symbol für {{name}}",
+      "previewCollapsed": "Eingeklappte Seitenleiste",
+      "previewElsewhere": "Überall sonst",
+      "automatic": "Automatisch",
+      "letters": "Buchstaben",
+      "color": "Farbe",
+      "colorCurrent": "Farbe · {{color}}",
+      "reset": "Auf Standard zurücksetzen",
+      "description": "Wähle eins: Automatisch, Buchstaben (nur eingeklappt) oder Symbol.",
+      "iconHeading": "Symbol",
+      "arrowHint": "Mit den Pfeiltasten wechselst du zwischen den Symbolen."
+    },
+    "colors": {
+      "none": "Keine Farbe",
+      "sky": "Himmelblau",
+      "violet": "Violett",
+      "pink": "Pink",
+      "orange": "Orange",
+      "amber": "Bernstein",
+      "lime": "Limette",
+      "emerald": "Smaragd",
+      "teal": "Petrol"
+    },
+    "iconGroups": {
+      "servers": "Server",
+      "hardware": "Hardware",
+      "places": "Orte",
+      "media": "Medien",
+      "nature": "Natur",
+      "symbols": "Symbole",
+      "objects": "Gegenstände"
+    },
+    "icons": {
+      "server": "Server",
+      "nas": "NAS",
+      "tower": "Tower-PC",
+      "homeServer": "Heimserver",
+      "seedbox": "Seedbox",
+      "container": "Container",
+      "cloud": "Wolke",
+      "cloudDownload": "Cloud-Download",
+      "hardDrive": "Festplatte",
+      "driveDownload": "Download-Laufwerk",
+      "database": "Datenbank",
+      "cpu": "Prozessor",
+      "memory": "Arbeitsspeicher",
+      "router": "Router",
+      "monitor": "Monitor",
+      "laptop": "Laptop",
+      "house": "Haus",
+      "building": "Gebäude",
+      "warehouse": "Lagerhalle",
+      "globe": "Globus",
+      "mapPin": "Kartenpin",
+      "flag": "Flagge",
+      "mountain": "Berg",
+      "tent": "Zelt",
+      "film": "Film",
+      "tv": "TV",
+      "music": "Musik",
+      "podcast": "Podcast",
+      "book": "Buch",
+      "audiobook": "Hörbuch",
+      "gamepad": "Gamepad",
+      "image": "Bild",
+      "cat": "Katze",
+      "dog": "Hund",
+      "bird": "Vogel",
+      "fish": "Fisch",
+      "rabbit": "Hase",
+      "turtle": "Schildkröte",
+      "bug": "Käfer",
+      "leaf": "Blatt",
+      "star": "Stern",
+      "heart": "Herz",
+      "flame": "Flamme",
+      "zap": "Blitz",
+      "rocket": "Rakete",
+      "crown": "Krone",
+      "shield": "Schild",
+      "ghost": "Geist",
+      "box": "Kiste",
+      "archive": "Archiv",
+      "software": "Software",
+      "disc": "Disc",
+      "layers": "Ebenen",
+      "anchor": "Anker",
+      "magnet": "Magnet",
+      "satellite": "Satellit"
+    }
   }
 }

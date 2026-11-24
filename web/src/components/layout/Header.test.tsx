@@ -6,7 +6,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   viewMode: "standard" as "standard" | "dense",
@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 // jsdom has no matchMedia; ThemeToggle reads system preference through it.
-beforeAll(() => {
+beforeEach(() => {
   vi.stubGlobal("matchMedia", vi.fn(() => ({
     matches: false,
     media: "(prefers-color-scheme: dark)",
@@ -126,7 +126,7 @@ afterEach(() => {
   mocks.viewMode = "standard"
 })
 
-function renderHeader(props: { sidebarCollapsed?: boolean; children?: ReactNode } = {}) {
+function renderHeader(props: { sidebarHidden?: boolean } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -170,11 +170,11 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     })
   })
 
-  it("renders header with lg:pl-0 when sidebar is open (expanded)", () => {
-    renderHeader({ sidebarCollapsed: false })
+  it("renders header with lg:pl-2 when sidebar is open (expanded)", () => {
+    renderHeader({ sidebarHidden: false })
 
     const banner = screen.getByRole("banner")
-    expect(banner.className).toContain("lg:pl-0")
+    expect(banner.className).toContain("lg:pl-2")
     expect(banner.className).not.toContain("lg:pl-20")
     expect(banner.className).not.toContain("lg:pl-4")
   })
@@ -187,14 +187,12 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     })
 
     const { container } = renderHeader({
-      sidebarCollapsed: true,
-      children: <button data-testid="uncollapse-btn">Toggle</button>,
+      sidebarHidden: true,
     })
 
     const banner = screen.getByRole("banner")
     // 1. Pushed right with 80px padding (lg:pl-20) to clear macOS traffic lights
     expect(banner.className).toContain("lg:pl-20")
-    expect(banner.className).not.toContain("lg:pl-0")
 
     // 2. Drag region in empty traffic light zone
     const dragArea = container.querySelector("[data-slot=\"traffic-lights-drag-region\"]")
@@ -202,7 +200,7 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     expect(dragArea?.className).toContain("w-20")
 
     // 3. Uncollapse toggle button is rendered
-    expect(screen.getByTestId("uncollapse-btn")).not.toBeNull()
+    expect(screen.getByRole("button", { name: /sidebar.showSidebar/ })).not.toBeNull()
 
     // 4. Logo is rendered
     const logoSvg = container.querySelector("svg")
@@ -220,8 +218,7 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     })
 
     const { container } = renderHeader({
-      sidebarCollapsed: true,
-      children: <button data-testid="uncollapse-btn">Toggle</button>,
+      sidebarHidden: true,
     })
 
     const banner = screen.getByRole("banner")
@@ -230,7 +227,7 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     expect(banner.className).not.toContain("lg:pl-20")
 
     // 2. Uncollapse button and logo exist
-    expect(screen.getByTestId("uncollapse-btn")).not.toBeNull()
+    expect(screen.getByRole("button", { name: /sidebar.showSidebar/ })).not.toBeNull()
     expect(container.querySelector("svg")).not.toBeNull()
 
     // 3. 'qui' text is omitted
@@ -245,8 +242,7 @@ describe("Header collapsed sidebar layout and traffic light clearance", () => {
     })
 
     const { container } = renderHeader({
-      sidebarCollapsed: true,
-      children: <button data-testid="uncollapse-btn">Toggle</button>,
+      sidebarHidden: true,
     })
 
     const banner = screen.getByRole("banner")

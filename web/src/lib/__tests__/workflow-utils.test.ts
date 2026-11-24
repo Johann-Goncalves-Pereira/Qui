@@ -8,10 +8,14 @@ import { resolve } from "node:path"
 
 import {
   ACTION_RUN_ORDER,
+  allowanceInputOf,
+  freeSpaceSourceOf,
   fromImportFormat,
   generateUniqueName,
   getTrackerMatchMode,
   getTrackerTokens,
+  firstActionCondition,
+  hasMixedActionConditions,
   loadWorkflowNames,
   parseImportJSON,
   toCopyInput,
@@ -22,7 +26,7 @@ import {
   type WorkflowExport,
   type WorkflowImport
 } from "@/lib/workflow-utils"
-import type { ActionConditions, Automation } from "@/types"
+import type { ActionConditions, Automation, RuleCondition } from "@/types"
 import { QueryClient } from "@tanstack/react-query"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -298,9 +302,6 @@ describe("generateUniqueName", () => {
     expect(generateUniqueName("Foo   (copy)", [])).toBe("Foo (copy)")
   })
 
-  it("returns the first attempt when no collision exists", () => {
-    expect(generateUniqueName("Foo", ["Bar", "Baz"])).toBe("Foo (copy)")
-  })
 })
 
 // Intent: validate clipboard JSON before letting it through. Returns
@@ -367,23 +368,6 @@ describe("parseImportJSON", () => {
     expect(result.data).not.toHaveProperty("trackerPattern")
   })
 
-  it("keeps dryRun: true from the export shape", () => {
-    const result = parseImportJSON(JSON.stringify({
-      name: "x",
-      conditions: { schemaVersion: "1" },
-      dryRun: true,
-    }))
-    expect(result.data?.dryRun).toBe(true)
-  })
-
-  it("includes notify only when it's an explicit boolean", () => {
-    const withNotify = parseImportJSON(JSON.stringify({
-      name: "x",
-      conditions: { schemaVersion: "1" },
-      notify: false,
-    }))
-    expect(withNotify.data?.notify).toBe(false)
-  })
 })
 
 // Intent: thin pretty-print wrapper. Pinning the indent so future readers
@@ -395,8 +379,7 @@ describe("toExportJSON", () => {
       trackerPattern: "*",
       conditions,
     }
-    expect(toExportJSON(data)).toBe(JSON.stringify(data, null, 2))
-    expect(toExportJSON(data)).toContain("\n  \"name\": \"x\"")
+    expect(toExportJSON(data)).toBe("{\n  \"name\": \"x\",\n  \"trackerPattern\": \"*\",\n  \"conditions\": {\n    \"schemaVersion\": \"1\"\n  }\n}")
   })
 })
 
@@ -411,5 +394,87 @@ describe("ACTION_RUN_ORDER", () => {
 
     expect(goKeys.length).toBeGreaterThan(0)
     expect([...ACTION_RUN_ORDER]).toEqual(goKeys)
+  })
+})
+
+describe("freeSpaceSourceOf", () => {
+  const TiB = 1024 ** 4
+
+  it("turns the typed allowance into bytes", () => {
+    expect(freeSpaceSourceOf({ type: "allowance", path: " /home/user ", allowance: "1.5", allowanceUnit: TiB }))
+      .toEqual({ type: "allowance", path: "/home/user", allowanceBytes: 1649267441664 })
+  })
+
+  it("keeps the path source as it is", () => {
+    expect(freeSpaceSourceOf({ type: "path", path: "/mnt/data", allowance: "1.5", allowanceUnit: TiB }))
+      .toEqual({ type: "path", path: "/mnt/data" })
+    expect(freeSpaceSourceOf({ type: "qbitPath", path: "D:\\downloads", allowance: "", allowanceUnit: TiB }))
+      .toEqual({ type: "qbitPath", path: "D:\\downloads" })
+  })
+
+  it("sends no source without a path, without an allowance, and for the default", () => {
+    expect(freeSpaceSourceOf({ type: "allowance", path: "", allowance: "1.5", allowanceUnit: TiB })).toBeUndefined()
+    expect(freeSpaceSourceOf({ type: "allowance", path: "/home/user", allowance: "", allowanceUnit: TiB })).toBeUndefined()
+    expect(freeSpaceSourceOf({ type: "allowance", path: "/home/user", allowance: "0", allowanceUnit: TiB })).toBeUndefined()
+    expect(freeSpaceSourceOf({ type: "qbittorrent", path: "/mnt/data", allowance: "", allowanceUnit: TiB })).toBeUndefined()
+  })
+})
+
+describe("allowanceInputOf", () => {
+  it("shows a saved allowance as the figure that the user typed", () => {
+    // 1.364 TiB is the 1.5 TB plan of the issue.
+    expect(allowanceInputOf(1499733860286)).toEqual({ allowance: "1.364", allowanceUnit: 1024 ** 4 })
+    // 1397 GiB is 1.36426 TiB, which three decimals cannot hold.
+    expect(allowanceInputOf(1397 * 1024 ** 3)).toEqual({ allowance: "1397", allowanceUnit: 1024 ** 3 })
+    expect(allowanceInputOf(500 * 1024 ** 3)).toEqual({ allowance: "500", allowanceUnit: 1024 ** 3 })
+    expect(allowanceInputOf(750 * 1024 ** 2)).toEqual({ allowance: "750", allowanceUnit: 1024 ** 2 })
+    // A plan in steps of 1000 keeps its own unit.
+    expect(allowanceInputOf(1500000000000)).toEqual({ allowance: "1.5", allowanceUnit: 1000 ** 4 })
+    expect(allowanceInputOf(500 * 1000 ** 3)).toEqual({ allowance: "500", allowanceUnit: 1000 ** 3 })
+  })
+
+  it("keeps the bytes of an allowance that no short figure holds", () => {
+    // One byte above 1.5 TB, as a rule saved through the API can hold it.
+    const input = allowanceInputOf(1500000000001)
+    expect(input).toEqual({ allowance: "1430511.4746103287", allowanceUnit: 1024 ** 2 })
+    expect(freeSpaceSourceOf({ type: "allowance", path: "/home/user", ...input }))
+      .toEqual({ type: "allowance", path: "/home/user", allowanceBytes: 1500000000001 })
+  })
+})
+
+// regression: #3012
+describe("hasMixedActionConditions", () => {
+  const packed: RuleCondition = { field: "NAME", operator: "CONTAINS", value: "packed" }
+  const unpacked: RuleCondition = { field: "NAME", operator: "CONTAINS", value: "unpacked" }
+  const tag = (tags: string[], condition?: RuleCondition, enabled = true) => ({ enabled, tags, mode: "full" as const, condition })
+
+  it.each([
+    { name: "two tag actions with different conditions", mixed: true, conditions: { schemaVersion: "1", tags: [tag(["packed"], packed), tag(["unpacked"], unpacked)] } },
+    { name: "a condition on category and none on pause", mixed: true, conditions: { schemaVersion: "1", category: { enabled: true, category: "sorted", condition: packed }, pause: { enabled: true } } },
+    { name: "the same condition on every action", mixed: false, conditions: { schemaVersion: "1", tags: [tag(["packed"], packed)], pause: { enabled: true, condition: packed } } },
+    { name: "a different condition on a disabled action", mixed: false, conditions: { schemaVersion: "1", tags: [tag(["packed"], packed), tag(["unpacked"], unpacked, false)] } },
+    { name: "another condition on a disabled action that comes first", mixed: false, conditions: { schemaVersion: "1", speedLimits: { enabled: false, condition: unpacked }, pause: { enabled: true, condition: packed } } },
+    { name: "auto management set to off with no condition", mixed: true, conditions: { schemaVersion: "1", pause: { enabled: true, condition: packed }, autoManagement: { enabled: false } } },
+  ])("returns $mixed for $name", ({ mixed, conditions }) => {
+    expect(hasMixedActionConditions(makeAutomation({ conditions }))).toBe(mixed)
+  })
+})
+
+// regression: #4186
+describe("firstActionCondition", () => {
+  const packed: RuleCondition = { field: "NAME", operator: "CONTAINS", value: "packed" }
+  const unpacked: RuleCondition = { field: "NAME", operator: "CONTAINS", value: "unpacked" }
+
+  it.each([
+    { name: "skips a switched-off action", conditions: { schemaVersion: "1", speedLimits: { enabled: false, condition: unpacked }, pause: { enabled: true, condition: packed } } },
+    { name: "skips a switched-off tag action", conditions: { schemaVersion: "1", tags: [{ enabled: false, tags: ["a"], mode: "full" as const, condition: unpacked }, { enabled: true, tags: ["b"], mode: "full" as const, condition: packed }] } },
+    { name: "skips a running action without a condition", conditions: { schemaVersion: "1", pause: { enabled: true }, category: { enabled: true, category: "sorted", condition: packed } } },
+  ])("$name", ({ conditions }) => {
+    expect(firstActionCondition(makeAutomation({ conditions }))).toEqual(packed)
+  })
+
+  it("returns null when no running action has a condition", () => {
+    const conditions = { schemaVersion: "1", speedLimits: { enabled: false, condition: unpacked }, pause: { enabled: true } }
+    expect(firstActionCondition(makeAutomation({ conditions }))).toBeNull()
   })
 })

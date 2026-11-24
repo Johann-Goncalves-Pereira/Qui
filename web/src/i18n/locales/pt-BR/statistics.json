@@ -14,6 +14,7 @@
   "customRange": {
     "from": "Primeiro dia",
     "to": "Último dia",
+    "pick": "Escolha um dia",
     "apply": "Aplicar",
     "range": "{{from}} – {{to}}"
   },
@@ -117,9 +118,9 @@
   "allTimeNote": "Desde o início inclui a base inicial: os bytes que os torrents tinham quando o qui os gravou pela primeira vez. O gráfico não mostra a base inicial, porque ela não tem data.",
   "table": {
     "title": "Por grupo",
-    "descriptionTracker": "A transferência do período para cada tracker. Clique em uma linha para abrir o detalhe.",
-    "descriptionCategory": "A transferência do período para cada categoria, sob a categoria que cada torrent tinha quando os bytes foram transferidos. Clique em uma linha para abrir o detalhe.",
-    "descriptionRelease": "A transferência do período para cada valor que o qui lê dos nomes dos torrents. Clique em uma linha para abrir o detalhe.",
+    "descriptionTracker": "A transferência do período para cada tracker. Selecione uma linha para abrir o detalhe.",
+    "descriptionCategory": "A transferência do período para cada categoria, sob a categoria que cada torrent tinha quando os bytes foram transferidos. Selecione uma linha para abrir o detalhe.",
+    "descriptionRelease": "A transferência do período para cada valor que o qui lê dos nomes dos torrents. Selecione uma linha para abrir o detalhe.",
     "groupBy": "Agrupar por",
     "groupings": {
       "tracker": "Tracker",
@@ -141,6 +142,13 @@
     },
     "seededValue": "{{value}}x",
     "total": "Total",
+    "shown": "{{shown}} de {{total}}",
+    "range": "{{from}}–{{to}} de {{total}}",
+    "previousPage": "Página anterior",
+    "nextPage": "Próxima página",
+    "showMore": "Mostrar mais",
+    "showAll": "Mostrar tudo",
+    "showFewer": "Mostrar menos",
     "noCategory": "Nenhuma categoria",
     "none": "Nenhum",
     "liveError": "Não foi possível carregar os torrents que estão no qBittorrent agora: {{message}}",
@@ -167,7 +175,7 @@
   },
   "topTorrents": {
     "title": "Principais torrents",
-    "description": "Os torrents com mais upload no período. Clique em uma linha para ver o upload de cada dia.",
+    "description": "Os torrents com mais upload no período. Selecione uma linha para ver o upload de cada dia.",
     "columns": {
       "torrent": "Torrent",
       "first24h": "Primeiras 24 horas"
@@ -175,6 +183,7 @@
     "deleted": "Excluído",
     "crossSeed": "Cross-seed",
     "note": "Um torrent excluído mantém seu lugar com seu nome. Um torrent conta para o tracker que tem agora. Primeiras 24 horas é o upload nas 24 horas após a adição. O valor fica vazio quando o qui viu o torrent pela primeira vez depois delas.",
+    "seededNote": "Semeados é o envio no período dividido pelo tamanho do torrent. 1,00x é uma cópia completa.",
     "utcNote": "Cada barra é um dia UTC.",
     "yearNote": "Cada barra é um dia UTC, exceto a barra de um ano: após a retenção de detalhes, o qui guarda um número para cada torrent e ano."
   },

@@ -27,6 +27,9 @@ const addSearchSchema = z.object({
 })
 
 export const Route = createFileRoute("/add")({
+  staticData: {
+    title: { titleKey: "header.addTorrent", titleNs: "common" },
+  },
   validateSearch: addSearchSchema,
   component: AddTorrentHandler,
 })
@@ -48,10 +51,8 @@ function AddTorrentHandler() {
   // Track if payload was ever received (prevents falling back to "waiting" state after consumption)
   const hasReceivedPayload = useRef(false)
 
-  // Filter to active instances
   const activeInstances = instances?.filter(i => i.isActive) ?? []
 
-  // Initialize payload from magnet URL param on mount
   useEffect(() => {
     if (magnet) {
       hasReceivedPayload.current = true
@@ -81,7 +82,6 @@ function AddTorrentHandler() {
     navigate({ to: "/" })
   }, [navigate, t])
 
-  // Handle files from file handler (launchQueue API)
   useEffect(() => {
     if (authLoading || !isAuthenticated || magnet) return
 
@@ -97,17 +97,13 @@ function AddTorrentHandler() {
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
 
-  // Handle timeout when expecting files (from auth redirect or standalone mode file-handler)
   useEffect(() => {
-    // Skip if we already have a payload or aren't expecting one
     if (hasReceivedPayload.current) return
     if (!expectingFiles && !isStandalone) return
-    // If we have a magnet, no need to wait for files
     if (magnet) return
 
     const timeout = setTimeout(() => {
       if (!hasReceivedPayload.current) {
-        // Only show error if we explicitly expected files (came from auth redirect)
         if (expectingFiles) {
           toast.error(t("addRoute.openTorrentFileFailed", { ns: "torrents" }))
         }
@@ -126,7 +122,6 @@ function AddTorrentHandler() {
     setDropPayload(null)
   }, [])
 
-  // Determine which instance to use
   const resolvedInstanceId = selectedInstanceId ??
     (activeInstances.length === 1 ? activeInstances[0].id : null)
 
@@ -149,7 +144,6 @@ function AddTorrentHandler() {
   }
 
   if (!isAuthenticated) {
-    // Store intent if there's a payload OR if we're in PWA mode (potential file-handler launch)
     if (magnet) {
       storeAddIntent({ magnet, openAdd: true })
     } else if (expectingFiles || isStandalone) {
@@ -159,13 +153,10 @@ function AddTorrentHandler() {
     return <Navigate to="/login" />
   }
 
-  // If authenticated but no payload and not expecting files via launchQueue, redirect home
-  // In standalone mode, wait for potential file-handler payload
   if (!magnet && !expectingFiles && !isStandalone) {
     return <Navigate to="/" />
   }
 
-  // Wait for instances to load
   if (instancesLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -174,12 +165,10 @@ function AddTorrentHandler() {
     )
   }
 
-  // If no instances configured, redirect to settings
   if (activeInstances.length === 0) {
     return <Navigate to="/settings" search={{ tab: "instances" }} />
   }
 
-  // If multiple instances and none selected, show selector
   if (!resolvedInstanceId && activeInstances.length > 1) {
     return (
       <InstanceSelector
@@ -190,7 +179,6 @@ function AddTorrentHandler() {
     )
   }
 
-  // If we have an instance and payload (or payload was already consumed), show dialog
   if (resolvedInstanceId && (dropPayload || hasReceivedPayload.current)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background/80 backdrop-blur-sm p-4">
@@ -205,7 +193,6 @@ function AddTorrentHandler() {
     )
   }
 
-  // Waiting for launchQueue to provide payload
   if (resolvedInstanceId) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background">
@@ -215,7 +202,6 @@ function AddTorrentHandler() {
     )
   }
 
-  // Fallback - shouldn't reach here
   return <Navigate to="/" />
 }
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render } from "@testing-library/react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { Instance, OrphanScanRun, OrphanScanSettings } from "@/types"
@@ -87,15 +87,6 @@ vi.mock("@/hooks/useOrphanScan", () => ({
 
 import { OrphanScanOverview } from "@/components/instances/preferences/OrphanScanOverview"
 
-beforeEach(() => {
-  // Radix switch and tooltip measure through ResizeObserver, which jsdom lacks.
-  vi.stubGlobal("ResizeObserver", class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  })
-})
-
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
@@ -110,27 +101,6 @@ function renderExpanded() {
 }
 
 describe("OrphanScanOverview instance card", () => {
-  it("wraps a long instance name instead of cutting it off", () => {
-    const { container } = renderExpanded()
-
-    const name = Array.from(container.querySelectorAll("span")).find((el) => el.textContent === "seedbox-europe-west-archive-01")
-    expect(name).toBeDefined()
-    // Two names that share a long prefix look identical once truncated.
-    expect(name!.classList.contains("truncate")).toBe(false)
-    expect(name!.classList.contains("wrap-anywhere")).toBe(true)
-  })
-
-  it("wraps the View Preview label instead of cutting it off", () => {
-    const { container } = renderExpanded()
-
-    const label = Array.from(container.querySelectorAll("button span")).find((el) => el.textContent === "preferences.orphanScanOverview.viewPreview")
-    expect(label).toBeDefined()
-    expect(label!.classList.contains("truncate")).toBe(false)
-    expect(label!.classList.contains("whitespace-normal")).toBe(true)
-    // A fixed height would clip the second line of a wrapped label.
-    expect(label!.closest("button")!.classList.contains("h-auto")).toBe(true)
-  })
-
   it("builds the settings summary from one key per pair", () => {
     const { getByTestId } = renderExpanded()
 

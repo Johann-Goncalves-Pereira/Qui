@@ -44,11 +44,6 @@ func (e *DownloadError) Error() string {
 	return fmt.Sprintf("torrent download from %s returned status %d", e.URL, e.StatusCode)
 }
 
-func (e *DownloadError) Is(target error) bool {
-	_, ok := target.(*DownloadError)
-	return ok
-}
-
 func (e *DownloadError) HTTPStatusCode() int {
 	return e.StatusCode
 }
@@ -93,11 +88,6 @@ func (e *MagnetDownloadError) Error() string {
 	// Redact: magnet tr= announce URLs embed private-tracker passkeys, and
 	// this error gets logged verbatim by automation runs.
 	return "torrent download redirected to magnet link: " + redact.URLString(e.MagnetURL)
-}
-
-// IsRateLimited returns true if this error indicates rate limiting (HTTP 429).
-func (e *DownloadError) IsRateLimited() bool {
-	return e.StatusCode == http.StatusTooManyRequests
 }
 
 // Client wraps the Torznab backend client implementation
@@ -428,7 +418,7 @@ func (c *Client) Download(ctx context.Context, downloadURL string) ([]byte, erro
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("build download request: %w", err)
+		return nil, errors.New("build download request: the download link is not a valid URL")
 	}
 	req.Header.Set("Accept", "application/x-bittorrent, application/octet-stream")
 	req.Header.Set("User-Agent", buildinfo.UserAgent)

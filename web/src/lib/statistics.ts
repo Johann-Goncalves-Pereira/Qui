@@ -4,7 +4,7 @@
  */
 
 import { formatBytes } from "@/lib/utils"
-import type { LiveTrackerGroup, TransferHistoryBytes, TransferHistoryInstance, TransferHistoryRow, TransferHistoryTorrent } from "@/types"
+import type { LiveTrackerGroup, TableGrouping, TransferHistoryBytes, TransferHistoryInstance, TransferHistoryRow, TransferHistoryTorrent } from "@/types"
 
 // A browser that cannot find its zone reports Etc/Unknown. The days are then UTC days.
 export const BROWSER_TIME_ZONE = ((zone: string) => zone === "Etc/Unknown" ? undefined : zone)(Intl.DateTimeFormat().resolvedOptions().timeZone)
@@ -24,6 +24,8 @@ export interface StatisticsPeriod {
 }
 
 export const PERIOD_PRESETS: PeriodPreset[] = ["24h", "7d", "30d", "1y", "all"]
+
+export const TABLE_GROUPINGS: TableGrouping[] = ["tracker", "category", "releaseGroup", "resolution", "source", "contentType"]
 
 const PRESET_DAYS: Record<Exclude<PeriodPreset, "all">, number> = { "24h": 1, "7d": 7, "30d": 30, "1y": 365 }
 
@@ -49,6 +51,51 @@ function startOfHour(time: Date): Date {
 /** Returns the midnight of the browser timezone that starts the day of time. */
 export function startOfLocalDay(time: Date): Date {
   return new Date(time.getFullYear(), time.getMonth(), time.getDate())
+}
+
+export interface DayBand {
+  day: number
+  first: number
+  last: number
+  shaded: boolean
+  midnightLine: boolean
+}
+
+export interface HourAxis {
+  ticks: number[]
+  bands: DayBand[]
+  manyDays: boolean
+  narrow: boolean
+}
+
+export function hourAxis(bars: Pick<StatisticsBar, "start" | "width">[], narrow: boolean): HourAxis {
+  const days: Pick<DayBand, "day" | "first" | "last">[] = []
+  for (const { start } of bars) {
+    const day = startOfLocalDay(new Date(start)).getTime()
+    const last = days.at(-1)
+    if (last?.day === day) {
+      last.last = start
+    } else {
+      days.push({ day, first: start, last: start })
+    }
+  }
+  const manyDays = days.length > 2
+  const tickHours = manyDays ? (narrow ? undefined : 12) : (narrow ? 6 : 3)
+  return {
+    ticks: tickHours === undefined ? [] : bars.filter(bar => bar.width === "hour" && new Date(bar.start).getHours() % tickHours === 0).map(bar => bar.start),
+    bands: days.map((band, index) => ({
+      ...band,
+      shaded: manyDays ? daysSinceEpoch(band.day) % 2 === 0 : index < days.length - 1,
+      midnightLine: !manyDays && index > 0,
+    })),
+    manyDays,
+    narrow,
+  }
+}
+
+function daysSinceEpoch(day: number): number {
+  const date = new Date(day)
+  return Math.round(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / (24 * HOUR))
 }
 
 function addLocalDays(day: Date, days: number): Date {
@@ -131,7 +178,7 @@ export function sumBytes(rows: (TransferHistoryBytes & { baseline?: TransferHist
 export type Metric = "uploaded" | "downloaded"
 
 /** Returns uploaded divided by downloaded, or undefined when nothing moved. */
-export function formatRatio(bytes: TransferHistoryBytes): string | undefined {
+export function formatRatio(bytes: Pick<TransferHistoryBytes, "uploaded" | "downloaded">): string | undefined {
   if (bytes.downloaded > 0) {
     return (bytes.uploaded / bytes.downloaded).toFixed(2)
   }

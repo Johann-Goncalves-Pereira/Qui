@@ -5,6 +5,7 @@
 
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import type { SortedPeer } from "@/types"
 import "@/i18n"
 
@@ -15,6 +16,7 @@ vi.mock("react-i18next", async (importOriginal) => ({
 }))
 
 import { PeersTable } from "./PeersTable"
+
 
 const peer = (key: string, client: string, peerIdClient: string) =>
   ({ key, ip: key, port: 1, client, peer_id_client: peerIdClient, progress: 0 }) as unknown as SortedPeer
@@ -33,7 +35,8 @@ describe("PeersTable", () => {
         speedUnit="bytes"
         showFlags={false}
         incognitoMode={false}
-      />
+      />,
+      { wrapper: TooltipProvider }
     )
 
     fireEvent.click(screen.getByText("peersTable.client"))

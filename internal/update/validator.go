@@ -24,7 +24,6 @@ func (u *Updater) newSelfUpdater(backup string) (*selfupdate.Updater, *archiveSo
 
 	source := u.source
 	if source == nil {
-		// The go-selfupdate default.
 		if source, err = selfupdate.NewGitHubSource(selfupdate.GitHubConfig{}); err != nil {
 			return nil, nil, fmt.Errorf("could not create GitHub source: %w", err)
 		}
@@ -53,11 +52,11 @@ type archiveSource struct {
 func (s *archiveSource) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Release, assetID int64) (io.ReadCloser, error) {
 	body, err := s.Source.DownloadReleaseAsset(ctx, rel, assetID)
 	if err != nil || assetID != rel.AssetID {
-		return body, err //nolint:wrapcheck // go-selfupdate wraps it
+		return body, err
 	}
 	defer body.Close()
 	s.archive, err = io.ReadAll(body)
-	return io.NopCloser(bytes.NewReader(s.archive)), err //nolint:wrapcheck // go-selfupdate wraps it
+	return io.NopCloser(bytes.NewReader(s.archive)), err
 }
 
 func newReleaseValidator(certificate []byte) (_ selfupdate.Validator, err error) {

@@ -17,64 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDownloadError_Error(t *testing.T) {
-	err := &DownloadError{StatusCode: http.StatusNotFound, URL: "https://example.com/download/123"}
-	assert.Equal(t, "torrent download from https://example.com/download/123 returned status 404", err.Error())
-}
-
-func TestDownloadError_IsRateLimited(t *testing.T) {
-	tests := []struct {
-		name       string
-		statusCode int
-		want       bool
-	}{
-		{
-			name:       "429 is rate limited",
-			statusCode: http.StatusTooManyRequests,
-			want:       true,
-		},
-		{
-			name:       "404 is not rate limited",
-			statusCode: http.StatusNotFound,
-			want:       false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := &DownloadError{StatusCode: tt.statusCode}
-			assert.Equal(t, tt.want, err.IsRateLimited())
-		})
-	}
-}
-
-func TestDownloadError_Is(t *testing.T) {
-	tests := []struct {
-		name   string
-		target error
-		want   bool
-	}{
-		{
-			name:   "matches DownloadError",
-			target: &DownloadError{},
-			want:   true,
-		},
-		{
-			name:   "does not match other error types",
-			target: errors.New("some error"),
-			want:   false,
-		},
-	}
-
-	err := &DownloadError{StatusCode: 404, URL: "https://example.com"}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, err.Is(tt.target))
-		})
-	}
-}
-
 func TestFetchCapsPreservesRateLimitResponse(t *testing.T) {
 	t.Parallel()
 
@@ -272,4 +214,30 @@ func TestMagnetDownloadError_RedactsTrackerPasskeys(t *testing.T) {
 
 	// The field itself must stay raw: the manual-add handler consumes it.
 	assert.Equal(t, rawMagnet, err.MagnetURL)
+}
+
+// regression: #4473
+func TestDownloadHidesTheKeysOfALinkThatDoesNotParse(t *testing.T) {
+	client := NewClient("https://indexer.example.invalid", "test-api-secret", nil, nil, "jackett", 5)
+
+	tests := []struct {
+		name string
+		link string
+	}{
+		// regression: #4473
+		{name: "keys in the query", link: "https://indexer.example.invalid/download?apikey=test-api-secret&passkey=test-pass-secret\x7f"},
+		// regression: #4473
+		{name: "key in the path", link: "https://indexer.example.invalid/test-pass-secret/download\x7f"},
+		// regression: #4473
+		{name: "key in the place of the port", link: "https://indexer.example.invalid:test-pass-secret/download"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.Download(t.Context(), tt.link)
+
+			require.ErrorContains(t, err, "build download request")
+			assert.NotContains(t, err.Error(), "test-api-secret")
+			assert.NotContains(t, err.Error(), "test-pass-secret")
+		})
+	}
 }

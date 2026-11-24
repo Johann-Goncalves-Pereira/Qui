@@ -4,26 +4,29 @@
  */
 
 import { InstanceList, type InstanceDay } from "@/components/dashboard/InstanceList"
+import { PointedLayerContext, PointLayerContext, usePointedLayer, usePointLayer } from "@/components/dashboard/pointed-layer"
 import { Library, NeedsAttention, Storage } from "@/components/dashboard/SidePanels"
-import { StreamChart } from "@/components/dashboard/StreamChart"
+import { StreamChart, type StreamChartProps } from "@/components/dashboard/StreamChart"
 import { TopTrackerGroups } from "@/components/dashboard/TopTrackerGroups"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { LIVE_SAMPLES, useLiveSpeedSamples } from "@/hooks/useLiveSpeedSamples"
+import { useDashboardChartView, type DashboardChartView } from "@/hooks/useDashboardChartView"
+import { useLiveSamples } from "@/hooks/useLiveSamples"
 import { usePersistedDateTimePreferences } from "@/hooks/usePersistedDateTimePreferences"
+import { useClientSettingsSettled } from "@/lib/client-settings"
 import { useTransferHistoryRows, useTransferHistoryStatus } from "@/hooks/useTransferHistoryRows"
 import {
   buildDayChart,
   buildLiveLayers,
   instanceLayers,
   layerPeaks,
-  slotTotals,
+  LIVE_SLOTS,
   trackerGroupShares,
   type DashboardInstanceStats
 } from "@/lib/dashboard-overview"
-import { formatGapLength, HISTORY_WRITE_MS, presetPeriod, recordedFrom, sumBytes, type StatisticsPeriod } from "@/lib/statistics"
+import { HISTORY_WRITE_MS, presetPeriod, recordedFrom, sumBytes, type StatisticsPeriod } from "@/lib/statistics"
 import { formatSpeedWithUnit, useSpeedUnits } from "@/lib/speedUnits"
 import { themeArea } from "@/lib/theme-areas"
 import { formatBytes } from "@/lib/utils"
@@ -31,8 +34,6 @@ import type { TransferHistoryRow } from "@/types"
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-
-type Range = "day" | "live"
 
 /** The period of the last 24 hours. It moves forward each 5 minutes while the page is visible. */
 function useLastDayPeriod(): StatisticsPeriod {
@@ -52,6 +53,21 @@ function useLastDayPeriod(): StatisticsPeriod {
     }
   }, [])
   return period
+}
+
+/** Holds the pointed layer. A change renders only the components that read the layer, not the page. */
+function PointedLayerProvider({ children }: { children: ReactNode }) {
+  const [pointed, setPointed] = useState<number>()
+  return (
+    <PointLayerContext.Provider value={setPointed}>
+      <PointedLayerContext.Provider value={pointed}>{children}</PointedLayerContext.Provider>
+    </PointLayerContext.Provider>
+  )
+}
+
+/** The chart of all instances. It marks the pointed layer, and it points at the layer under the pointer. */
+function PointedChart(props: StreamChartProps) {
+  return <StreamChart {...props} pointed={usePointedLayer()} onPoint={usePointLayer()} />
 }
 
 interface ShownDay {
@@ -106,13 +122,12 @@ export function DashboardOverview({ statsData }: { statsData: DashboardInstanceS
   const layerOf = useMemo(() => instanceLayers(instanceIds), [instanceIds])
   const dayChart = useMemo(() => current && dayData && buildDayChart(current.rows, current.instanceIds, layerOf, dayData.range), [current, dayData, layerOf])
 
-  const [chosen, setChosen] = useState<Range>("day")
-  if (noHistory && chosen !== "live") {
-    setChosen("live")
-  }
-  const range: Range = noHistory ? "live" : chosen
-  const samples = useLiveSpeedSamples(statsData)
-  const liveLayers = useMemo(() => buildLiveLayers(samples, layerOf), [samples, layerOf])
+  const [chosen, setChosen] = useDashboardChartView()
+  const settingsLoaded = useClientSettingsSettled()
+  // With no history, the page shows Live and keeps the saved view.
+  const range: DashboardChartView = noHistory ? "live" : chosen
+  const live = useLiveSamples(settingsLoaded && range === "live")
+  const liveLayers = useMemo(() => live.data && !live.error ? buildLiveLayers(live.data, layerOf) : [], [live.data, live.error, layerOf])
 
   const totalUp = statsData.reduce((sum, d) => sum + (d.stats?.totalUploadSpeed ?? 0), 0)
   const totalDown = statsData.reduce((sum, d) => sum + (d.stats?.totalDownloadSpeed ?? 0), 0)
@@ -142,27 +157,27 @@ export function DashboardOverview({ statsData }: { statsData: DashboardInstanceS
 
   const hours = dayChart?.hours ?? []
   // A chart that is loading, failed, or has no sample yet has no peak to give.
-  const shownLayers = range === "day" ? dayChart?.layers : liveLayers.length > 0 ? liveLayers : undefined
+  const shownLayers = !settingsLoaded ? undefined : range === "day" ? dayChart?.layers : liveLayers.length > 0 ? liveLayers : undefined
   const peaks = shownLayers && layerPeaks(shownLayers)
   const peakUp = peaks && (range === "day" ? t("stream.peakHour", { size: formatBytes(peaks.up) }) : t("stream.peakSpeed", { speed: formatSpeedWithUnit(peaks.up, unit) }))
   const peakDown = peaks && (range === "day" ? t("stream.peakHour", { size: formatBytes(peaks.down) }) : t("stream.peakSpeed", { speed: formatSpeedWithUnit(peaks.down, unit) }))
 
+  const chartError = range === "live" ? live.error : failed
   let chart: ReactNode
-  if (range === "live") {
-    chart = <StreamChart layers={liveLayers} kind="areas" slots={LIVE_SAMPLES} label={t("stream.liveLabel")} className="h-36 lg:h-56" />
-  } else if (dayChart) {
-    const up = slotTotals(dayChart.layers, "up")
-    const down = slotTotals(dayChart.layers, "down")
-    const titles = hours.map((hour, index) => {
-      const title = t("stream.hourTitle", { time: clock(hour.start), uploaded: formatBytes(up[index] ?? 0), downloaded: formatBytes(down[index] ?? 0) })
-      // The hover area of the hour lies over the gap mark, so the title also gives the gap.
-      return hour.gapSeconds > 0 ? `${title}\n${t("statistics:chart.gap", { duration: formatGapLength(hour.gapSeconds, locale) })}` : title
-    })
-    chart = <StreamChart layers={dayChart.layers} kind="bars" gaps={hours.map(hour => hour.gapSeconds)} titles={titles} label={t("stream.dayLabel")} className="h-36 lg:h-56" />
+  if (!settingsLoaded) {
+    chart = (
+      <div className="flex h-36 items-center justify-center lg:h-56">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  } else if (range === "live" && !chartError) {
+    chart = <PointedChart layers={liveLayers} kind="areas" slots={LIVE_SLOTS} label={t("stream.liveLabel")} className="h-36 lg:h-56" />
+  } else if (range === "day" && dayChart) {
+    chart = <PointedChart layers={dayChart.layers} kind="bars" gaps={hours.map(hour => hour.gapSeconds)} label={t("stream.dayLabel")} className="h-36 lg:h-56" />
   } else {
     chart = (
       <div className="flex h-36 items-center justify-center text-sm lg:h-56">
-        {failed ? <span className="text-destructive">{t("stream.loadError", { message: failed.message })}</span> : <Loader2 className="size-6 animate-spin text-muted-foreground" />}
+        {chartError ? <span className="text-destructive">{t("stream.loadError", { message: chartError.message })}</span> : <Loader2 className="size-6 animate-spin text-muted-foreground" />}
       </div>
     )
   }
@@ -171,9 +186,9 @@ export function DashboardOverview({ statsData }: { statsData: DashboardInstanceS
     ? hours.length > 0 && [clock(hours[0].start), clock(hours[Math.floor(hours.length / 2)].start), clock(hours[hours.length - 1].start + 3_600_000)]
     : [t("stream.liveStart"), t("stream.now")]
 
-  const dayTrigger = <TabsTrigger value="day" disabled={noHistory} className="px-2.5 text-xs">{t("stream.day")}</TabsTrigger>
+  const dayTrigger = <TabsTrigger value="day" disabled={noHistory || !settingsLoaded} className="px-2.5 text-xs">{t("stream.day")}</TabsTrigger>
   const controls = (
-    <Tabs value={range} onValueChange={value => setChosen(value as Range)}>
+    <Tabs value={range} onValueChange={value => setChosen(value as DashboardChartView)}>
       <TabsList className="h-9 lg:h-7">
         {noHistory ? (
           <Tooltip>
@@ -181,57 +196,59 @@ export function DashboardOverview({ statsData }: { statsData: DashboardInstanceS
             <TooltipContent className="max-w-xs">{t("stream.noHistory")}</TooltipContent>
           </Tooltip>
         ) : dayTrigger}
-        <TabsTrigger value="live" className="px-2.5 text-xs">{t("stream.live")}</TabsTrigger>
+        <TabsTrigger value="live" disabled={!settingsLoaded} className="px-2.5 text-xs">{t("stream.live")}</TabsTrigger>
       </TabsList>
     </Tabs>
   )
 
   return (
-    <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
-      <Card {...themeArea("dashboard-card")} className="order-1 gap-0 overflow-hidden py-0 xl:order-none xl:col-start-1 xl:row-start-1">
-        <div className="flex items-end justify-between gap-3 px-4 pb-2 pt-4 lg:px-6">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1 text-3xl font-semibold tabular-nums tracking-tight lg:text-4xl" aria-label={t("stream.uploadSpeed")}>
-              <ArrowUp className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />{formatSpeedWithUnit(totalUp, unit)}
+    <PointedLayerProvider>
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
+        <Card {...themeArea("dashboard-card")} className="order-1 gap-0 overflow-hidden py-0 xl:order-none xl:col-start-1 xl:row-start-1">
+          <div className="flex items-start justify-between gap-3 px-4 pb-2 pt-4 lg:px-6">
+            <div className="flex min-w-0 flex-wrap items-end gap-x-10 gap-y-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 text-3xl font-semibold tabular-nums tracking-tight lg:text-4xl" aria-label={t("stream.uploadSpeed")}>
+                  <ArrowUp className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />{formatSpeedWithUnit(totalUp, unit)}
+                </div>
+                <div className="line-clamp-2 min-h-4 text-xs text-muted-foreground lg:line-clamp-1">
+                  <span data-testid="upload-caption">{upCaption}</span>{peakUp && <> · <span>{peakUp}</span></>}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 text-3xl font-semibold tabular-nums tracking-tight lg:text-4xl" aria-label={t("stream.downloadSpeed")}>
+                  <ArrowDown className="size-6 shrink-0 text-muted-foreground" aria-hidden="true" />{formatSpeedWithUnit(totalDown, unit)}
+                </div>
+                <div className="line-clamp-2 min-h-4 text-xs text-muted-foreground lg:line-clamp-1">
+                  <span data-testid="download-caption">{downCaption}</span>{peakDown && <> · <span>{peakDown}</span></>}
+                </div>
+              </div>
             </div>
-            <div className="line-clamp-2 min-h-4 text-xs text-muted-foreground lg:line-clamp-1" data-testid="upload-caption">{upCaption}</div>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1.5 text-[11px] text-muted-foreground tabular-nums">
-            {controls}
-            <span className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-2">
               {range === "day" && dayData?.partial && <Badge variant="outline" className="border-yellow-500/50 py-0 text-[10px] text-yellow-600 dark:text-yellow-500">{t("statistics:partial")}</Badge>}
-              {peakUp}
-            </span>
-          </div>
-        </div>
-        {chart}
-        {axis && (
-          <div className="flex justify-between px-4 pt-1 text-[10px] text-muted-foreground tabular-nums lg:px-6">
-            {axis.map((label, index) => <span key={index}>{label}</span>)}
-          </div>
-        )}
-        <div className="flex items-start justify-between gap-3 px-4 pb-4 pt-2 lg:px-6">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1 text-xl font-semibold tabular-nums tracking-tight lg:text-2xl" aria-label={t("stream.downloadSpeed")}>
-              <ArrowDown className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />{formatSpeedWithUnit(totalDown, unit)}
+              {controls}
             </div>
-            <div className="truncate text-xs text-muted-foreground" data-testid="download-caption">{downCaption}</div>
           </div>
-          <div className="shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">{peakDown}</div>
+          {chart}
+          {axis && (
+            <div className="flex justify-between px-4 pb-3 pt-1 text-[10px] text-muted-foreground tabular-nums lg:px-6">
+              {axis.map((label, index) => <span key={index}>{label}</span>)}
+            </div>
+          )}
+        </Card>
+
+        <div className="contents xl:col-start-2 xl:row-span-3 xl:row-start-1 xl:block xl:space-y-6">
+          <NeedsAttention statsData={statsData} className="order-2 xl:order-none" />
+          <Storage statsData={statsData} className="order-5 xl:order-none" />
+          <Library statsData={statsData} className="order-6 xl:order-none" />
         </div>
-      </Card>
 
-      <div className="contents xl:col-start-2 xl:row-span-3 xl:row-start-1 xl:block xl:space-y-6">
-        <NeedsAttention statsData={statsData} className="order-2 xl:order-none" />
-        <Storage statsData={statsData} className="order-5 xl:order-none" />
-        <Library statsData={statsData} className="order-6 xl:order-none" />
+        <Card {...themeArea("dashboard-card")} className="order-3 gap-0 overflow-hidden py-0 xl:order-none xl:col-start-1 xl:row-start-2">
+          <InstanceList statsData={statsData} layerOf={layerOf} days={noHistory ? undefined : dayData?.days} dayUploaded={dayData?.totals.uploaded} />
+        </Card>
+
+        {!noHistory && dayData && <TopTrackerGroups shares={dayData.shares} className="order-4 xl:order-none xl:col-start-1 xl:row-start-3" />}
       </div>
-
-      <Card {...themeArea("dashboard-card")} className="order-3 gap-0 overflow-hidden py-0 xl:order-none xl:col-start-1 xl:row-start-2">
-        <InstanceList statsData={statsData} layerOf={layerOf} days={noHistory ? undefined : dayData?.days} dayUploaded={dayData?.totals.uploaded} />
-      </Card>
-
-      {!noHistory && dayData && <TopTrackerGroups shares={dayData.shares} className="order-4 xl:order-none xl:col-start-1 xl:row-start-3" />}
-    </div>
+    </PointedLayerProvider>
   )
 }

@@ -67,6 +67,8 @@
     "externalPrograms": "Programmi esterni",
     "exportTorrent": "Esporta torrent",
     "exportTorrents": "Esporta torrent ({{count}})",
+    "transferToInstance": "Trasferisci a un'istanza…",
+    "shareWithSomeone": "Condividi con qualcuno…",
     "copy": "Copia...",
     "copyName": "Copia nome",
     "copyHash": "Copia hash",
@@ -710,36 +712,18 @@
   "crossSeedDialog": {
     "title": "Cerca cross-seed",
     "torrentLabel": "Torrent",
-    "category": "Categoria: {{category}}",
-    "size": "Dimensione: {{size}}",
-    "servedFromCache": "Servito dalla cache",
-    "freshSearch": "Nuova ricerca",
-    "cached": "Memorizzato in cache {{time}}",
-    "expires": "Scade {{time}}",
-    "refreshFromIndexers": "Aggiorna dagli indexer",
     "partialResults": "Risultati parziali - alcuni indexer non hanno risposto",
     "arrLookupFailed": "Ricerca degli ID dei metadati non riuscita - ricerca solo per titolo, i risultati potrebbero essere incompleti",
     "arrNoIds": "Nessun ID dei metadati trovato per questa release - ricerca solo per titolo",
     "torznabFailed": "Ricerca Torznab non riuscita - solo risultati RED/OPS",
-    "searchScope": "Ambito di ricerca",
     "noIndexers": "Nessun indexer Torznab disponibile",
     "noIndexersHelp": "Aggiungi o abilita indexer Torznab in Impostazioni per cercare cross-seed.",
-    "capabilityNote": "Nota sulle funzionalità",
-    "capabilityDescription": "Questi indexer non hanno le funzionalità/categorie richieste per questo torrent e verranno ignorati dal server:",
-    "smartFilteringActive": "Filtraggio intelligente attivo",
-    "indexersFiltered_one": "{{count}} indexer filtrato",
-    "indexersFiltered_other": "{{count}} indexer filtrati",
-    "excludedDescription": "Stai già distribuendo questa release da questi tracker, quindi sono esclusi dalla ricerca.",
     "searchingIndexers": "Ricerca sugli indexer…",
     "noMatchesFound": "Nessuna corrispondenza trovata nella tua ricerca.",
-    "selectReleasesToAdd": "Seleziona le release che vuoi aggiungere",
     "selectAll": "Seleziona tutto",
-    "clear": "Svuota",
     "tagAddedTorrents": "Assegna un tag ai torrent aggiunti",
     "startPaused": "Avvia in pausa",
-    "latestAddAttempt": "Ultimo tentativo di aggiunta",
     "close": "Chiudi",
-    "addSelected": "Aggiungi selezionati",
     "adding": "Aggiunta in corso…",
     "retry": "Riprova",
     "seeders": "{{count}} seeder",
@@ -751,38 +735,47 @@
     "addedToBlocklist": "Aggiunto alla lista di blocco",
     "missingInstance": "Istanza mancante per la lista di blocco",
     "trace": {
-      "title": "Dettaglio della ricerca",
-      "summaryBadge": "{{total}} candidati, {{matches}} corrispondenze",
-      "summary": "{{total}} candidati restituiti. Rifiutati: {{release}} release non corrispondente, {{size}} dimensione non corrispondente, {{late}} filtro contenuti, {{duplicates}} duplicati. Restano {{matches}} corrispondenze.",
-      "indexersHeading": "Indexer",
+      "title": "Dettagli della ricerca",
       "status": {
-        "searched": "cercato",
         "notCovered": "incompleto",
-        "error": "errore",
-        "excluded": "escluso"
+        "error": "errore"
       },
-      "candidateCount": "{{count}} candidati",
       "rejectionsHeading": "Candidati rifiutati",
       "reasonCount": "{{reason}} · {{count}}",
       "moreCandidates": "+{{count}} altri con questo motivo",
       "copyReport": "Copia report",
       "copied": "Report copiato negli appunti",
-      "copyFailed": "Impossibile copiare il report"
+      "copyFailed": "Impossibile copiare il report",
+      "rejectedCount_one": "{{count}} candidato rifiutato",
+      "rejectedCount_other": "{{count}} candidati rifiutati",
+      "stats": {
+        "returned": "Candidati Torznab",
+        "release": "Release non corrispondente",
+        "size": "Dimensione non corrispondente",
+        "late": "Filtro contenuti",
+        "duplicates": "Duplicati",
+        "matches": "Corrispondenze Torznab"
+      }
     },
     "scope": {
-      "allIndexers": "Tutti gli indexer",
-      "selectCustom": "Selezione personalizzata",
-      "selectedCount": "{{count}} selezionati",
-      "selectIndexers": "Seleziona gli indexer",
-      "availableIndexers": "Indexer disponibili",
-      "selectAllIndexers": "Seleziona tutto",
-      "clearSelection": "Svuota la selezione",
       "search": "Cerca",
       "searching": "Ricerca in corso",
-      "noneSelected": "Nessuno selezionato",
-      "enabledIndexers": "{{count}} abilitati {{suffix}}",
-      "selectedOfTotal": "{{selected}} di {{total}} selezionati",
-      "indexersForSearch": "{{count}} {{suffix}} per la ricerca"
+      "alreadySeeded": "non interrogato: lo condividi già lì",
+      "heading": "Indexer",
+      "searchCount_one": "Cerca su {{count}} indexer",
+      "searchCount_other": "Cerca su {{count}} indexer",
+      "unsupported_one": "{{count}} altro indexer non supporta questo tipo di contenuto",
+      "unsupported_other": "Altri {{count}} indexer non supportano questo tipo di contenuto",
+      "matchCount_one": "{{count}} corrispondenza",
+      "matchCount_other": "{{count}} corrispondenze",
+      "selectNone": "Deseleziona tutto",
+      "checking": "Verifica degli indexer adatti a questo torrent…",
+      "nothingLeft": "Non resta alcun indexer da cercare per questo torrent.",
+      "selectAll": "Seleziona tutto",
+      "change": "Modifica",
+      "searchAgain": "Cerca di nuovo",
+      "done": "Fatto",
+      "nonePicked": "Nessun indexer selezionato"
     },
     "status": {
       "added": "Aggiunto",
@@ -803,25 +796,17 @@
       "belowThreshold": "Ignorato - sotto la soglia"
     },
     "rateLimitHelp": {
-      "why": "Perché succede:",
-      "whyDescription": "I tracker limitano la frequenza delle richieste per prevenire abusi e ban.",
-      "whatYouCanDo": "Cosa puoi fare:",
-      "wait": "Attendi 30-60 minuti prima di riprovare",
-      "fewerIndexers": "Prova a cercare con meno indexer selezionati",
-      "useRss": "Usa la funzione di automazione RSS per il cross-seeding continuo",
-      "checkIndexers": "Controlla la pagina degli indexer per vedere quali sono soggetti a rate limit"
+      "wait": "Attendi 30-60 minuti prima di riprovare"
     },
     "routedTo": "I cross-seed vanno all'istanza di cross-seed {{instance}}.",
     "gazelle": {
-      "heading": "RED/OPS",
       "willAsk": "verrà interrogato",
       "willAskRejected": "verrà interrogato: l'ultima volta il sito ha rifiutato la chiave API",
       "match": "corrispondenza",
       "noMatch": "nessuna corrispondenza",
       "openSettings": "Apri impostazioni",
+      "noApiKeys": "RED/OPS è attivo, ma non è impostata alcuna chiave API",
       "notAsked": {
-        "disabled": "non interrogato: disattivato",
-        "noApiKey": "non interrogato: nessuna chiave API",
         "cooldown": "non interrogato: cercato di recente",
         "notSelected": "non interrogato: non selezionato",
         "sourceSite": "non interrogato: il torrent proviene da {{site}}",
@@ -834,7 +819,18 @@
         "timedOut": "non riuscito: tempo scaduto",
         "other": "non riuscito: {{detail}}"
       }
-    }
+    },
+    "cachedAgo": "Risultati in cache · {{time}}",
+    "refresh": "Aggiorna",
+    "tag": "Tag",
+    "selectedOfTotal": "{{selected}} di {{total}} selezionati",
+    "resultsSelectedOfTotal": "{{selected}} di {{total}} corrispondenze selezionate",
+    "addCount_one": "Aggiungi {{count}} torrent",
+    "addCount_other": "Aggiungi {{count}} torrent",
+    "openOnIndexer": "Apri su {{indexer}}",
+    "problem": "{{name}}: {{status}}",
+    "problemDetail": "{{name}}: {{status}} ({{detail}})",
+    "add": "Aggiungi"
   },
   "columnFilter": {
     "filterColumn": "Filtra {{column}}",
@@ -1511,19 +1507,11 @@
     "incognito": "Incognito",
     "add": "Aggiungi",
     "tasks": "Attività",
-    "done": "Fatto",
     "actionsForCount": "Azioni per {{count}} torrent",
     "actionsForAll": "Azioni per tutti i {{count}} torrent",
     "selection": {
       "selectedCount": "{{count}} selezionati",
       "allSelectedCount": "Tutti i {{count}} selezionati"
-    },
-    "searchModal": {
-      "title": "Cerca torrent",
-      "description": "Cerca per nome, categoria o tag. Supporta pattern glob come *.mkv o *1080p*.",
-      "placeholder": "Cerca torrent...",
-      "globExamples": "*.mkv, *1080p*, *S[0-9][0-9]E[0-9][0-9]*",
-      "autoSearches": "Ricerca automatica durante la digitazione"
     },
     "ratio": "Rapporto:",
     "added": "Aggiunto {{time}}"
@@ -1604,6 +1592,9 @@
     "trackerDown": "Tracker non raggiungibile",
     "unregistered": "Non registrato",
     "trackerError": "Errore tracker",
+    "helperTransfer": "Helper di trasferimento",
+    "helperShare": "Helper di condivisione",
+    "helperHint": "qui ha aggiunto questo torrent per un trasferimento o una condivisione. I suoi file appartengono a un altro torrent.",
     "now": "adesso",
     "yes": "Sì",
     "no": "No"
@@ -1730,6 +1721,137 @@
       "title": "Raggruppa i tuoi cross-seed",
       "description": "Mostra le copie di un torrent in un'unica riga.",
       "action": "Prova"
+    },
+    "displayProfiles": {
+      "title": "Profili di visualizzazione",
+      "description": "Dai a ogni schermo colonne, densità delle righe e barre laterali proprie. Scegli qui il profilo di questo browser.",
+      "action": "Crea un profilo"
+    }
+  },
+  "displayProfiles": {
+    "chipAriaLabel": "Profilo di visualizzazione: {{name}}",
+    "menuLabel": "Profilo di visualizzazione",
+    "defaultName": "Predefinito",
+    "manage": "Gestisci profili…",
+    "sheetDescription": "Ogni browser sceglie il proprio profilo.",
+    "settings": {
+      "title": "Profili di visualizzazione",
+      "holds": "Contiene: colonne · densità delle righe · barre laterali · sezioni dei filtri · alberi delle categorie · filtri vuoti",
+      "holdsHelp": "Un profilo contiene l’aspetto dell’elenco dei torrent: quali colonne sono visibili, il loro ordine e la loro larghezza, l’estensione della colonna Nome, la densità delle righe, le barre laterali e le sezioni dei filtri aperte, gli alberi delle categorie compressi e se i filtri vuoti sono visibili. Contiene anche quali righe delle istanze della Dashboard sono aperte. Ogni browser usa un profilo, e solo quel browser ricorda la scelta. Un browser che non ne ha mai scelto uno, e una finestra privata, usano Default. Tutti i profili condividono le altre impostazioni.",
+      "thisBrowser": "Questo browser",
+      "use": "Usa in questo browser",
+      "makeProfile": "Crea un profilo per un portatile o un telefono",
+      "themesSync": "I temi si sincronizzano per conto loro: <sync>Sincronizzazione del tema</sync>",
+      "renameAriaLabel": "Rinomina {{name}}",
+      "saveName": "Salva il nome",
+      "cancelRename": "Annulla la rinomina",
+      "editAriaLabel": "Modifica {{name}}",
+      "editTitle": "Modifica il profilo",
+      "delete": "Elimina…",
+      "deleteTitle": "Eliminare {{name}}?",
+      "deleteDescription": "Gli altri browser che lo usano passano a {{defaultName}}.",
+      "deleteConfirm": "Elimina",
+      "look": "{{density}} · {{filterSidebar}}",
+      "densities": {
+        "table": "Righe di tabella",
+        "dense": "Righe dense",
+        "stacked": "Schede impilate"
+      },
+      "filterSidebarOpen": "barra dei filtri aperta",
+      "filterSidebarClosed": "barra dei filtri chiusa"
+    },
+    "nameErrors": {
+      "empty": "Inserisci un nome.",
+      "tooLong": "Usa al massimo {{max}} caratteri.",
+      "duplicate": "Un altro profilo ha già questo nome."
+    },
+    "ownSortAndFilters": {
+      "label": "Ordinamento e filtri propri",
+      "help": "<lead>Quando è attiva, questo profilo mantiene i propri:</lead><list><item>ordinamento dell'elenco dei torrent</item><item>filtri delle colonne e filtri della barra laterale</item><item>istanze mostrate dalla vista unificata</item><item>Raggruppa le copie, attivo o no</item><item>ultima scheda aperta del pannello dei dettagli</item><item>istanza mostrata dalle pagine Backup e RSS</item></list><note>Una modifica a questi valori in questo profilo non raggiunge gli altri profili. Quando è disattivata, questo profilo li condivide con tutti gli altri profili che non hanno i propri. Disattivandola, i valori propri di questo profilo vengono eliminati.</note>",
+      "offWarning": "Disattivandola, l'ordinamento e i filtri propri di {{name}} vengono eliminati.",
+      "defaultShares": "Condivide sempre ordinamento e filtri",
+      "defaultSharesHelp": "Default condivide sempre l'ordinamento, i filtri e le altre scelte di visualizzazione con tutti i profili che non hanno i propri. Per averne di propri, crea un altro profilo e attiva Ordinamento e filtri propri."
+    },
+    "deletedToast": "Il profilo {{name}} è stato eliminato. Questo browser ora usa {{defaultName}}.",
+    "newProfile": "Nuovo profilo da questa configurazione…",
+    "newDialog": {
+      "title": "Nuovo profilo",
+      "copies": "Copia <profile>{{name}}</profile>: colonne, densità, barre laterali e filtri. Poi questo browser lo usa.",
+      "name": "Nome",
+      "namePlaceholder": "Per esempio, Portatile",
+      "nameCount": "{{length}}/{{max}}",
+      "cancel": "Annulla",
+      "create": "Crea"
+    },
+    "iconPicker": {
+      "trigger": "Icona: {{icon}}. Cambia l’icona e il colore",
+      "letter": "Prima lettera del nome",
+      "color": "Colore"
+    },
+    "iconGroups": {
+      "devices": "Dispositivi",
+      "places": "Luoghi",
+      "use": "Uso",
+      "mood": "Umore"
+    },
+    "icons": {
+      "appWindow": "Finestra app",
+      "monitor": "Monitor",
+      "laptop": "Portatile",
+      "tablet": "Tablet",
+      "smartphone": "Smartphone",
+      "tv": "TV",
+      "server": "Server",
+      "gamepad": "Gamepad",
+      "house": "Casa",
+      "briefcase": "Valigetta",
+      "building": "Edificio",
+      "sofa": "Divano",
+      "bed": "Letto",
+      "coffee": "Caffè",
+      "plane": "Aereo",
+      "train": "Treno",
+      "rows": "Righe",
+      "table": "Tabella",
+      "list": "Elenco",
+      "eye": "Occhio",
+      "gauge": "Indicatore",
+      "zap": "Fulmine",
+      "download": "Download",
+      "upload": "Upload",
+      "sprout": "Germoglio",
+      "bookmark": "Segnalibro",
+      "moon": "Luna",
+      "sun": "Sole",
+      "star": "Stella",
+      "heart": "Cuore",
+      "flame": "Fiamma",
+      "rocket": "Razzo"
+    },
+    "colors": {
+      "none": "Nessuno (colore del testo)",
+      "sky": "Cielo",
+      "emerald": "Smeraldo",
+      "amber": "Ambra",
+      "rose": "Rosa",
+      "violet": "Viola",
+      "orange": "Arancione",
+      "teal": "Verde acqua",
+      "pink": "Rosa acceso"
+    },
+    "columns": {
+      "headingEveryInstance": "Colonne in {{profile}} · ogni istanza",
+      "headingOneInstance": "Colonne in {{profile}} · solo {{instance}}",
+      "unifiedView": "Vista unificata",
+      "thisInstance": "questa istanza"
+    },
+    "sameColumns": {
+      "label": "Stesse colonne su ogni istanza",
+      "menuHelp": "Ordinamento e filtri delle colonne restano per istanza.",
+      "helpOn": "Una sola configurazione delle colonne per {{instances}}.",
+      "helpOff": "Ogni istanza mantiene la propria. Attivandolo, ogni istanza riceve le colonne di {{instance}}.",
+      "helpOffNoInstance": "Ogni istanza mantiene la propria.",
+      "unifiedViewInList": "la vista unificata"
     }
   }
 }

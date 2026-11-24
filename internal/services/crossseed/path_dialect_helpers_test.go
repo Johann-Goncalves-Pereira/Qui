@@ -11,7 +11,7 @@ import (
 
 	"github.com/autobrr/qui/internal/fsops"
 	"github.com/autobrr/qui/internal/models"
-	"github.com/autobrr/qui/pkg/hardlinktree"
+	"github.com/autobrr/qui/internal/services/linktree"
 )
 
 // eachDialect runs fn with the slash dialect and, when hostToo is set, with the
@@ -25,26 +25,20 @@ func eachDialect(t *testing.T, hostToo bool, fn func(t *testing.T, d fsops.PathD
 	}
 }
 
-func TestPathDialect_DestDirHelpers(t *testing.T) {
+func TestPathDialect_CategoryAndSeasonPackDirs(t *testing.T) {
 	t.Parallel()
 
-	common := []hardlinktree.TorrentFile{{Path: "Name/ep.mkv"}}
-	rootless := []hardlinktree.TorrentFile{{Path: "ep.mkv"}}
 	tests := []struct {
 		name         string
 		preset       string
 		baseDir      string
-		files        []hardlinktree.TorrentFile
-		wantDest     string
 		wantCategory string
 		hostToo      bool
 	}{
-		{name: "by-tracker", preset: "by-tracker", baseDir: "/data/hl", files: common, wantDest: "/data/hl/Tracker", wantCategory: "/data/hl/Tracker", hostToo: true},
-		{name: "by-tracker isolation", preset: "by-tracker", baseDir: "/data/hl", files: rootless, wantDest: "/data/hl/Tracker/Name", wantCategory: "/data/hl/Tracker", hostToo: true},
-		{name: "by-instance", preset: "by-instance", baseDir: "/data/hl", files: common, wantDest: "/data/hl/qbt1", wantCategory: "/data/hl/qbt1", hostToo: true},
-		{name: "by-instance isolation", preset: "by-instance", baseDir: "/data/hl", files: rootless, wantDest: "/data/hl/qbt1/Name", wantCategory: "/data/hl/qbt1", hostToo: true},
-		{name: "flat", preset: "flat", baseDir: "/data/hl", files: common, wantDest: "/data/hl", wantCategory: "/data/hl", hostToo: true},
-		{name: "flat backslash base", preset: "flat", baseDir: `/data/hl\x`, files: rootless, wantDest: `/data/hl\x/Name`, wantCategory: `/data/hl\x`},
+		{name: "by-tracker", preset: "by-tracker", baseDir: "/data/hl", wantCategory: "/data/hl/Tracker", hostToo: true},
+		{name: "by-instance", preset: "by-instance", baseDir: "/data/hl", wantCategory: "/data/hl/qbt1", hostToo: true},
+		{name: "flat", preset: "flat", baseDir: "/data/hl", wantCategory: "/data/hl", hostToo: true},
+		{name: "flat backslash base", preset: "flat", baseDir: `/data/hl\x`, wantCategory: `/data/hl\x`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -52,18 +46,14 @@ func TestPathDialect_DestDirHelpers(t *testing.T) {
 			eachDialect(t, tt.hostToo, func(t *testing.T, d fsops.PathDialect, conv func(string) string) {
 				s := &Service{}
 				instance := &models.Instance{Name: "qbt1", HardlinkDirPreset: tt.preset}
-				candidate := CrossSeedCandidate{InstanceName: "qbt1"}
-				req := &CrossSeedRequest{IndexerName: "Tracker"}
-
-				_, got := linkDestDir(d, s.linkPresetDir(t.Context(), d, instance, conv(tt.baseDir), candidate, "", req), "Name", tt.files)
-				require.Equal(t, conv(tt.wantDest), got)
+				presetDir := conv(tt.wantCategory)
 
 				// pathcmp keys the category path with "/" on every host.
 				wantCategory := normalizePath(tt.wantCategory)
 				if tt.preset == "flat" {
 					wantCategory = conv(tt.wantCategory)
 				}
-				require.Equal(t, wantCategory, s.buildCategorySavePath(t.Context(), d, instance, conv(tt.baseDir), "", candidate, req))
+				require.Equal(t, wantCategory, linkCategorySavePath(d, &linktree.Tree{BaseDir: conv(tt.baseDir), PresetDir: presetDir}, nil))
 
 				// A season pack's own root folder isolates it, so its dest dir is the category path unnormalized.
 				require.Equal(t, conv(tt.wantCategory), s.seasonPackDestDir(t.Context(), d, instance, instance.Name, conv(tt.baseDir), nil, "Tracker"))

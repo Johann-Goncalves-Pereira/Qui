@@ -54,7 +54,7 @@ func (sm *SyncManager) ReadInstanceTorrents(ctx context.Context, instanceID int)
 	if err != nil {
 		return nil, err
 	}
-	return sm.instanceTorrentViews(client, instanceID, name, TorrentRefFilter{}.Select(snapshot)), nil
+	return sm.instanceTorrentViews(client, instanceID, name, snapshot), nil
 }
 
 // rideFacts is what ReadInstanceTorrents knows about an instance before it picks a path.
@@ -79,4 +79,12 @@ func rideOnSyncs(f rideFacts, now time.Time) bool {
 	default:
 		return true
 	}
+}
+
+func (sm *SyncManager) InstanceSnapshot(ctx context.Context, instanceID int) *qbt.SyncSnapshot {
+	client, err := sm.clientPool.GetClientOffline(ctx, instanceID)
+	if err != nil || client.SyncOwner() == nil {
+		return nil
+	}
+	return client.SyncOwner().SnapshotUnchecked()
 }

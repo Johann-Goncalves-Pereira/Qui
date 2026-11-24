@@ -5,7 +5,6 @@
 package orphanscan
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -84,6 +83,8 @@ type Service struct {
 
 	activityPublisher activity.Publisher
 	crossSeedRoutes   *crossseedroute.Service
+	// transfers is nil until start-up sets it.
+	transfers transfers
 
 	// Per-instance mutex held for a whole deletion
 	instanceMu map[int]*sync.Mutex
@@ -119,9 +120,6 @@ func NewService(cfg Config, instanceStore *models.InstanceStore, store *models.O
 	}
 	if cfg.MaxJitter <= 0 {
 		cfg.MaxJitter = DefaultConfig().MaxJitter
-	}
-	if cfg.StuckRunThreshold <= 0 {
-		cfg.StuckRunThreshold = DefaultConfig().StuckRunThreshold
 	}
 	return &Service{
 		cfg:               cfg,
@@ -329,15 +327,15 @@ func (s *Service) Start(ctx context.Context) {
 	if s == nil {
 		return
 	}
+	// Recovery runs before the scheduler and the API can start a run, so it
+	// fails only runs that a previous process left behind.
+	if err := s.recoverStuckRuns(ctx); err != nil {
+		log.Error().Err(err).Msg("orphanscan: failed to recover stuck runs")
+	}
 	go s.loop(ctx)
 }
 
 func (s *Service) loop(ctx context.Context) {
-	// Recover stuck runs from previous crash
-	if err := s.recoverStuckRuns(ctx); err != nil {
-		log.Error().Err(err).Msg("orphanscan: failed to recover stuck runs")
-	}
-
 	ticker := time.NewTicker(s.cfg.SchedulerInterval)
 	defer ticker.Stop()
 
@@ -358,10 +356,9 @@ func (s *Service) recoverStuckRuns(ctx context.Context) error {
 		return fmt.Errorf("mark deleting runs failed: %w", err)
 	}
 
-	// Mark old pending/scanning runs as failed (they won't resume).
-	// Note: preview_ready is intentionally excluded - valid to keep around indefinitely.
-	if err := s.store.MarkStuckRunsFailed(ctx, s.cfg.StuckRunThreshold, []string{"pending", "scanning"}); err != nil {
-		return fmt.Errorf("mark stuck runs failed: %w", err)
+	// preview_ready is excluded: a preview stays valid indefinitely.
+	if err := s.store.MarkInterruptedScansFailed(ctx, "Scan interrupted by restart"); err != nil {
+		return fmt.Errorf("mark interrupted scans failed: %w", err)
 	}
 
 	// Crash recovery operates in bulk without per-run identifiers, so emit a coarse
@@ -1836,7 +1833,6 @@ func checkReadinessGates(client healthChecker) error {
 	return nil
 }
 
-//nolint:exhaustive // Only transient torrent states belong here; all others are non-transient.
 func isTransientTorrentStateForOrphanScan(state qbt.TorrentState) bool {
 	switch state {
 	case qbt.TorrentStateMetaDl,
@@ -2042,7 +2038,7 @@ func metadataIgnoreRoots(ctx context.Context, scanRoots, metadataRoots []string,
 }
 
 func scanIgnorePaths(ctx context.Context, configured, scanRoots []string, result *buildFileMapResult, backend fsops.Backend, instance *models.Instance) []string {
-	ignored := append(append([]string(nil), configured...), result.skippedRoots...)
+	ignored := slices.Concat(configured, result.skippedRoots, result.transferFolders)
 	return append(ignored, metadataIgnoreRoots(ctx, scanRoots, result.metadataRoots, backend, instance)...)
 }
 
@@ -2071,7 +2067,7 @@ func dedupeCaseVariantRoots(ctx context.Context, roots []string, backend fsops.B
 	for _, root := range roots {
 		cleaned := d.Clean(root)
 		if _, ok := exact[cleaned]; ok {
-			log.Debug().Str("root", root).Msg("orphanscan: dropped scan root that repeats an earlier root")
+			log.Trace().Str("root", root).Msg("orphanscan: dropped scan root that repeats an earlier root")
 			continue
 		}
 		exact[cleaned] = struct{}{}
@@ -2180,10 +2176,14 @@ type buildFileMapResult struct {
 	// peerRoots are the save paths of the merged instances. They are never
 	// scan roots; the scan walks one only when a symlink hides it from the walk.
 	peerRoots []string
+	// transferFolders are the folders of the running Transfers, of this
+	// instance and of the merged instances. The scan and the deletion ignore
+	// them as they ignore a path that the user set.
+	transferFolders []string
 }
 
-// mergeProtection adds the files, skipped roots and metadata roots of
-// another instance to r, never its scan roots, and returns the number of new
+// mergeProtection adds the files, skipped roots, metadata roots and Transfer
+// folders of another instance to r, never its scan roots, and returns the number of new
 // files.
 func (r *buildFileMapResult) mergeProtection(d fsops.PathDialect, other *buildFileMapResult) int {
 	added := r.fileMap.MergeFrom(other.fileMap)
@@ -2191,6 +2191,7 @@ func (r *buildFileMapResult) mergeProtection(d fsops.PathDialect, other *buildFi
 	r.peerRoots = mergeRootLists(d, r.peerRoots, other.scanRoots)
 	r.skippedRoots = mergeRootLists(d, r.skippedRoots, other.skippedRoots)
 	r.metadataRoots = mergeRootLists(d, r.metadataRoots, other.metadataRoots)
+	r.transferFolders = mergeRootLists(d, r.transferFolders, other.transferFolders)
 	r.scanRoots = filterCoveredScanRoots(d, r.scanRoots, r.skippedRoots)
 	return added
 }
@@ -2271,7 +2272,7 @@ func buildFileMapFromTorrents(d fsops.PathDialect, torrents []*qbt.Torrent, file
 
 // getOverlapCandidateInstances returns the other instances whose torrents can
 // protect scanned's files. Overlap compares path strings, which only mean the
-// same file on one filesystem. Instances on the same SSH server (sameSSHServer)
+// same file on one filesystem. Instances on the same SSH server (fsops.SameSSHServer)
 // pair in both modes, whatever their key or local flag, since a seedbox can be
 // reached over SSH by one instance and through a mount by another. A local scan
 // also pairs with every local instance. The endpoint and
@@ -2302,24 +2303,10 @@ func (s *Service) overlapPeer(scanned *models.Instance, scannedPin []byte, inst 
 	switch {
 	case inst.HasLocalFilesystemAccess && models.FilesystemAccessMode(scanned) != models.FilesystemModeRemote:
 		return "local-access instance", true
-	case s.sameSSHServer(scanned, scannedPin, inst):
+	case fsops.SameSSHServer(scanned, scannedPin, inst, s.hostKeyPin):
 		return "remote instance on the same host", true
 	}
 	return "", false
-}
-
-// sameSSHServer reports whether a and b reach one SSH server: the same stored
-// host and port, or the same pinned host key under any name or port (an IP and
-// a hostname for one seedbox). aPin is a's pin. A pin only ever adds a match, so
-// an instance without one, or whose pin cannot be read, still pairs by host and port.
-func (s *Service) sameSSHServer(a *models.Instance, aPin []byte, b *models.Instance) bool {
-	if a.SSHHost == "" || b.SSHHost == "" {
-		return false
-	}
-	if a.SSHHost == b.SSHHost && a.SSHPort == b.SSHPort {
-		return true
-	}
-	return len(aPin) > 0 && bytes.Equal(aPin, s.hostKeyPin(b))
 }
 
 func (s *Service) hostKeyPin(inst *models.Instance) []byte {
@@ -2349,6 +2336,7 @@ func (s *Service) buildInstanceScanRoots(ctx context.Context, d fsops.PathDialec
 	if err != nil {
 		return nil, fmt.Errorf("failed to get torrents: %w", err)
 	}
+	torrents = s.leaveOutHelpers(instanceID, torrents)
 
 	return scanRootsFromTorrents(d, torrents), nil
 }
@@ -2388,10 +2376,18 @@ func (s *Service) buildInstanceFileMap(ctx context.Context, instanceID int, scan
 		return nil, readinessErr
 	}
 
+	// The folders come before the torrents: a Transfer adds its torrents
+	// before it ends, so a Transfer that ends between the two reads leaves
+	// its files covered by its folder or by its torrents.
+	transferFolders, err := s.runningTransferFolders(ctx, instanceID)
+	if err != nil {
+		return nil, err
+	}
 	torrents, err := s.sync.GetTorrentRefsFresh(ctx, instanceID, qbittorrent.TorrentRefFilter{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get torrents: %w", err)
 	}
+	torrents = s.leaveOutHelpers(instanceID, torrents)
 
 	filesCtx := qbittorrent.WithForceFilesRefresh(ctx)
 	filesByHash, err := s.sync.GetTorrentFilesBatch(filesCtx, instanceID, torrentHashes(torrents))
@@ -2403,6 +2399,7 @@ func (s *Service) buildInstanceFileMap(ctx context.Context, instanceID int, scan
 	if err != nil {
 		return nil, err
 	}
+	result.transferFolders = transferFolders
 	result.scanRoots = dedupeCaseVariantRoots(ctx, result.scanRoots, backend, scanned)
 	return result, nil
 }

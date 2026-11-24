@@ -19,6 +19,9 @@ const settingsSearchSchema = z.object({
 export type SettingsSearch = z.infer<typeof settingsSearchSchema>
 
 export const Route = createFileRoute("/_authenticated/settings")({
+  staticData: {
+    title: { titleKey: "nav.settings", titleNs: "common" },
+  },
   validateSearch: settingsSearchSchema,
   component: SettingsRoute,
 })
@@ -27,10 +30,10 @@ function SettingsRoute() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
 
-  const handleSearchChange = (newSearch: SettingsSearch) => {
+  const handleSearchChange = (newSearch: SettingsSearch, options?: { replace: boolean }) => {
     navigate({
       search: newSearch,
-      replace: true,
+      replace: options?.replace ?? true,
     })
   }
 
