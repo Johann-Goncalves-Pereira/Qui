@@ -136,6 +136,7 @@ Fork code that would otherwise patch high-churn upstream files must follow
 [fork-isolation.md](fork-isolation.md): fork-owned modules plus thin injection.
 The sync gate deep-merges locale JSON conflicts when possible and rejects new
 edits to upstream paths outside `scripts/fork-upstream-hotspots.txt`.
+Fork target names stay in `mk/fork.mk`; do not add them to the root `.PHONY` line.
 
 ## Related spec
 

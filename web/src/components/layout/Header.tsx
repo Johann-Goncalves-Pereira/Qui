@@ -172,7 +172,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
 
   const { selection } = useTorrentSelectionContext()
   const selectionSummary = useTorrentSelectionSummary()
-  // CSS hides the header on the phone layout, so the management bar does not mount there.
   const isMobile = useIsMobile()
 
   const selectedInstanceId = layoutRouteState.instanceId
@@ -253,16 +252,11 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
   const hasMultipleActiveInstances = activeInstances.length > 1
   const instanceName = isAllInstancesRoute? (hasMultipleActiveInstances ? t("header.unified") : (activeInstances[0]?.name ?? null)): (currentInstance?.name ?? null)
 
-  // Keep local state in sync with URL when navigating between instances/routes
-  // or when another writer (the spreadsheet formula bar) changes q.
   useEffect(() => {
-    // Keep in-progress text; the debounce writes back a trimmed q.
     const routeQuery = routeSearch?.q || ""
     setSearchValue(prev => (prev.trim() === routeQuery ? prev : routeQuery))
   }, [selectedInstanceId, routeSearch?.q])
 
-  // Update URL search param after debounce. Only new text writes the URL: on a
-  // change of page, the debounced text is older than the q of the new URL.
   useEffect(() => {
     if (!shouldShowInstanceControls) return
     const trimmedSearch = debouncedSearch.trim()
@@ -288,7 +282,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
     setFilterSidebarCollapsed((prev) => !prev)
   }, [setFilterSidebarCollapsed])
 
-  // Many layouts type "/" with Shift, for example Shift+7 on a Nordic or a German keyboard.
   useHotkeys(
     ["/", "shift+/"],
     () => searchInputRef.current?.focus(),
@@ -296,7 +289,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
       useKey: true,
       preventDefault: true,
       enabled: shouldShowInstanceControls,
-      // A narrow window hides the search field, and the key then stays with the browser.
       ignoreEventWhen: event => !searchInputRef.current?.offsetParent || (event.target instanceof Element && event.target.closest("[role=\"dialog\"]") !== null),
     },
     [shouldShowInstanceControls]
@@ -304,24 +296,21 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
   const { viewMode } = usePersistedCompactViewState("desktop")
   const activeTaskCount = useActiveTaskCount(selectedInstanceId, canManageSelectedInstance && shouldShowInstanceControls)
 
-  // Query instance capabilities via the dedicated lightweight endpoint
   const { data: instanceCapabilities } = useQuery<InstanceCapabilities>({
     queryKey: ["instance-capabilities", selectedInstanceId],
     queryFn: () => api.getInstanceCapabilities(selectedInstanceId!),
     enabled: canManageSelectedInstance,
-    staleTime: 300000, // Cache for 5 minutes (capabilities don't change often)
+    staleTime: 300000,
   })
 
   const supportsTorrentCreation = canManageSelectedInstance ? (instanceCapabilities?.supportsTorrentCreation ?? true) : false
 
-  // Instance settings dialog state
   const [instanceSettingsOpen, setInstanceSettingsOpen] = useState(false)
   const [unifiedAddTorrentInstanceId, setUnifiedAddTorrentInstanceId] = useState<number | null>(null)
   const [unifiedCreateTorrentInstanceId, setUnifiedCreateTorrentInstanceId] = useState<number | null>(null)
   const [unifiedTasksInstanceId, setUnifiedTasksInstanceId] = useState<number | null>(null)
   const [unifiedSettingsInstanceId, setUnifiedSettingsInstanceId] = useState<number | null>(null)
 
-  // Derived at render time — avoids a cleanup Effect for stale IDs
   const validUnifiedIds = useMemo(
     () => new Set(unifiedManageableInstances.map((instance) => instance.id)),
     [unifiedManageableInstances]
@@ -339,8 +328,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
   const innerHeight = viewMode === "dense" ? "h-10 lg:h-auto" : "h-12 lg:h-auto"
   const smInnerHeight = viewMode === "dense" ? "sm:h-10 lg:h-auto" : "sm:h-12 lg:h-auto"
 
-  // Assigned, not returned inline: the spreadsheet ribbon strip mounts as a
-  // sibling above the header without reindenting the whole header tree.
   const headerElement = (
     <header
       {...themeArea("app-header")}
@@ -363,9 +350,9 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
         {sidebarHidden && <OpenSidebarButton open={sidebarOpen} buttonRef={openSidebarButtonRef} onClick={onOpenSidebar} />}
         <HeaderInstanceTitle
           className={cn(
-            "lg:hidden", // Hidden on desktop by default
+            "lg:hidden",
             showTitleOnDesktop && "lg:flex",
-            !shouldShowQuiOnMobile && "hidden sm:flex" // Hide on mobile when on instance routes
+            !shouldShowQuiOnMobile && "hidden sm:flex"
           )}
           logoOnly={desktopChrome.logoOnly}
           instanceName={instanceName}
@@ -378,7 +365,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
         />
       </div>
 
-      {/* Filter button and action buttons - always on first row */}
       {shouldShowInstanceControls && (
         <>
           <div className={cn(
@@ -386,7 +372,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
             innerHeight,
             showTitleOnDesktop && "lg:ml-2"
           )}>
-            {/* Filter button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -442,7 +427,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
             )}
             {canManageSelectedInstance && (
               <>
-                {/* Add Torrent button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -459,7 +443,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
                   </TooltipTrigger>
                   <TooltipContent>{t("header.addTorrent")}</TooltipContent>
                 </Tooltip>
-                {/* Create Torrent button - only show if instance supports it */}
                 {supportsTorrentCreation && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -478,7 +461,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
                     <TooltipContent>{t("header.createTorrent")}</TooltipContent>
                   </Tooltip>
                 )}
-                {/* Tasks button - only show on instance routes if torrent creation is supported */}
                 {isInstanceRoute && supportsTorrentCreation && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -502,7 +484,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
                     <TooltipContent>{t("header.torrentCreationTasks")}</TooltipContent>
                   </Tooltip>
                 )}
-                {/* Instance settings button */}
                 {isInstanceRoute && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -522,7 +503,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
               </>
             )}
           </div>
-          {/* Management Bar - only shows when torrents selected, wraps to new line on tablet */}
           {!isMobile && selectionSummary && hasSelection(selection) && (
             <div className="sm:w-full sm:basis-full lg:basis-auto lg:w-auto sm:order-5 lg:order-none flex justify-center lg:justify-start lg:ml-2 animate-in fade-in duration-400 ease-out motion-reduce:animate-none motion-reduce:duration-0">
               <TorrentManagementBar
@@ -533,13 +513,10 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
           )}
         </>
       )}
-      {/* Instance route - search on right */}
       {shouldShowInstanceControls && (
         <div className={cn("flex items-center flex-1 gap-2 sm:order-3 lg:order-none", smInnerHeight)}>
 
-          {/* Right side: Filter button and Search bar */}
           <div className="flex items-center gap-2 flex-1 justify-end mr-2">
-            {/* Search bar - hidden on mobile (< lg), use modal search button instead */}
             <div className="relative w-full md:w-62 md:focus-within:w-full max-w-md transition-[width] duration-100 ease-out will-change-[width] hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none transition-opacity duration-300" />
               <Input
@@ -555,13 +532,11 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
                     else delete next.q
                     navigateWithSearch({ navigate, search: next, replace: true })
                   } else if (e.key === "Escape") {
-                    // Clear search and blur the input
                     e.preventDefault()
-                    e.stopPropagation() // Prevent event from bubbling to table selection handler
+                    e.stopPropagation()
                     if (searchValue) {
                       setSearchValue("")
                     }
-                    // Delay blur to match animation duration
                     setTimeout(() => {
                       searchInputRef.current?.blur()
                     }, 100)
@@ -571,7 +546,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
                 } ${isGlobSearch ? "ring-1 ring-primary" : ""}`}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {/* Clear search button */}
                 {searchValue && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -591,7 +565,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
                     <TooltipContent>{t("header.clearSearch")}</TooltipContent>
                   </Tooltip>
                 )}
-                {/* Info tooltip */}
                 <Tooltip>
                   <TooltipTrigger asChild openOnTap>
                     <button
@@ -631,7 +604,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
         <ThemeToggle />
       </div>
 
-      {/* Instance Preferences Dialog */}
       {selectedInstanceId !== null && selectedInstanceId > ALL_INSTANCES_ID && instanceName && (
         <InstancePreferencesDialog
           open={instanceSettingsOpen}
@@ -642,7 +614,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
         />
       )}
 
-      {/* Unified Add Torrent Dialog */}
       {unifiedAddTorrentInstanceId !== null && validUnifiedIds.has(unifiedAddTorrentInstanceId) && (
         <AddTorrentDialog
           instanceId={unifiedAddTorrentInstanceId}
@@ -653,7 +624,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
         />
       )}
 
-      {/* Unified Create Torrent Dialog */}
       {unifiedCreateTorrentInstanceId !== null && validUnifiedTorrentCreationIds.has(unifiedCreateTorrentInstanceId) && (
         <TorrentCreatorDialog
           instanceId={unifiedCreateTorrentInstanceId}
@@ -664,7 +634,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
         />
       )}
 
-      {/* Unified Torrent Creation Tasks Dialog */}
       {unifiedTasksInstanceId !== null && validUnifiedTorrentCreationIds.has(unifiedTasksInstanceId) && (() => {
         const inst = activeInstances.find(i => i.id === unifiedTasksInstanceId)
         if (!inst) return null
@@ -682,7 +651,6 @@ export function Header({ sidebarIconOnly = false, sidebarHidden = false, sidebar
         )
       })()}
 
-      {/* Unified Instance Settings Dialog */}
       {unifiedSettingsInstanceId !== null && validUnifiedIds.has(unifiedSettingsInstanceId) && (() => {
         const inst = activeInstances.find(i => i.id === unifiedSettingsInstanceId)
         if (!inst) return null

@@ -1,6 +1,10 @@
 # Fork-only targets (Qui Desktop). Included from the root Makefile so upstream merges stay conflict-free.
 
-.PHONY: desktop-dev desktop-refresh desktop-version-bump desktop-publish-release desktop-publish-qui-image upstream-sync upstream-sync-fork install-hooks
+.PHONY: desktop-dev desktop-refresh desktop-version-bump desktop-publish-release desktop-publish-qui-image upstream-sync upstream-sync-fork install-hooks themes-fetch themes-clean
+
+# Community themes already live in the repo. Desktop scripts still call these targets.
+themes-fetch themes-clean:
+	@true
 
 # Electron shell against Vite with all dependencies orchestrated in hot-reload mode.
 desktop-dev:
