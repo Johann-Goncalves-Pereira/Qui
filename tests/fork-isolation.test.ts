@@ -24,8 +24,17 @@ describe("BR-desktop-57 fork isolation layout", () => {
     const makefile = readFileSync(path.join(root, "Makefile"), "utf8")
     expect(existsSync(forkMk)).toBe(true)
     expect(makefile).toMatch(/^-include\s+mk\/fork\.mk/m)
-    expect(readFileSync(forkMk, "utf8")).toMatch(/desktop-dev:/)
-    expect(readFileSync(forkMk, "utf8")).toMatch(/upstream-sync-fork:/)
+    const phony = makefile
+      .split("\n")
+      .filter((line) => line.startsWith(".PHONY:"))
+      .join("\n")
+    expect(phony).not.toMatch(/\bthemes-fetch\b/)
+    expect(phony).not.toMatch(/\bthemes-clean\b/)
+    expect(phony).not.toMatch(/\bcheck-regression-marker\b/)
+    const forkMkText = readFileSync(forkMk, "utf8")
+    expect(forkMkText).toMatch(/desktop-dev:/)
+    expect(forkMkText).toMatch(/upstream-sync-fork:/)
+    expect(forkMkText).toMatch(/^themes-fetch\b/m)
   })
 
   it("loads a desktop i18n namespace for every locale", () => {

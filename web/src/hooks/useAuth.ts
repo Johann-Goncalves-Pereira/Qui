@@ -27,8 +27,6 @@ export function useAuth() {
       api.login(username, password, rememberMe),
     onSuccess: (data, variables) => {
       queryClient.setQueryData(["auth", "user"], data.user)
-      // Refetch the theme catalog now that the session can unlock the full
-      // premium CSS: the pre-login fetch only carried the selected theme.
       queryClient.invalidateQueries({ queryKey: ["builtin-themes"] })
       void saveDesktopAccount(variables)
       markPendingDesktopBiometricGate()
@@ -59,7 +57,6 @@ export function useAuth() {
 
   const setIsAuthenticated = (authenticated: boolean) => {
     if (authenticated) {
-      // Force refetch of user data
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] })
     } else {
       queryClient.setQueryData(["auth", "user"], null)

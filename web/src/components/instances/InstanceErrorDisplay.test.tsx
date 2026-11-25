@@ -31,7 +31,6 @@ afterEach(() => {
 })
 
 describe("InstanceErrorDisplay", () => {
-  // regression: #4233
   it("names each error category with a label, and an unknown category as Unknown", () => {
     const recentErrors = [
       { id: 1, instanceId: 3, errorType: "api", errorMessage: "bad response", occurredAt: "2026-01-02T03:04:05Z" },
