@@ -28,6 +28,7 @@ high-churn upstream paths.
 | Root update and shell hosts | `web/src/components/DesktopShellHost.tsx` | `__root.tsx` renders `RootLayout` inside it |
 | Theme side effects (glass, `syncTheme`) | `web/src/lib/desktop-theme.ts` | one `onThemeApplied(...)` call in `utils/theme.ts` |
 | Podman credentials guide | `web/src/components/instances/DesktopAuthRemediationCard.tsx` | one desktop-gated mount in `InstanceErrorDisplay.tsx` |
+| Dir Scan no-local-access card | `web/src/components/cross-seed/DesktopDirScanCompanionCard.tsx` | one mount in `DirScanTab.tsx` when `scanTargets.length === 0` |
 
 Do not add new desktop strings to shared `common.json` / `settings.json` /
 `instances.json` / `auth.json`. Prefer `desktop.json`.
