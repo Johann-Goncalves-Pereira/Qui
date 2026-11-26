@@ -12,6 +12,7 @@ import {
 	BrowserWindow,
 	ipcMain,
 	nativeTheme,
+	net,
 	safeStorage,
 	shell,
 } from 'electron'
@@ -126,7 +127,9 @@ const biometricAuth = new BiometricAuthService()
 /** Suppress repeat Podman image dialogs in one session (tray can force a recheck). */
 let podmanImageUpdatePromptShownThisSession = false
 let pendingContainerUpdates: ContainerUpdateTarget[] = []
-const apiClient = new QuiApiClient(quiWebOrigin)
+const apiClient = new QuiApiClient(quiWebOrigin, (input, init) =>
+	net.fetch(input, init),
+)
 const appUpdater = new AppReleaseUpdater()
 const magnetManager = new MagnetManager(quiWebOrigin)
 

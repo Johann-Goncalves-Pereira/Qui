@@ -106,5 +106,6 @@ behavior exists.
 | `BR-desktop-61` | `DesktopShellHost` renders its children and mounts `DesktopUpdateHost` for the router root | docs/desktop/fork-isolation.md | desktop/isolation | web/src/components/DesktopShellHost.test.tsx | `asserted-unit` |
 | `BR-desktop-62` | `onThemeApplied` syncs the applied theme to the desktop shell only when `window.quiDesktop.syncTheme` exists, swallows its rejection, and applies the stored glass opacity | docs/desktop/fork-isolation.md | desktop/isolation | web/src/lib/desktop-theme.test.ts | `asserted-unit` |
 | `BR-desktop-63` | The Podman credentials guide for qBittorrent authentication errors mounts only on the desktop shell; a standalone browser shows just the recent errors | docs/desktop/fork-isolation.md | desktop/isolation | web/src/components/instances/InstanceErrorDisplay.test.tsx | `asserted-unit` |
+| `BR-desktop-64` | Tray `QuiApiClient` lists instances, aggregates `/transfer-info` speeds and torrents Active/Total via session-aware fetch, and pause/resume use per-instance bulk-action `selectAll` | docs/desktop/tray-transfer-stats.md | desktop/api | tests/api.test.ts | `asserted-unit` |
 
 
