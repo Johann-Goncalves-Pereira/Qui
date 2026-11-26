@@ -85,11 +85,14 @@ let preview: { css: string; cssVars: Theme["cssVars"]; lightOnly: boolean } | nu
 
 export const getAppliedCustomThemeCss = (): string | null => appliedCustomCss;
 
-const paintCustomCss = (css: string): void => {
-  const root = document.documentElement;
+const clearInlineThemeVars = (root: HTMLElement): void => {
   Array.from(root.style)
     .filter(prop => prop.startsWith("--"))
     .forEach(prop => root.style.removeProperty(prop));
+};
+
+const paintCustomCss = (css: string): void => {
+  clearInlineThemeVars(document.documentElement);
   applyCustomThemeStyle(css);
 };
 
@@ -140,9 +143,7 @@ const applyTheme = async (theme: Theme, variation: string | null, isDark: boolea
     removeCustomThemeStyle();
     appliedCustomCss = null;
 
-    Array.from(root.style)
-      .filter(prop => prop.startsWith("--variation"))
-      .forEach(prop => root.style.removeProperty(prop));
+    clearInlineThemeVars(root);
 
     Object.entries(cssVars).forEach(([key, value]) => {
       root.style.setProperty(key, value);

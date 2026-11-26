@@ -75,6 +75,7 @@ import {
 } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TruncatedText } from "@/components/ui/truncated-text"
+import { DesktopDirScanCompanionCard } from "@/components/cross-seed/DesktopDirScanCompanionCard"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
 import { useInstanceMetadata } from "@/hooks/useInstanceMetadata"
 import i18n from "@/i18n"
@@ -97,11 +98,6 @@ import {
   useUpdateDirScanDirectory,
   useUpdateDirScanSettings
 } from "@/hooks/useDirScan"
-import { useInstances } from "@/hooks/useInstances"
-import {
-  buildDefaultCompanionInstance,
-  isDesktopEnvironment
-} from "@/lib/desktop-companion-instance"
 import type {
   DirScanDirectory,
   DirScanDirectoryCreate,
@@ -153,8 +149,6 @@ function RunFilesBadge({ run }: { run: DirScanRun }) {
 export function DirScanTab({ instances }: DirScanTabProps) {
   const { t } = useTranslation("crossseed")
   const { formatISOTimestamp } = useDateTimeFormatters()
-  const isDesktop = isDesktopEnvironment()
-  const { createInstance, isCreating } = useInstances()
   const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null)
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [showDirectoryDialog, setShowDirectoryDialog] = useState(false)
@@ -164,10 +158,6 @@ export function DirScanTab({ instances }: DirScanTabProps) {
   const { data: settings, isLoading: settingsLoading } = useDirScanSettings()
   const { data: directories = [], isLoading: directoriesLoading } = useDirScanDirectories()
   const updateSettings = useUpdateDirScanSettings()
-
-  const handleAddCompanionInstance = useCallback(() => {
-    createInstance(buildDefaultCompanionInstance())
-  }, [createInstance])
 
   const scanTargets = useMemo(
     () => instances.filter((i) => i.capabilities.read),
@@ -246,29 +236,7 @@ export function DirScanTab({ instances }: DirScanTabProps) {
         </CardHeader>
       </Card>
 
-      {scanTargets.length === 0 && (
-        <Card className="border-yellow-500/50 bg-yellow-500/5">
-          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="size-5 text-yellow-500 shrink-0" />
-              <p className="text-sm text-muted-foreground">
-                {t("dirScan.noLocalAccessWarning")}
-              </p>
-            </div>
-            {isDesktop && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAddCompanionInstance}
-                disabled={isCreating}
-                className="shrink-0"
-              >
-                {t("dirScan.addLocalCompanionInstance")}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {scanTargets.length === 0 && <DesktopDirScanCompanionCard />}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -401,7 +369,7 @@ function DirectoryCard({
           <div className="flex items-center gap-2">
             <span className="font-mono text-sm truncate">{directory.path}</span>
             {!directory.enabled && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary">
                 {t("dirScan.disabled")}
               </Badge>
             )}
@@ -470,13 +438,13 @@ function DirectoryCard({
 function DirectoryStatusBadge({ run }: { run: DirScanRun }) {
   const { t } = useTranslation("crossseed")
   const statusConfig: Record<DirScanRunStatus, { icon: React.ReactNode; color: string; label: string }> = {
-    queued: { icon: <Clock className="size-3" />, color: "text-blue-500", label: t("dirScan.statusLabels.queued") },
-    scanning: { icon: <Loader2 className="size-3 animate-spin" />, color: "text-blue-500", label: t("dirScan.statusLabels.scanning") },
-    searching: { icon: <Loader2 className="size-3 animate-spin" />, color: "text-blue-500", label: t("dirScan.statusLabels.searching") },
-    injecting: { icon: <Loader2 className="size-3 animate-spin" />, color: "text-blue-500", label: t("dirScan.statusLabels.injecting") },
-    success: { icon: <CheckCircle2 className="size-3" />, color: "text-green-500", label: t("dirScan.statusLabels.success") },
-    failed: { icon: <XCircle className="size-3" />, color: "text-red-500", label: t("dirScan.statusLabels.failed") },
-    canceled: { icon: <Clock className="size-3" />, color: "text-yellow-500", label: t("dirScan.statusLabels.canceled") },
+    queued: { icon: <Clock className="size-3" />, color: "text-info", label: t("dirScan.statusLabels.queued") },
+    scanning: { icon: <Loader2 className="size-3 animate-spin" />, color: "text-info", label: t("dirScan.statusLabels.scanning") },
+    searching: { icon: <Loader2 className="size-3 animate-spin" />, color: "text-info", label: t("dirScan.statusLabels.searching") },
+    injecting: { icon: <Loader2 className="size-3 animate-spin" />, color: "text-info", label: t("dirScan.statusLabels.injecting") },
+    success: { icon: <CheckCircle2 className="size-3" />, color: "text-success", label: t("dirScan.statusLabels.success") },
+    failed: { icon: <XCircle className="size-3" />, color: "text-destructive", label: t("dirScan.statusLabels.failed") },
+    canceled: { icon: <Clock className="size-3" />, color: "text-warning", label: t("dirScan.statusLabels.canceled") },
   }
 
   const config = statusConfig[run.status]
@@ -521,7 +489,7 @@ function InjectionStatusBadge({ injection }: { injection: DirScanRunInjection })
   const { t } = useTranslation("crossseed")
   const isFailed = injection.status === "failed"
   return (
-    <span className={`inline-flex items-center gap-1 text-xs ${isFailed ? "text-red-500" : "text-green-500"}`}>
+    <span className={`inline-flex items-center gap-1 text-xs ${isFailed ? "text-destructive" : "text-success"}`}>
       {isFailed ? <XCircle className="size-3" /> : <CheckCircle2 className="size-3" />}
       <span>{isFailed ? t("dirScan.statusLabels.failed") : t("dirScan.statusLabels.added")}</span>
     </span>
@@ -1519,9 +1487,9 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
           </div>
 
           {isRegularMode && (
-            <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/5 p-4 space-y-3">
+            <div className="rounded-lg border border-warning/50 bg-warning/5 p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="size-5 text-yellow-500 shrink-0 mt-0.5" />
+                <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-foreground">
                     {t("dirScan.directoryDialog.regularModeTitle")}
@@ -1611,7 +1579,7 @@ function DeleteDirectoryDialog({ directoryId, onOpenChange }: DeleteDirectoryDia
           <AlertDialogCancel>{t("dirScan.deleteDialog.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            variant="destructive"
           >
             {deleteDirectory.isPending && <Loader2 className="size-4 mr-2 animate-spin" />}
             {t("dirScan.deleteDialog.delete")}
