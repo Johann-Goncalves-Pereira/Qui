@@ -1,20 +1,28 @@
 # Build stage
 FROM node:24.15-alpine AS frontend-builder
 
+# Install git for cloning
+RUN apk add --no-cache git
+
+# Update and enable Corepack
+RUN npm install -g corepack@latest && \
+    corepack enable
+
 WORKDIR /app/web
 
-COPY web ./
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# Use existing dist if already built, otherwise install deps and build
+COPY web ./
+COPY internal/themes/testdata/outside_files.json /app/internal/themes/testdata/
+# Use existing dist if already built (desktop image packaging), otherwise build
 RUN if [ ! -f "dist/index.html" ]; then \
-      apk add --no-cache git && \
-      npm install -g corepack@latest && corepack enable && \
-      pnpm install --frozen-lockfile && \
       pnpm run build; \
     fi
 
 # Go build stage
-FROM golang:1.27-alpine3.23 AS go-builder
+# Use BUILDPLATFORM to build on native architecture (fast)
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine3.23 AS go-builder
 
 # Install build dependencies
 RUN apk add --no-cache git
@@ -54,10 +62,9 @@ RUN case "${TARGETARCH}" in \
     esac
 
 # Build the application
-# If binary is not pre-built, compile it
+# If binary is not pre-built, compile it (desktop image packaging may supply qui)
 RUN if [ ! -f "qui" ]; then \
       if [ -z "$(ls -A internal/themes/assets/premium/*.css 2>/dev/null)" ]; then \
-        apk add --no-cache git && \
         git clone --quiet --depth=1 --branch main --filter=blob:none --sparse https://github.com/autobrr/qui-community-themes.git .themes-temp && \
         git -C .themes-temp sparse-checkout set --cone themes && \
         cp .themes-temp/themes/[!_]*.css .themes-temp/LICENSE internal/themes/assets/premium/ && \

@@ -1,6 +1,7 @@
 import path from 'node:path'
 
 import js from '@eslint/js'
+import { plugin as shadcn } from '@shadcn/lint'
 import stylistic from '@stylistic/eslint-plugin'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
@@ -171,6 +172,7 @@ const effectHooks = {
   'src/hooks/useDelayedVisibility.ts': 'Says when the tab has been hidden for a delay.',
   'src/hooks/useDesktopUpdateDialogRequest.ts': 'Opens the desktop update dialog when the desktop shell asks for it.',
   'src/hooks/useDesktopSidebarChrome.ts': 'Lines macOS traffic lights with the docked sidebar logo.',
+  'src/hooks/useLastDayPeriod.ts': 'Gives the last 24 hours, and moves them on after each history write while the tab is visible.',
   'src/hooks/useNow.ts': 'Gives the time, and renders again each minute.',
   'src/hooks/usePageTitle.ts': 'Passes the title detail and the speeds of the open page to the tab title.',
   'src/hooks/useTabTitle.ts': 'Writes the browser tab title.',
@@ -415,6 +417,45 @@ export default tseslint.config([
       '@typescript-eslint/no-non-null-assertion': 'error',
       'qui/entry-files': ['error', { root: path.join(import.meta.dirname, 'src'), features: 'components' }],
       'qui/layer-order': ['error', { root: path.join(import.meta.dirname, 'src'), layers }],
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}', '**/__tests__/**', 'src/test/**'],
+    plugins: { shadcn },
+    settings: {
+      shadcn: {
+        note: 'Ask the maintainer before you add an option to a primitive.',
+        ui: '@/components/ui',
+      },
+    },
+    rules: {
+      'shadcn/no-arbitrary-values': ['error', { allow: ['layout'] }],
+      'shadcn/no-restyle': ['error', {
+        deny: [],
+        contracts: [{
+          pattern: '^(Button|Badge|Label)$',
+          allow: ['layout'],
+          message: { typography: '"{{className}}" is not allowed on <{{component}}>: <{{component}}> owns its {{category}}. Use a size: {{sizes}}.' },
+        }],
+      }],
+      'shadcn/no-raw-colors': 'error',
+      'shadcn/no-unknown-classes': ['error', { allow: ['ss-*', 'fi', 'animated-logo-element', 'toaster'] }],
+      'shadcn/require-static-classes': 'error',
+    },
+  },
+  {
+    files: ['src/components/{ui,kit}/**/*.{ts,tsx}'],
+    rules: {
+      'shadcn/no-arbitrary-values': 'off',
+      'shadcn/no-restyle': 'off',
+      'shadcn/require-static-classes': 'off',
+    },
+  },
+  {
+    files: ['src/components/ui/{Logo,AnimatedLogo}.tsx'],
+    rules: {
+      'shadcn/no-raw-colors': 'off',
     },
   },
 ])
